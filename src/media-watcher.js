@@ -12,6 +12,7 @@ function createMediaWatcher(options) {
   const opts = options || {};
   const scriptPath = opts.scriptPath || path.join(__dirname, '..', 'scripts', 'media-watcher.ps1');
   const onStatus = opts.onStatus || function () {};
+  const spawnImpl = opts.spawn || spawn;
 
   let child = null;
   let buffer = '';
@@ -58,9 +59,10 @@ function createMediaWatcher(options) {
   }
 
   function start() {
-    if (stopped || child) return;
+    stopped = false;
+    if (child) return;
     try {
-      child = spawn(
+      child = spawnImpl(
         'powershell.exe',
         ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
         { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] },
