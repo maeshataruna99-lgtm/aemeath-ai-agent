@@ -197,6 +197,35 @@ body {
   font-style: italic;
 }
 
+#chat-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding: 4px;
+  background: #fff7fb;
+  border: 1px solid #f9a8d4;
+  border-radius: 10px;
+}
+
+#chat-suggest button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  border: 0;
+}
+
+#chat-suggest .hint {
+  color: #6b7280;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 #chat-form {
   display: flex;
   gap: 6px;

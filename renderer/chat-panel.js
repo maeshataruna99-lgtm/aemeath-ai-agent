@@ -17,7 +17,8 @@
     return Math.min(max, Math.max(min, value));
   }
 
-  // options: { api, anchor(): { centerX, top, bottom }, bounds(): { width, height } }
+  // options: { api, anchor(): { centerX, top, bottom }, bounds(): { width, height },
+  //            onCommand() called after a slash command opened something }
   function create(options) {
     const api = options.api;
     const el = document.getElementById('chat');
@@ -30,6 +31,7 @@
     const settingsButton = document.getElementById('chat-settings');
     const resetButton = document.getElementById('chat-reset');
     const closeButton = document.getElementById('chat-close');
+    const suggest = document.getElementById('chat-suggest');
 
     let isOpen = false;
     let busy = false;
@@ -37,6 +39,7 @@
     let offlineMode = false;
     let idleTimer = null;
     let forgetTimer = null;
+    let commands = [];
 
     function add(kind, text, sources) {
       const message = document.createElement('div');
@@ -56,9 +59,59 @@
       return message;
     }
 
+    // Slash commands work without the chatbot, so the box stays usable even when
+    // there is no key and offline answers are switched off.
     function controls() {
-      input.disabled = !ready;
-      send.disabled = !ready || busy;
+      input.disabled = false;
+      send.disabled = busy;
+    }
+
+    async function refreshCommands() {
+      try {
+        commands = await api.listCommands();
+      } catch {
+        commands = [];
+      }
+      showSuggestions();
+    }
+
+    function hideSuggestions() {
+      suggest.classList.add('hidden');
+      suggest.textContent = '';
+    }
+
+    // While Rover types "/...", offer the saved commands that match.
+    function showSuggestions() {
+      const text = input.value;
+      if (!isOpen || !text.startsWith('/') || /\s/.test(text)) return hideSuggestions();
+      const prefix = text.slice(1).toLowerCase();
+      const matches = commands.filter((c) => c.name.startsWith(prefix)).slice(0, 8);
+      suggest.textContent = '';
+      if (matches.length === 0) return hideSuggestions();
+      for (const command of matches) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        const name = document.createElement('span');
+        name.textContent = '/' + command.name;
+        const note = document.createElement('span');
+        note.className = 'hint';
+        note.textContent = command.description;
+        button.append(name, note);
+        button.addEventListener('click', () => {
+          input.value = '/' + command.name;
+          hideSuggestions();
+          input.focus();
+        });
+        suggest.appendChild(button);
+      }
+      suggest.classList.remove('hidden');
+      reposition();
+    }
+
+    // Tab completes to the first suggestion.
+    function completeFirst() {
+      const first = suggest.querySelector('button');
+      if (first) first.click();
     }
 
     function touch() {
@@ -116,7 +169,7 @@
       if (log.children.length === 0) add('bot', GREETING);
       reposition();
       api.focusWindow();
-      await refreshStatus();
+      await Promise.all([refreshStatus(), refreshCommands()]);
       input.focus();
       touch();
     }
@@ -137,10 +190,37 @@
       forgetTimer = setTimeout(resetConversation, FORGET_AFTER_MS);
     }
 
+    // Slash commands are answered on this machine: no model, no search, no history.
+    async function runCommand(text) {
+      add('user', text);
+      busy = true;
+      controls();
+      try {
+        const result = await api.runCommand(text);
+        add(result.ok ? 'bot' : 'err', result.text);
+        if (result.launched && options.onCommand) options.onCommand();
+      } catch {
+        add('err', 'Perintahnya gagal dijalankan.');
+      } finally {
+        busy = false;
+        controls();
+        reposition();
+        if (isOpen) input.focus();
+        touch();
+      }
+    }
+
     async function submit() {
       const text = input.value.trim();
-      if (!text || !ready || busy) return;
+      if (!text || busy) return;
       input.value = '';
+      hideSuggestions();
+      if (text.startsWith('/')) return runCommand(text);
+      if (!ready) {
+        add('user', text);
+        add('err', 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
+        return;
+      }
       add('user', text);
       const pending = add('bot pending', 'Aemeath sedang berpikir...');
       busy = true;
@@ -171,16 +251,24 @@
       event.preventDefault();
       submit();
     });
+    input.addEventListener('input', showSuggestions);
     el.addEventListener('keydown', (event) => {
       touch();
       if (event.key === 'Escape') close();
+      if (event.key === 'Tab' && !suggest.classList.contains('hidden')) {
+        event.preventDefault();
+        completeFirst();
+      }
     });
     resetButton.addEventListener('click', resetConversation);
     closeButton.addEventListener('click', close);
     settingsButton.addEventListener('click', () => api.openSettings());
     // Coming back from Settings: pick up a newly saved or removed key.
     window.addEventListener('focus', () => {
-      if (isOpen) refreshStatus();
+      if (isOpen) {
+        refreshStatus();
+        refreshCommands();
+      }
     });
 
     return {

@@ -131,6 +131,66 @@ button:disabled {
   cursor: default;
 }
 
+code {
+  padding: 0 4px;
+  background: #fde7f1;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.hint.tight0 {
+  margin: 0 0 10px;
+}
+
+.cmd {
+  margin-bottom: 10px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #f9c9de;
+  border-radius: 10px;
+}
+
+.cmd .line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.cmd .line:last-of-type {
+  margin-bottom: 0;
+}
+
+.cmd input {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #f9a8d4;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.cmd .slash {
+  color: #be185d;
+  font-weight: 600;
+}
+
+.cmd .name {
+  width: 110px;
+}
+
+.cmd .grow {
+  flex: 1;
+}
+
+.cmd .row-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
 .status {
   margin: 8px 0 0;
   font-size: 12px;

@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('aemeath', {
   chatSend: (text) => ipcRenderer.invoke('chat:send', text),
   chatReset: () => ipcRenderer.invoke('chat:reset'),
   openSettings: () => ipcRenderer.send('chat:open-settings'),
+  listCommands: () => ipcRenderer.invoke('command:list'),
+  runCommand: (text) => ipcRenderer.invoke('command:run', text),
   focusWindow: () => ipcRenderer.send('chat:focus'),
   blurWindow: () => ipcRenderer.send('chat:blur'),
   onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),

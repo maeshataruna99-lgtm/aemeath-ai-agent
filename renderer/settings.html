@@ -74,6 +74,28 @@
         untuk dijawab. Riwayat percakapan hanya ada di memori dan dilupakan beberapa menit setelah kotak chat ditutup.
       </p>
     </section>
+
+    <hr>
+
+    <section class="row" id="commands">
+      <h2>Perintah kustom</h2>
+      <p class="hint tight0">
+        Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan,
+        misalnya <code>/invoice</code> untuk folder invoice atau <code>/wuwa</code> untuk launcher game.
+        Ketik <code>/</code> saja untuk melihat daftarnya. Perintah dijalankan di komputer ini saja:
+        tidak dikirim ke chatbot, dan hanya teks yang kamu ketik sendiri yang bisa memicunya.
+      </p>
+      <div id="command-list"></div>
+      <div class="buttons">
+        <button type="button" id="add-command">Tambah perintah</button>
+      </div>
+      <p id="command-status" class="status"></p>
+      <p class="hint">
+        Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
+        <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
+        Argumen hanya berlaku untuk program berekstensi .exe.
+      </p>
+    </section>
   </main>
   <script src="../src/dialogue.js"></script>
   <script src="settings.js"></script>

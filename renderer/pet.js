@@ -103,6 +103,7 @@
         bottom: walker.y + petHeight(),
       }),
       bounds: () => workArea,
+      onCommand: () => setTransient('jumping', 1200),
     });
 
     sprite = new Image();

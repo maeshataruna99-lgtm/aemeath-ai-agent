@@ -7,11 +7,14 @@ const {
   Menu,
   ipcMain,
   nativeImage,
+  dialog,
   safeStorage,
   screen,
+  shell,
 } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const { spawn } = require('node:child_process');
 
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
 const { createMediaWatcher } = require('./src/media-watcher');
@@ -21,6 +24,9 @@ const { createProviders } = require('./src/chat/providers');
 const { createChatService } = require('./src/chat/chat-service');
 const { createWebSearch } = require('./src/chat/web-search');
 const { createLocalResponder } = require('./src/chat/local-responder');
+const { createCommandStore } = require('./src/commands/command-store');
+const { createCommandRunner } = require('./src/commands/command-runner');
+const { createCommandHandler } = require('./src/commands/command-handler');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -44,6 +50,7 @@ function main() {
   let win = null;
   let settingsWin = null;
   let keyStore = null;
+  let commandStore = null;
   let tray = null;
   let provider = null;
   let media = null;
@@ -149,9 +156,33 @@ function main() {
     };
   }
 
+  // Custom slash commands. The runner is the only code that launches anything,
+  // and it only ever receives commands the settings window saved. The selfie
+  // run records launches instead of making them.
+  const selfieLaunches = [];
+  const commandRunner = isSelfie
+    ? {
+        run: async (command) => {
+          selfieLaunches.push(command.target);
+          return { ok: true };
+        },
+      }
+    : createCommandRunner({ shell, spawn, exists: fs.existsSync, env: process.env });
+  const commandHandler = createCommandHandler({
+    getCommands: () => (commandStore ? commandStore.list() : []),
+    run: commandRunner.run,
+  });
+
   const fromWindow = (event, target) => Boolean(target) && event.sender === target.webContents;
 
   app.whenReady().then(() => {
+    // The selfie run uses a throwaway folder so it never touches real commands.
+    commandStore = createCommandStore({
+      dir: isSelfie
+        ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
+        : app.getPath('userData'),
+    });
+
     // The selfie run keeps keys in memory so it can never touch a real saved key.
     keyStore = createKeyStore({
       dir: app.getPath('userData'),
@@ -281,6 +312,30 @@ function main() {
         Object.assign(settings, settingsStore.save({ chatProvider: provider.id, chatModel: model }));
       }
       return chatStatus();
+    });
+
+    // Slash commands: the overlay can list names and run by typed text, never
+    // see targets; only the settings window can read or change the definitions.
+    ipcMain.handle('command:list', (event) =>
+      fromWindow(event, win)
+        ? commandStore.list().map((c) => ({ name: c.name, description: c.description }))
+        : [],
+    );
+    ipcMain.handle('command:run', (event, text) =>
+      fromWindow(event, win) ? commandHandler.handle(String(text == null ? '' : text)) : { isCommand: false },
+    );
+    ipcMain.handle('commands:get', (event) => (fromWindow(event, settingsWin) ? commandStore.list() : []));
+    ipcMain.handle('commands:save', (event, list) =>
+      fromWindow(event, settingsWin)
+        ? commandStore.save(list)
+        : { saved: [], errors: [{ index: -1, message: 'Tidak diizinkan.' }] },
+    );
+    ipcMain.handle('commands:pick', async (event, kind) => {
+      if (!fromWindow(event, settingsWin)) return null;
+      const picked = await dialog.showOpenDialog(settingsWin, {
+        properties: [kind === 'folder' ? 'openDirectory' : 'openFile'],
+      });
+      return picked.canceled ? null : picked.filePaths[0];
     });
 
     ipcMain.on('app:quit', () => app.quit());
@@ -595,6 +650,61 @@ function main() {
     const shotChat = await win.webContents.capturePage();
     fs.writeFileSync(path.join(dir, 'chat-panel.png'), shotChat.toPNG());
     console.log('[aemeath] selfie saved: chat-panel');
+
+    // Custom commands: save through the settings window, then run them from the
+    // chat box. Launches are recorded by the selfie runner, never made.
+    const saveResult = await settingsWin.webContents.executeJavaScript(
+      `window.aemeathSettings.saveCommands([
+        { name: '/Invoice', target: ${JSON.stringify(app.getPath('temp'))}, description: 'folder invoice' },
+        { name: 'wuwa', target: 'https://example.com/wuwa' },
+        { name: 'bad name', target: 'notepad.exe' },
+      ]).then((r) => JSON.stringify({ saved: r.saved.map((c) => c.name), errors: r.errors.map((e) => e.message) }))`,
+    );
+    console.log('[aemeath] commands saved ' + saveResult);
+    settingsWin.webContents.reload();
+    await sleep(1200);
+    await settingsWin.webContents.executeJavaScript(
+      `document.getElementById('commands').scrollIntoView()`,
+    );
+    await sleep(300);
+    const shotCommands = await settingsWin.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'settings-commands.png'), shotCommands.toPNG());
+
+    const requestsBefore = selfieRequests.length;
+    win.webContents.send('chat:toggle'); // close
+    await sleep(300);
+    win.webContents.send('chat:toggle'); // reopen so it loads the new commands
+    await sleep(1200);
+    const type = (text) =>
+      win.webContents.executeJavaScript(
+        `(() => {
+          const input = document.getElementById('chat-input');
+          input.value = ${JSON.stringify(text)};
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`,
+      );
+    await type('/');
+    await sleep(400);
+    const suggestions = await win.webContents.executeJavaScript(
+      `JSON.stringify([...document.querySelectorAll('#chat-suggest button')].map((b) => b.textContent))`,
+    );
+    console.log('[aemeath] suggestions for "/" ' + suggestions);
+    const shotSuggest = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'chat-suggest.png'), shotSuggest.toPNG());
+
+    for (const text of ['/invoice', '/nope', '/ketik;calc', '/help']) {
+      await type(text);
+      await win.webContents.executeJavaScript(`document.getElementById('chat-form').requestSubmit()`);
+      await sleep(600);
+    }
+    const commandReplies = await win.webContents.executeJavaScript(
+      `JSON.stringify([...document.querySelectorAll('#chat-log .msg')].slice(-8).map((m) => m.textContent))`,
+    );
+    console.log('[aemeath] command replies ' + commandReplies);
+    console.log('[aemeath] launches ' + JSON.stringify(selfieLaunches));
+    console.log('[aemeath] model calls during commands ' + (selfieRequests.length - requestsBefore));
+    const shotRun = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'chat-commands.png'), shotRun.toPNG());
     app.quit();
   }
 
