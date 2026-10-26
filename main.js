@@ -449,7 +449,7 @@ function main() {
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
       { type: 'separator' },
-      { label: 'Ngobrol dengan Aemeath...', click: () => toggleChat() },
+      { label: 'Fleet Snowfluff GPT...', click: () => toggleChat() },
       { type: 'separator' },
       { label: 'Tampilkan Aemeath', click: () => win?.show() },
       { label: 'Sembunyikan Aemeath', click: () => win?.hide() },

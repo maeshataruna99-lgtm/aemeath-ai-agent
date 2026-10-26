@@ -30,7 +30,7 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   wajah bingung, dan menampilkan pertanyaannya. Izin tool biasa tidak tercatat di transkrip,
   jadi tidak terdeteksi.
 
-### Ngobrol dengan Aemeath
+### Fleet Snowfluff GPT (ngobrol dengan Aemeath)
 
 - **Celetukan.** Sesekali Aemeath menyapamu sendiri, dalam Bahasa Indonesia dan dengan
   kepribadiannya: ada baris khusus saat sesi AI berjalan, musik diputar, pagi hari, atau lewat
@@ -38,7 +38,7 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   Pengaturan (rata-rata 1 sampai 15 menit, bawaan 3,5), dan bisa dimatikan.
 - **Trivia berkredit.** Sebagian celetukan berupa trivia lore Wuthering Waves dari `lorebook/`
   (42 entri parafrasa, 13 sumber) dengan baris "Sumber: ..." di bawahnya.
-- **Kotak chat di samping Aemeath.** Klik Aemeath (atau pilih "Ngobrol dengan Aemeath..." di
+- **Kotak chat di samping Aemeath.** Klik Aemeath (atau pilih "Fleet Snowfluff GPT..." di
   tray), ketik, tekan Enter. Esc menutup, tombol ↺ memulai percakapan baru. Tidak ada jendela
   terpisah, dan kotaknya menyesuaikan ruang supaya tidak menutupi Aemeath.
 - **Persona.** Chat memakai API DeepSeek (`deepseek-flash` atau `deepseek-v4-pro`). Aemeath
