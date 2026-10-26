@@ -1,2 +1,8 @@
 node_modules/
 .verify/
+
+# Local secrets: never commit
+.env
+.env.*
+chat-keys.json
+*.key
