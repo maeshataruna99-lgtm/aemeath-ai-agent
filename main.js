@@ -25,6 +25,8 @@ function main() {
   const isSelfie = process.argv.includes('--selfie');
   app.setAppUserModelId('aemeath.ai.agent');
 
+  const ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
+
   let win = null;
   let settingsWin = null;
   let tray = null;
@@ -145,6 +147,7 @@ function main() {
       maximizable: false,
       autoHideMenuBar: true,
       title: 'Pengaturan Aemeath',
+      icon: ICON_PATH,
       webPreferences: {
         preload: path.join(__dirname, 'settings-preload.js'),
         contextIsolation: true,
@@ -260,8 +263,8 @@ function main() {
 
   function createTray() {
     const icon = nativeImage
-      .createFromPath(path.join(__dirname, 'assets', 'icon.png'))
-      .resize({ width: 16, height: 16 });
+      .createFromPath(ICON_PATH)
+      .resize({ width: 32, height: 32, quality: 'best' });
     tray = new Tray(icon);
     tray.setToolTip('Aemeath');
     updateTray();
