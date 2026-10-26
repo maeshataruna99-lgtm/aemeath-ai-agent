@@ -14,6 +14,7 @@ const {
 } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 const { spawn } = require('node:child_process');
 
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
@@ -27,6 +28,9 @@ const { createLocalResponder } = require('./src/chat/local-responder');
 const { createCommandStore } = require('./src/commands/command-store');
 const { createCommandRunner } = require('./src/commands/command-runner');
 const { createCommandHandler } = require('./src/commands/command-handler');
+const { createUacGate } = require('./src/terminal/uac-gate');
+const { createTerminalSession } = require('./src/terminal/terminal-session');
+const { createTerminalController } = require('./src/terminal/terminal-controller');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -168,9 +172,23 @@ function main() {
         },
       }
     : createCommandRunner({ shell, spawn, exists: fs.existsSync, env: process.env });
+  // Terminal mode: /change-mode asks Windows for admin consent (UAC) and then opens a
+  // PowerShell that runs as the normal user. The selfie run skips the real prompt.
+  const terminal = createTerminalController({
+    gate: isSelfie ? { request: async () => ({ granted: true }) } : createUacGate({ spawn }),
+    createSession: () => createTerminalSession({ spawn, cwd: os.homedir() }),
+    isEnabled: () => settings.terminalEnabled !== false,
+  });
+  const builtins = {
+    'change-mode': {
+      description: 'Ganti mode obrolan dan terminal PowerShell',
+      run: () => terminal.changeMode(),
+    },
+  };
   const commandHandler = createCommandHandler({
     getCommands: () => (commandStore ? commandStore.list() : []),
     run: commandRunner.run,
+    builtins: builtins,
   });
 
   const fromWindow = (event, target) => Boolean(target) && event.sender === target.webContents;
@@ -249,7 +267,7 @@ function main() {
     ipcMain.on('settings-window:set', (_event, patch) => {
       const next = {};
       if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
-      for (const flag of ['chatWebSearch', 'chatOfflineFallback']) {
+      for (const flag of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled']) {
         if (patch && typeof patch[flag] === 'boolean') next[flag] = patch[flag];
       }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
@@ -318,9 +336,27 @@ function main() {
     // see targets; only the settings window can read or change the definitions.
     ipcMain.handle('command:list', (event) =>
       fromWindow(event, win)
-        ? commandStore.list().map((c) => ({ name: c.name, description: c.description }))
+        ? Object.entries(builtins)
+            .map(([name, b]) => ({ name: name, description: b.description, builtin: true }))
+            .concat(commandStore.list().map((c) => ({ name: c.name, description: c.description })))
         : [],
     );
+
+    // Terminal lines: only the overlay may send them, only while the mode is on, and
+    // the mode can only be switched on through /change-mode and its consent prompt.
+    ipcMain.handle('terminal:run', async (event, text) => {
+      if (!fromWindow(event, win)) return { ok: false, mode: 'chat', error: 'Tidak diizinkan.' };
+      win?.webContents?.send('chat:state', { thinking: true });
+      try {
+        return await terminal.run(String(text == null ? '' : text));
+      } finally {
+        win?.webContents?.send('chat:state', { thinking: false });
+      }
+    });
+    ipcMain.handle('terminal:stop', (event) => {
+      if (fromWindow(event, win)) terminal.stop();
+      return true;
+    });
     ipcMain.handle('command:run', (event, text) =>
       fromWindow(event, win) ? commandHandler.handle(String(text == null ? '' : text)) : { isCommand: false },
     );
@@ -346,6 +382,7 @@ function main() {
 
   app.on('window-all-closed', () => app.quit());
   app.on('before-quit', () => {
+    terminal.stop();
     if (provider) provider.stop();
     if (media) media.stop();
     if (aggregateTimer) clearInterval(aggregateTimer);
@@ -618,6 +655,8 @@ function main() {
       })`,
     );
     console.log('[aemeath] key check (settings) ' + settingsLeak);
+    await settingsWin.webContents.executeJavaScript(`document.getElementById('tab-chatbot').click()`);
+    await sleep(300);
     const shotSettings = await settingsWin.webContents.capturePage();
     fs.writeFileSync(path.join(dir, 'settings-chatbot.png'), shotSettings.toPNG());
 
@@ -664,7 +703,7 @@ function main() {
     settingsWin.webContents.reload();
     await sleep(1200);
     await settingsWin.webContents.executeJavaScript(
-      `document.getElementById('commands').scrollIntoView()`,
+      `document.getElementById('tab-commands').click(); document.getElementById('builtin').scrollIntoView()`,
     );
     await sleep(300);
     const shotCommands = await settingsWin.webContents.capturePage();
@@ -705,6 +744,40 @@ function main() {
     console.log('[aemeath] model calls during commands ' + (selfieRequests.length - requestsBefore));
     const shotRun = await win.webContents.capturePage();
     fs.writeFileSync(path.join(dir, 'chat-commands.png'), shotRun.toPNG());
+
+    // Terminal mode: /change-mode (the Windows prompt is skipped here), then a real
+    // PowerShell session with harmless commands, then back to chat.
+    const submit = async (text, wait) => {
+      await type(text);
+      await win.webContents.executeJavaScript(`document.getElementById('chat-form').requestSubmit()`);
+      await sleep(wait || 900);
+    };
+    const launchesBefore = selfieLaunches.length;
+    await submit('/change-mode', 1800);
+    const modeOn = await win.webContents.executeJavaScript(
+      `JSON.stringify({ terminal: document.getElementById('chat').classList.contains('terminal'), badge: !document.getElementById('chat-mode').classList.contains('hidden'), placeholder: document.getElementById('chat-input').placeholder })`,
+    );
+    console.log('[aemeath] terminal mode on ' + modeOn);
+    await submit('Set-Location $env:TEMP', 1500);
+    await submit('$greet = "halo dari terminal"; $greet', 1200);
+    await submit(
+      '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
+      1200,
+    );
+    await submit('Get-Item Z:/tidak/ada', 1200);
+    await submit('/invoice', 1200); // a custom command name is just text to the shell now
+    const shotTerminal = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'chat-terminal.png'), shotTerminal.toPNG());
+    const termLog = await win.webContents.executeJavaScript(
+      `JSON.stringify([...document.querySelectorAll('#chat-log .msg')].slice(-10).map((m) => m.className.replace('msg ', '') + ': ' + m.textContent.slice(0, 110)))`,
+    );
+    console.log('[aemeath] terminal log ' + termLog);
+    console.log('[aemeath] custom launches during terminal mode ' + (selfieLaunches.length - launchesBefore));
+    await submit('exit', 1500);
+    const modeOff = await win.webContents.executeJavaScript(
+      `JSON.stringify({ terminal: document.getElementById('chat').classList.contains('terminal'), last: document.querySelector('#chat-log .msg:last-child').textContent })`,
+    );
+    console.log('[aemeath] terminal mode off ' + modeOff);
     app.quit();
   }
 

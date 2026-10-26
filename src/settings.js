@@ -16,6 +16,7 @@ const DEFAULTS = {
   chatModel: 'deepseek-flash',
   chatWebSearch: false,
   chatOfflineFallback: true,
+  terminalEnabled: true,
   x: null,
   y: null,
 };
@@ -31,13 +32,13 @@ function clampInterval(value) {
   return Math.min(MAX_CHAT_INTERVAL, Math.max(MIN_CHAT_INTERVAL, value));
 }
 
-// Provider and model are plain identifiers; anything else falls back to defaults.
 function keepFlags(data) {
-  for (const key of ['chatWebSearch', 'chatOfflineFallback']) {
+  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled']) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
 }
 
+// Provider and model are plain identifiers; anything else falls back to defaults.
 function keepStrings(data) {
   for (const key of ['chatProvider', 'chatModel']) {
     if (typeof data[key] !== 'string' || data[key] === '') data[key] = DEFAULTS[key];

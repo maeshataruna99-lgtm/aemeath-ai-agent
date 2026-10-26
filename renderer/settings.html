@@ -10,92 +10,124 @@
   <main>
     <h1>Pengaturan Aemeath</h1>
 
-    <label class="row check">
-      <input type="checkbox" id="chatter">
-      <span>Aemeath boleh mengajakmu bicara</span>
-    </label>
+    <div class="tabs" role="tablist" aria-label="Bagian pengaturan">
+      <button type="button" role="tab" id="tab-general" class="tab" aria-controls="panel-general" aria-selected="true">Umum</button>
+      <button type="button" role="tab" id="tab-chatbot" class="tab" aria-controls="panel-chatbot" aria-selected="false" tabindex="-1">Chatbot</button>
+      <button type="button" role="tab" id="tab-commands" class="tab" aria-controls="panel-commands" aria-selected="false" tabindex="-1">Perintah</button>
+    </div>
 
-    <section class="row">
-      <div class="head">
-        <label for="interval">Jeda antar celetukan</label>
-        <output id="value"></output>
-      </div>
-      <input type="range" id="interval" min="1" max="15" step="0.5">
-      <div class="scale"><span>sering</span><span>jarang</span></div>
-      <p id="range" class="hint"></p>
-    </section>
-
-    <hr>
-
-    <section class="row" id="chatbot">
-      <h2>Chatbot</h2>
-
-      <label class="field" for="provider">Penyedia</label>
-      <select id="provider"></select>
-
-      <label class="field" for="model">Model</label>
-      <select id="model"></select>
-
-      <label class="field check" for="websearch">
-        <input type="checkbox" id="websearch">
-        <span>Cari di web agar jawaban lebih akurat</span>
+    <div class="panel" role="tabpanel" id="panel-general" aria-labelledby="tab-general">
+      <label class="row check">
+        <input type="checkbox" id="chatter">
+        <span>Aemeath boleh mengajakmu bicara</span>
       </label>
-      <p class="hint tight">
-        Memakai Wuthering Waves Wiki untuk pertanyaan game dan Wikipedia untuk topik lain.
-        Kata kunci pertanyaanmu dikirim ke situs itu, lalu hasilnya ikut dijadikan bahan jawaban
-        dengan sumber tertera. Bukan mesin pencari umum.
-      </p>
 
-      <label class="field check" for="offline">
-        <input type="checkbox" id="offline">
-        <span>Tetap ngobrol tanpa kunci atau internet</span>
-      </label>
-      <p class="hint tight">
-        Saat kunci belum ada atau internet putus, Aemeath menjawab dari lorebook yang tersimpan.
-        Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
-      </p>
+      <section class="row">
+        <div class="head">
+          <label for="interval">Jeda antar celetukan</label>
+          <output id="value"></output>
+        </div>
+        <input type="range" id="interval" min="1" max="15" step="0.5">
+        <div class="scale"><span>sering</span><span>jarang</span></div>
+        <p id="range" class="hint"></p>
+      </section>
+    </div>
 
-      <label class="field" for="apikey">Kunci API</label>
-      <input type="password" id="apikey" autocomplete="off" spellcheck="false"
-             placeholder="Tempel kunci di sini">
-      <div class="buttons">
-        <button type="button" id="save-key">Simpan kunci</button>
-        <button type="button" id="clear-key">Hapus kunci</button>
-      </div>
-      <p id="key-status" class="status"></p>
+    <div class="panel hidden" role="tabpanel" id="panel-chatbot" aria-labelledby="tab-chatbot">
+      <section class="row" id="chatbot">
+        <h2>Chatbot</h2>
 
-      <p class="hint">
-        Kunci hanya disimpan di komputer ini, terenkripsi lewat penyimpanan kredensial sistem,
-        di luar folder proyek. Kunci tidak pernah dikirim ke repo, ke jendela lain, atau ke
-        siapa pun selain <span id="provider-name">penyedia</span>.
-      </p>
-      <p class="hint">
-        Pesan yang kamu ketik di kotak chat dikirim ke <span id="provider-name-2">penyedia</span>
-        untuk dijawab. Riwayat percakapan hanya ada di memori dan dilupakan beberapa menit setelah kotak chat ditutup.
-      </p>
-    </section>
+        <label class="field" for="provider">Penyedia</label>
+        <select id="provider"></select>
 
-    <hr>
+        <label class="field" for="model">Model</label>
+        <select id="model"></select>
 
-    <section class="row" id="commands">
-      <h2>Perintah kustom</h2>
-      <p class="hint tight0">
-        Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan,
-        misalnya <code>/invoice</code> untuk folder invoice atau <code>/wuwa</code> untuk launcher game.
-        Ketik <code>/</code> saja untuk melihat daftarnya. Perintah dijalankan di komputer ini saja:
-        tidak dikirim ke chatbot, dan hanya teks yang kamu ketik sendiri yang bisa memicunya.
-      </p>
-      <div id="command-list"></div>
-      <div class="buttons">
-        <button type="button" id="add-command">Tambah perintah</button>
-      </div>
-      <p id="command-status" class="status"></p>
-      <p class="hint">
-        Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
-        <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
-        Argumen hanya berlaku untuk program berekstensi .exe.
-      </p>
-    </section>
+        <label class="field check" for="websearch">
+          <input type="checkbox" id="websearch">
+          <span>Cari di web agar jawaban lebih akurat</span>
+        </label>
+        <p class="hint tight">
+          Memakai Wuthering Waves Wiki untuk pertanyaan game dan Wikipedia untuk topik lain.
+          Kata kunci pertanyaanmu dikirim ke situs itu, lalu hasilnya ikut dijadikan bahan jawaban
+          dengan sumber tertera. Bukan mesin pencari umum.
+        </p>
+
+        <label class="field check" for="offline">
+          <input type="checkbox" id="offline">
+          <span>Tetap ngobrol tanpa kunci atau internet</span>
+        </label>
+        <p class="hint tight">
+          Saat kunci belum ada atau internet putus, Aemeath menjawab dari lorebook yang tersimpan.
+          Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
+        </p>
+
+        <label class="field" for="apikey">Kunci API</label>
+        <input type="password" id="apikey" autocomplete="off" spellcheck="false"
+               placeholder="Tempel kunci di sini">
+        <div class="buttons">
+          <button type="button" id="save-key">Simpan kunci</button>
+          <button type="button" id="clear-key">Hapus kunci</button>
+        </div>
+        <p id="key-status" class="status"></p>
+
+        <p class="hint">
+          Kunci hanya disimpan di komputer ini, terenkripsi lewat penyimpanan kredensial sistem,
+          di luar folder proyek. Kunci tidak pernah dikirim ke repo, ke jendela lain, atau ke
+          siapa pun selain <span id="provider-name">penyedia</span>.
+        </p>
+        <p class="hint">
+          Pesan yang kamu ketik di kotak chat dikirim ke <span id="provider-name-2">penyedia</span>
+          untuk dijawab. Riwayat percakapan hanya ada di memori dan dilupakan beberapa menit setelah kotak chat ditutup.
+        </p>
+      </section>
+    </div>
+
+    <div class="panel hidden" role="tabpanel" id="panel-commands" aria-labelledby="tab-commands">
+      <section class="row" id="builtin">
+        <h2>Perintah bawaan</h2>
+        <p class="hint tight0">
+          Perintah ini sudah tertanam di Aemeath. Namanya dicadangkan, jadi perintah kustom
+          dengan nama yang sama ditolak.
+        </p>
+        <div class="builtin-row">
+          <code>/change-mode</code>
+          <span>Ganti kotak chat antara mode obrolan dan terminal PowerShell.</span>
+        </div>
+        <label class="field check" for="terminal">
+          <input type="checkbox" id="terminal">
+          <span>Izinkan mode terminal</span>
+        </label>
+        <p class="hint tight">
+          Saat <code>/change-mode</code> dipakai, Windows meminta persetujuan admin (UAC) lebih dulu.
+          Setelah disetujui, kotak chat menjadi PowerShell yang berjalan sebagai kamu, bukan sebagai admin,
+          dan hanya perintah yang kamu ketik sendiri yang dijalankan. Chatbot tidak ikut campur, dan
+          sesi berakhir saat kotak ditutup, saat kamu mengetik <code>exit</code>, atau setelah 15 menit diam.
+        </p>
+      </section>
+
+      <hr>
+
+      <section class="row" id="commands">
+        <h2>Perintah kustom</h2>
+        <p class="hint tight0">
+          Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan,
+          misalnya <code>/invoice</code> untuk folder invoice atau <code>/wuwa</code> untuk launcher game.
+          Ketik <code>/</code> saja untuk melihat daftarnya. Perintah dijalankan di komputer ini saja:
+          tidak dikirim ke chatbot, dan hanya teks yang kamu ketik sendiri yang bisa memicunya.
+        </p>
+        <div id="command-list"></div>
+        <div class="buttons">
+          <button type="button" id="add-command">Tambah perintah</button>
+        </div>
+        <p id="command-status" class="status"></p>
+        <p class="hint">
+          Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
+          <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
+          Argumen hanya berlaku untuk program berekstensi .exe.
+        </p>
+      </section>
+    </div>
   </main>
   <script src="../src/dialogue.js"></script>
   <script src="settings.js"></script>

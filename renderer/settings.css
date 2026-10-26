@@ -87,6 +87,46 @@ h2 {
   margin: 2px 0 0 26px;
 }
 
+.hidden {
+  display: none !important;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f9c9de;
+}
+
+.tab {
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: none;
+  color: #6b7280;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: #fde7f1;
+}
+
+.tab[aria-selected="true"] {
+  border-bottom-color: #ec4899;
+  color: #be185d;
+  font-weight: 600;
+}
+
+.builtin-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
 .field {
   display: block;
   margin: 10px 0 4px;

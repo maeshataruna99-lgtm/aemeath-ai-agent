@@ -11,6 +11,7 @@
   const LOG_MAX = 240;
   const LOG_MIN = 70;
   const IDLE_CLOSE_MS = 3 * 60 * 1000;
+  const TERMINAL_IDLE_MS = 15 * 60 * 1000;
   const FORGET_AFTER_MS = 10 * 60 * 1000;
 
   function clamp(value, min, max) {
@@ -32,14 +33,18 @@
     const resetButton = document.getElementById('chat-reset');
     const closeButton = document.getElementById('chat-close');
     const suggest = document.getElementById('chat-suggest');
+    const modeBadge = document.getElementById('chat-mode');
 
     let isOpen = false;
     let busy = false;
     let ready = false;
     let offlineMode = false;
+    let noticeNeeded = false;
     let idleTimer = null;
     let forgetTimer = null;
     let commands = [];
+    let mode = 'chat'; // 'chat' or 'terminal'
+    let cwd = '';
 
     function add(kind, text, sources) {
       const message = document.createElement('div');
@@ -83,7 +88,7 @@
     // While Rover types "/...", offer the saved commands that match.
     function showSuggestions() {
       const text = input.value;
-      if (!isOpen || !text.startsWith('/') || /\s/.test(text)) return hideSuggestions();
+      if (!isOpen || mode === 'terminal' || !text.startsWith('/') || /\s/.test(text)) return hideSuggestions();
       const prefix = text.slice(1).toLowerCase();
       const matches = commands.filter((c) => c.name.startsWith(prefix)).slice(0, 8);
       suggest.textContent = '';
@@ -118,7 +123,22 @@
       clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
         if (isOpen && !busy) close();
-      }, IDLE_CLOSE_MS);
+      }, mode === 'terminal' ? TERMINAL_IDLE_MS : IDLE_CLOSE_MS);
+    }
+
+    // Chat and terminal share the box; only the look and where lines go differ.
+    function setMode(next, nextCwd) {
+      mode = next === 'terminal' ? 'terminal' : 'chat';
+      if (nextCwd) cwd = nextCwd;
+      el.classList.toggle('terminal', mode === 'terminal');
+      modeBadge.classList.toggle('hidden', mode !== 'terminal');
+      input.placeholder =
+        mode === 'terminal'
+          ? 'Ketik perintah PowerShell... (exit untuk keluar)'
+          : 'Tulis pesan, atau / untuk perintah...';
+      notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
+      hideSuggestions();
+      reposition();
     }
 
     async function refreshStatus() {
@@ -127,7 +147,8 @@
       const hasKey = Boolean(provider && provider.hasKey);
       offlineMode = !hasKey && Boolean(status && status.offlineFallback);
       ready = hasKey || offlineMode;
-      notice.classList.toggle('hidden', hasKey);
+      noticeNeeded = !hasKey;
+      notice.classList.toggle('hidden', hasKey || mode === 'terminal');
       if (!hasKey) {
         noticeText.textContent = offlineMode
           ? 'Mode offline: aku hanya menjawab dari ingatanku (lorebook). Isi API key di Pengaturan untuk jawaban lengkap.'
@@ -177,11 +198,16 @@
     function resetConversation() {
       api.chatReset();
       log.textContent = '';
-      if (isOpen) add('bot', GREETING);
+      if (isOpen && mode === 'chat') add('bot', GREETING);
     }
 
     function close() {
       isOpen = false;
+      // Closing the box ends a terminal session; nothing keeps running behind it.
+      if (mode === 'terminal') {
+        api.terminalStop();
+        setMode('chat');
+      }
       el.classList.add('hidden');
       clearTimeout(idleTimer);
       api.blurWindow();
@@ -193,14 +219,46 @@
     // Slash commands are answered on this machine: no model, no search, no history.
     async function runCommand(text) {
       add('user', text);
+      // /change-mode waits for the Windows consent prompt, which can take a while.
+      const pending = /^\/change-mode\b/i.test(text)
+        ? add('bot pending', 'Menunggu persetujuan Windows (izin admin)...')
+        : null;
       busy = true;
       controls();
       try {
         const result = await api.runCommand(text);
+        if (pending) pending.remove();
         add(result.ok ? 'bot' : 'err', result.text);
+        if (result.mode) setMode(result.mode, result.cwd);
         if (result.launched && options.onCommand) options.onCommand();
       } catch {
         add('err', 'Perintahnya gagal dijalankan.');
+      } finally {
+        busy = false;
+        controls();
+        reposition();
+        if (isOpen) input.focus();
+        touch();
+      }
+    }
+
+    // Terminal mode: the line goes to the PowerShell session, never to the chatbot.
+    async function runTerminal(text) {
+      add('term-in', 'PS ' + (cwd || '') + '> ' + text);
+      busy = true;
+      controls();
+      try {
+        const result = await api.terminalRun(text);
+        if (!result.ok) {
+          add('err', result.error || 'Perintah tidak bisa dijalankan.');
+        } else {
+          if (result.output) add('term-out', result.output);
+          if (result.timedOut) add('err', 'Perintah dihentikan karena terlalu lama (lebih dari 30 detik).');
+          if (result.left) add('bot', result.text);
+        }
+        setMode(result.mode, result.cwd);
+      } catch {
+        add('err', 'Terminalnya tidak merespons.');
       } finally {
         busy = false;
         controls();
@@ -215,6 +273,9 @@
       if (!text || busy) return;
       input.value = '';
       hideSuggestions();
+      if (mode === 'terminal') {
+        return /^\/change-mode\b/i.test(text) ? runCommand(text) : runTerminal(text);
+      }
       if (text.startsWith('/')) return runCommand(text);
       if (!ready) {
         add('user', text);

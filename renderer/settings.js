@@ -13,6 +13,7 @@
   const saveKey = document.getElementById('save-key');
   const clearKey = document.getElementById('clear-key');
   const keyStatus = document.getElementById('key-status');
+  const terminal = document.getElementById('terminal');
   const webSearch = document.getElementById('websearch');
   const offline = document.getElementById('offline');
   const providerNames = [
@@ -80,6 +81,7 @@
   async function boot() {
     const settings = await window.aemeathSettings.get();
     chatter.checked = settings.chatterEnabled !== false;
+    terminal.checked = settings.terminalEnabled !== false;
     interval.value = settings.chatterIntervalMin;
     render();
     renderChat(await window.aemeathSettings.chatStatus());
@@ -94,6 +96,10 @@
   // Persist when the slider is released, not on every pixel of movement.
   interval.addEventListener('change', () => {
     window.aemeathSettings.set({ chatterIntervalMin: Number(interval.value) });
+  });
+
+  terminal.addEventListener('change', () => {
+    window.aemeathSettings.set({ terminalEnabled: terminal.checked });
   });
 
   webSearch.addEventListener('change', () => {
@@ -247,6 +253,29 @@
   }
 
   addCommand.addEventListener('click', () => addRow().querySelector('.name').focus());
+
+  // ---- Tabs ------------------------------------------------------------------
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+
+  function selectTab(tab) {
+    for (const other of tabs) {
+      const on = other === tab;
+      other.setAttribute('aria-selected', String(on));
+      other.tabIndex = on ? 0 : -1;
+      document.getElementById(other.getAttribute('aria-controls')).classList.toggle('hidden', !on);
+    }
+  }
+
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', (event) => {
+      const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length];
+      selectTab(next);
+      next.focus();
+    });
+  }
 
   boot();
   loadCommands();

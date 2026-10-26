@@ -197,6 +197,54 @@ body {
   font-style: italic;
 }
 
+#chat .mode {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #7dd3fc;
+  font: 600 11px Consolas, "Cascadia Mono", monospace;
+}
+
+#chat.terminal #chat-log {
+  padding: 6px;
+  background: #0f172a;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+#chat-log .term-in,
+#chat-log .term-out {
+  align-self: stretch;
+  max-width: 100%;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: 12px/1.45 Consolas, "Cascadia Mono", monospace;
+}
+
+#chat-log .term-in {
+  color: #7dd3fc;
+}
+
+#chat-log .term-out {
+  color: #e2e8f0;
+}
+
+#chat.terminal #chat-log .bot {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+#chat.terminal #chat-input {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+  font: 12px Consolas, "Cascadia Mono", monospace;
+}
+
 #chat-suggest {
   display: flex;
   flex-direction: column;
