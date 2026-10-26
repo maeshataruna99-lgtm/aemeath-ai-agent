@@ -175,3 +175,37 @@ Perintah `/nama` membuka program di komputer pemilik, jadi batasnya tidak boleh 
 - Hanya teks yang diketik pemilik yang boleh sampai ke shell. Keluaran model, hasil pencarian,
   dan lorebook tidak boleh bisa menulis ke terminal. Jangan menyimpan perintah atau keluarannya.
 - `change-mode` dan nama bawaan lain dicadangkan; perintah kustom bernama sama harus ditolak.
+
+### Perintah PowerShell kustom
+
+- Skrip dijalankan sebagai pengguna biasa, tanpa shell, dalam bentuk terenkode (`-EncodedCommand`).
+  Jangan menyusunnya sebagai string baris perintah dan jangan menerima skrip yang meminta hak admin.
+- Skrip yang bisa mematikan, menghapus, memformat, mengubah akun atau pengaturan boot, atau mengunduh
+  lalu menjalankan kode wajib selalu menunggu "ya" yang diketik pemilik, dan tidak boleh ada opsi untuk
+  melewatinya. Jangan melonggarkan daftar `RISKY` tanpa persetujuan pemilik.
+- Tes tidak boleh menjalankan perintah merusak sungguhan (mis. `shutdown`); gunakan tiruan, dan pada
+  selfie hanya skrip `Write-Output` yang boleh benar-benar berjalan.
+
+## 8. Privasi mode interaktif
+
+Mode Medium membaca aktivitas pemilik di PC, jadi batasnya tidak boleh longgar.
+
+- Mode bawaan selalu Low. Medium hanya boleh menyala setelah pemilik menyetujui penjelasannya di
+  Pengaturan, dan Full tidak boleh bisa dipilih sebelum ada persetujuan terpisah dan terbaru.
+- Yang boleh dibaca di Medium hanya proses, jalur program, dan judul jendela yang aktif. Dilarang
+  menambah tangkapan layar, keylogger, papan klip, isi berkas, isi halaman web, atau alamat URL.
+- Judul dan jalur dibuang segera setelah dikelompokkan. Jangan menyimpannya, mencatatnya ke log,
+  menulisnya ke disk, atau menampilkannya, termasuk di menu tray dan keluaran selfie.
+- Hasil pembacaan tidak boleh dikirim ke chatbot, pencarian web, model, atau jaringan mana pun.
+  Untuk Full, apa pun yang mengirim isi pekerjaan pemilik ke AI wajib punya persetujuan sendiri.
+- Jendela pribadi, pengelola kata sandi, layar kunci, dan prompt UAC tidak boleh dibaca. Menu tray
+  harus selalu menampilkan apa yang sedang terbaca selama Medium menyala.
+
+## 9. Startup otomatis
+
+Aemeath mendaftar ke startup Windows secara bawaan, atas permintaan pemilik.
+
+- Pendaftaran harus selalu terlihat dan bisa dimatikan di Pengaturan, tab Umum, dan mematikannya harus
+  langsung menghapus entri startup. Jangan menambah cara lain untuk mendaftar diam-diam.
+- Jangan mendaftarkan apa pun selain Aemeath sendiri, dan jangan menjalankan selfie atau tes dengan
+  menyentuh daftar startup sungguhan. Uji API startup hanya dengan nama entri sementara yang dibersihkan.

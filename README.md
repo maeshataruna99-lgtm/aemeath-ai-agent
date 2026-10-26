@@ -15,6 +15,9 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
 - **Bisa digeser dan diubah ukurannya.** Seret ke mana saja, Ctrl+scroll atau menu tray untuk
   skala 0,5x sampai 3x. Posisi, skala, dan kecepatan gerak diingat setelah restart.
 - **Klik untuk ngobrol, klik kanan untuk menu.** Bagian di bawah merinci keduanya.
+- **Jalan otomatis saat Windows menyala.** Aktif secara bawaan, jadi Aemeath muncul sendiri setiap kali kamu
+  menyalakan komputer. Bisa dimatikan di Pengaturan, tab *Umum*, yang juga menampilkan apakah Windows
+  benar-benar akan menjalankannya (misalnya bila dinonaktifkan di Pengelola Tugas).
 - Ikon tray dan jendela memakai ikon persegi; menu tray memuat jumlah sesi AI yang berjalan
   dan yang menunggu keputusanmu.
 
@@ -29,6 +32,33 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   persetujuan rencana (`AskUserQuestion`, `ExitPlanMode`), Aemeath berhenti terbang, memasang
   wajah bingung, dan menampilkan pertanyaannya. Izin tool biasa tidak tercatat di transkrip,
   jadi tidak terdeteksi.
+
+### Mode interaktif
+
+Seberapa jauh Aemeath ikut campur diatur di Pengaturan, tab *Umum*:
+
+| Mode | Yang dilakukan Aemeath |
+|---|---|
+| **Low** (bawaan) | Mengajakmu mengobrol dan berbicara seperti biasa: celetukan, trivia, dan chat. |
+| **Medium** | Selain Low, dia boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, ngoding, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling. |
+| **Full** | *Segera hadir.* Lebih intens: mengomentari apa pun yang kamu lakukan, membaca dan menilai pekerjaanmu, dan lebih sering berkomentar saat ngoding. Pilihannya sudah tampil tetapi belum bisa dipilih. |
+
+Medium baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilakukannya:
+
+- **Membaca** nama aplikasi dan judul jendela yang sedang aktif, setiap beberapa detik, lalu
+  mengelompokkannya: media sosial, video, game, ngoding, kerja, obrolan, musik, browser, atau lainnya.
+- **Doomscrolling.** Setelah media sosial (Instagram, TikTok, Facebook, X, Reddit, YouTube Shorts,
+  dan sejenisnya) terbuka terus selama batas yang kamu atur (5 sampai 120 menit, bawaan 20),
+  Aemeath memperingatkanmu, makin tegas di kelipatan batas itu. Istirahat 5 menit mengakhiri hitungannya,
+  dan waktu saat kamu tidak menyentuh komputer tidak dihitung.
+- **Game.** Saat sebuah game mulai dia menyapa (nama game dikenali dari daftar game populer,
+  folder instalasi Steam dan Epic, atau judul jendela), dan setelah 90 menit bermain dia mengingatkan
+  untuk peregangan, lalu tiap sejam.
+- **Transparan.** Menu tray dan Pengaturan menampilkan apa yang sedang dia lihat, misalnya
+  "bermain Roblox" atau "media sosial (Instagram)", tanpa judul jendelanya.
+
+Pengelompokannya memakai kata kunci pada judul halaman, jadi sesekali bisa meleset (misalnya situs yang
+tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alamat situs, layar, atau ketikanmu.
 
 ### Fleet Snowfluff GPT (ngobrol dengan Aemeath)
 
@@ -57,9 +87,18 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
 ### Perintah kustom
 
 Ketik `/nama` di kotak chat untuk membuka program, folder, berkas, atau tautan yang kamu atur,
-misalnya `/invoice` untuk folder invoice atau `/wuwa` untuk launcher game. Ketik `/` untuk
-melihat daftar, Tab melengkapi nama, `/help` menampilkan daftar perintah. Perintah dijalankan
-di komputer ini dan tidak dikirim ke chatbot. Program `.exe` bisa diberi argumen.
+atau untuk menjalankan perintah PowerShell, misalnya `/invoice` untuk folder invoice, `/wuwa` untuk
+launcher game, atau `/matikan` untuk mematikan komputer. Ketik `/` untuk melihat daftar, Tab
+melengkapi nama, `/help` menampilkan daftar perintah. Perintah dijalankan di komputer ini dan tidak
+dikirim ke chatbot. Program `.exe` bisa diberi argumen.
+
+**Perintah PowerShell** (misalnya mematikan atau me-restart komputer dengan aman) diatur di Pengaturan,
+tab *Perintah*, pilih jenis "Jalankan perintah PowerShell" atau mulai dari contoh siap pakai:
+matikan atau restart dengan hitung mundur 60 detik, `/batal` untuk membatalkannya, kunci layar, dan
+lima proses terberat. Perintahnya satu baris, berjalan sebagai kamu (bukan admin), dihentikan setelah
+30 detik, dan keluarannya tampil di kotak chat. Aemeath selalu bertanya "ya" dulu (batas 30 detik) untuk
+perintah yang bisa mematikan, menghapus, memformat, atau mengunduh lalu menjalankan sesuatu. Pertanyaan
+itu tidak bisa dimatikan untuk perintah berisiko, dan untuk perintah lain tersedia kotak "Tanya dulu".
 
 `/change-mode` adalah perintah bawaan: namanya dicadangkan, jadi perintah kustom dengan nama
 yang sama ditolak.
@@ -74,8 +113,8 @@ di kotak chat (batas 30 detik per perintah dan 20 ribu karakter keluaran). `exit
 
 ### Pengaturan dan menu
 
-- **Jendela Pengaturan** (tray → "Pengaturan...") punya tiga tab: *Umum* (celetukan dan slider
-  jedanya), *Chatbot* (penyedia, model, API key, pencarian web, mode offline), dan *Perintah*
+- **Jendela Pengaturan** (tray → "Pengaturan...") punya tiga tab: *Umum* (mode interaktif, celetukan,
+  dan slider jedanya), *Chatbot* (penyedia, model, API key, pencarian web, mode offline), dan *Perintah*
   (perintah bawaan, sakelar mode terminal, dan perintah kustom dengan pemilih berkas dan folder).
 - **Menu tray**: ngobrol, tampilkan atau sembunyikan, skala, kecepatan jalan, deteksi musik,
   pemantau sesi AI, celetukan, pengaturan, atur ulang posisi, keluar.
@@ -104,6 +143,19 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
   yang boleh mengubahnya. Kotak chat hanya mengirim nama perintah.
 - Tujuan harus jalur lengkap atau tautan `http(s)`. Program dijalankan tanpa shell dengan
   daftar argumen terpisah, jadi karakter seperti `;` atau `&&` tidak ditafsirkan sebagai perintah.
+- Perintah PowerShell dikirim sebagai skrip terenkode (bukan baris perintah), tidak boleh meminta hak
+  admin (`runas`, `-Verb RunAs`, `sudo` ditolak), dan yang berisiko selalu menunggu "ya" yang kamu ketik.
+  Mengetik perintah lain saat pertanyaan masih menunggu membatalkan pertanyaan itu.
+
+**Mode interaktif (Medium)**
+- Mati secara bawaan, dan baru menyala setelah kamu menyetujui penjelasannya. Kembali ke Low
+  menghentikan pembacaan seketika dan melupakan semuanya.
+- Yang dibaca hanya nama aplikasi, jalur program (untuk mengenali folder game), dan judul jendela
+  yang aktif. Judul dan jalur dibuang segera setelah dipakai mengelompokkan; yang diingat hanya
+  kategori, nama aplikasi atau game, dan penghitung waktu, di memori saja.
+- Tidak ada yang ditulis ke disk, dicatat, atau dikirim ke internet. Hasil pembacaan juga tidak
+  pernah dikirim ke chatbot, ke pencarian web, atau ke penyedia model mana pun.
+- Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tidak dibaca.
 
 **Mode terminal**
 - Masuk hanya lewat `/change-mode`, dan itu selalu melewati prompt UAC dari Windows. Tidak ada
@@ -150,6 +202,7 @@ bentrok dengan Aemeath yang sedang berjalan.
 | `src/media-watcher.js`, `scripts/` | deteksi musik lewat media session Windows |
 | `src/dialogue.js`, `src/lorebook*.js` | celetukan dan pemilih trivia berkredit |
 | `src/chat/` | layanan chat, provider DeepSeek, persona, penyaring, pencarian web, jawaban offline, penyimpanan kunci |
+| `src/activity/`, `scripts/activity-watcher.ps1` | pembaca jendela aktif, pengelompok kategori, dan pelacak peringatan mode Medium |
 | `src/commands/` | penyimpanan, penjalan, dan penangan perintah kustom dan bawaan |
 | `src/terminal/` | gerbang UAC, sesi PowerShell, dan pengendali mode terminal |
 | `src/settings.js` | penyimpanan pengaturan dan migrasi dari nama lama |
