@@ -82,6 +82,11 @@
     const settings = await window.aemeathSettings.get();
     chatter.checked = settings.chatterEnabled !== false;
     terminal.checked = settings.terminalEnabled !== false;
+    startupToggle.checked = settings.startAtLogin !== false;
+    refreshStartup();
+    doom.value = settings.doomscrollLimitMin || 20;
+    doomValue.textContent = 'setelah ' + doom.value + ' menit';
+    renderMode(settings.interactiveMode === 'medium' ? 'medium' : 'low');
     interval.value = settings.chatterIntervalMin;
     render();
     renderChat(await window.aemeathSettings.chatStatus());
@@ -143,11 +148,80 @@
     renderChat(await window.aemeathSettings.chatStatus());
   });
 
+  // ---- Startup ----------------------------------------------------------------
+  const startupToggle = document.getElementById('startup-toggle');
+  const startupStatus = document.getElementById('startup-status');
+
+  async function refreshStartup() {
+    const state = await window.aemeathSettings.getStartup();
+    let text = '';
+    let kind = '';
+    if (!state) text = '';
+    else if (!state.wanted) text = 'Tidak dijalankan otomatis.';
+    else if (state.registered && state.willLaunch) {
+      text = 'Terdaftar di startup Windows.';
+      kind = 'ok';
+    } else if (state.registered) {
+      text = 'Terdaftar, tetapi Windows menonaktifkannya. Aktifkan lagi di Pengelola Tugas, tab Startup.';
+      kind = 'error';
+    } else {
+      text = 'Belum terdaftar di Windows. Entri dibuat saat Aemeath dijalankan.';
+    }
+    startupStatus.textContent = text;
+    startupStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  startupToggle.addEventListener('change', () => {
+    window.aemeathSettings.set({ startAtLogin: startupToggle.checked });
+    setTimeout(refreshStartup, 500);
+  });
+
   // ---- Custom slash commands -------------------------------------------------
   const commandList = document.getElementById('command-list');
   const addCommand = document.getElementById('add-command');
   const commandStatus = document.getElementById('command-status');
+  const presetSelect = document.getElementById('preset');
+  const addPreset = document.getElementById('add-preset');
   let saveTimer = null;
+
+  // Ready-made PowerShell commands. Whatever can shut the computer down asks first.
+  const PRESETS = [
+    {
+      label: 'Matikan komputer (60 detik, bisa dibatalkan)',
+      entry: {
+        name: 'matikan',
+        description: 'matikan komputer dalam 60 detik',
+        script: 'shutdown /s /t 60 /c "Aemeath: komputer akan mati dalam 60 detik. Ketik /batal untuk membatalkan."',
+        confirm: true,
+      },
+    },
+    {
+      label: 'Restart komputer (60 detik, bisa dibatalkan)',
+      entry: {
+        name: 'restart',
+        description: 'restart komputer dalam 60 detik',
+        script: 'shutdown /r /t 60 /c "Aemeath: komputer akan restart dalam 60 detik. Ketik /batal untuk membatalkan."',
+        confirm: true,
+      },
+    },
+    {
+      label: 'Batalkan matikan atau restart',
+      entry: { name: 'batal', description: 'batalkan matikan atau restart', script: 'shutdown /a', confirm: false },
+    },
+    {
+      label: 'Kunci layar',
+      entry: { name: 'kunci', description: 'kunci layar', script: 'rundll32.exe user32.dll,LockWorkStation', confirm: false },
+    },
+    {
+      label: 'Lima proses terberat',
+      entry: {
+        name: 'proses',
+        description: 'lima proses terberat',
+        script: 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 Name, CPU | Format-Table -AutoSize | Out-String',
+        confirm: false,
+      },
+    },
+  ];
 
   function line(...children) {
     const element = document.createElement('div');
@@ -175,6 +249,19 @@
     return element;
   }
 
+  function checkLine(className, text, checked) {
+    const label = document.createElement('label');
+    label.className = 'check-line';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = className;
+    input.checked = checked;
+    const span = document.createElement('span');
+    span.textContent = text;
+    label.append(input, span);
+    return { label: label, input: input };
+  }
+
   function addRow(command) {
     const row = document.createElement('div');
     row.className = 'cmd';
@@ -186,17 +273,48 @@
     const description = field('grow desc', 'Keterangan (opsional)', command && command.description, 60);
     const remove = button('\u2715', 'Hapus perintah');
 
+    const type = document.createElement('select');
+    type.className = 'type';
+    for (const [value, label] of [
+      ['open', 'Buka program, folder, atau tautan'],
+      ['powershell', 'Jalankan perintah PowerShell'],
+    ]) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      type.appendChild(option);
+    }
+    type.value = command && command.type === 'powershell' ? 'powershell' : 'open';
+
     const target = field('grow target', 'C:\\... atau https://...', command && command.target, 500);
     const pickFile = button('Berkas...');
     const pickFolder = button('Folder...');
     const args = field('grow args', 'Argumen (opsional, khusus program .exe)', command && command.args, 300);
+    const script = field('grow script', 'Perintah PowerShell, satu baris (mis. shutdown /s /t 60)', command && command.script, 500);
+    const confirm = checkLine('confirm', 'Tanya dulu sebelum menjalankan', command ? command.confirm !== false : true);
+
+    const note = document.createElement('p');
+    note.className = 'row-note';
     const error = document.createElement('p');
     error.className = 'row-error';
 
-    row.append(line(slash, name, description, remove), line(target, pickFile, pickFolder), line(args), error);
-    commandList.appendChild(row);
+    const openLines = [line(target, pickFile, pickFolder), line(args)];
+    const shellLines = [line(script), line(confirm.label)];
+    row.append(line(slash, name, description, remove), line(type), ...openLines, ...shellLines, note, error);
 
-    for (const input of [name, description, target, args]) input.addEventListener('input', scheduleSave);
+    function sync() {
+      const shell = type.value === 'powershell';
+      for (const element of openLines) element.classList.toggle('hidden', shell);
+      for (const element of shellLines) element.classList.toggle('hidden', !shell);
+    }
+    sync();
+
+    for (const input of [name, description, target, args, script]) input.addEventListener('input', scheduleSave);
+    confirm.input.addEventListener('change', scheduleSave);
+    type.addEventListener('change', () => {
+      sync();
+      scheduleSave();
+    });
     remove.addEventListener('click', () => {
       row.remove();
       scheduleSave();
@@ -209,6 +327,7 @@
         scheduleSave();
       });
     }
+    commandList.appendChild(row);
     return row;
   }
 
@@ -218,20 +337,41 @@
       entry: {
         name: row.querySelector('.name').value,
         description: row.querySelector('.desc').value,
+        type: row.querySelector('.type').value,
         target: row.querySelector('.target').value,
         args: row.querySelector('.args').value,
+        script: row.querySelector('.script').value,
+        confirm: row.querySelector('.confirm').checked,
       },
     }));
   }
 
+  function usedNames() {
+    return collect().map(({ entry }) => entry.name.trim().replace(/^\/+/, '').toLowerCase());
+  }
+
   async function saveCommands() {
     // A brand-new empty row is not an error yet.
-    const rows = collect().filter(({ entry }) => entry.name.trim() || entry.target.trim());
+    const rows = collect().filter(({ entry }) => entry.name.trim() || entry.target.trim() || entry.script.trim());
     const result = await window.aemeathSettings.saveCommands(rows.map(({ entry }) => entry));
-    for (const { row } of collect()) row.querySelector('.row-error').textContent = '';
+    for (const { row } of collect()) {
+      row.querySelector('.row-error').textContent = '';
+      row.querySelector('.row-note').textContent = '';
+    }
     for (const problem of result.errors) {
       const owner = rows[problem.index];
       if (owner) owner.row.querySelector('.row-error').textContent = problem.message;
+    }
+    // A risky script cannot opt out of being asked: show what the saved command really does.
+    for (const saved of result.saved) {
+      const owner = rows.find(({ entry }) => entry.name.trim().replace(/^\/+/, '').toLowerCase() === saved.name);
+      if (!owner || saved.type !== 'powershell') continue;
+      const box = owner.row.querySelector('.confirm');
+      if (saved.confirm && !box.checked) {
+        box.checked = true;
+        owner.row.querySelector('.row-note').textContent =
+          'Perintah ini bisa mematikan, menghapus, atau mengunduh sesuatu, jadi selalu bertanya dulu.';
+      }
     }
     const count = result.saved.length;
     commandStatus.className = 'status' + (result.errors.length ? ' error' : count ? ' ok' : '');
@@ -253,6 +393,74 @@
   }
 
   addCommand.addEventListener('click', () => addRow().querySelector('.name').focus());
+
+  presetSelect.appendChild(new Option('Pilih contoh...', ''));
+  PRESETS.forEach((preset, index) => presetSelect.appendChild(new Option(preset.label, String(index))));
+  addPreset.addEventListener('click', () => {
+    if (presetSelect.value === '') return;
+    const entry = Object.assign({ type: 'powershell' }, PRESETS[Number(presetSelect.value)].entry);
+    const taken = usedNames();
+    const base = entry.name;
+    for (let n = 2; taken.includes(entry.name); n += 1) entry.name = base + n;
+    addRow(entry);
+    presetSelect.value = '';
+    scheduleSave();
+  });
+
+  // ---- Interactive mode --------------------------------------------------------
+  const modeLow = document.getElementById('mode-low');
+  const modeMedium = document.getElementById('mode-medium');
+  const consent = document.getElementById('medium-consent');
+  const acceptMedium = document.getElementById('medium-accept');
+  const cancelMedium = document.getElementById('medium-cancel');
+  const mediumOptions = document.getElementById('medium-options');
+  const doom = document.getElementById('doom');
+  const doomValue = document.getElementById('doom-value');
+  const activityNow = document.getElementById('activity-now');
+  let activityTimer = null;
+
+  async function refreshActivity() {
+    const now = await window.aemeathSettings.getActivity();
+    activityNow.textContent =
+      now && now.label ? 'Yang sedang terbaca: ' + now.label + '.' : 'Menunggu aktivitas pertama...';
+  }
+
+  function renderMode(mode) {
+    modeLow.checked = mode !== 'medium';
+    modeMedium.checked = mode === 'medium';
+    consent.classList.add('hidden');
+    mediumOptions.classList.toggle('hidden', mode !== 'medium');
+    clearInterval(activityTimer);
+    activityTimer = null;
+    if (mode === 'medium') {
+      refreshActivity();
+      activityTimer = setInterval(refreshActivity, 3000);
+    }
+  }
+
+  modeLow.addEventListener('change', () => {
+    renderMode('low');
+    window.aemeathSettings.set({ interactiveMode: 'low' });
+  });
+
+  // Medium reads the window in front, so it only turns on after an explicit yes.
+  modeMedium.addEventListener('change', () => {
+    modeLow.checked = true;
+    modeMedium.checked = false;
+    consent.classList.remove('hidden');
+  });
+  acceptMedium.addEventListener('click', () => {
+    renderMode('medium');
+    window.aemeathSettings.set({ interactiveMode: 'medium' });
+  });
+  cancelMedium.addEventListener('click', () => consent.classList.add('hidden'));
+
+  doom.addEventListener('input', () => {
+    doomValue.textContent = 'setelah ' + doom.value + ' menit';
+  });
+  doom.addEventListener('change', () => {
+    window.aemeathSettings.set({ doomscrollLimitMin: Number(doom.value) });
+  });
 
   // ---- Tabs ------------------------------------------------------------------
   const tabs = Array.from(document.querySelectorAll('.tab'));

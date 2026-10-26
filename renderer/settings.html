@@ -17,6 +17,65 @@
     </div>
 
     <div class="panel" role="tabpanel" id="panel-general" aria-labelledby="tab-general">
+      <section class="row" id="interactive">
+        <h2>Mode interaktif</h2>
+        <div class="modes" role="radiogroup" aria-label="Mode interaktif">
+          <label class="mode-option" for="mode-low">
+            <input type="radio" name="mode" id="mode-low" value="low">
+            <span><strong>Low</strong><br>Aemeath mengajakmu mengobrol dan berbicara seperti biasa.</span>
+          </label>
+          <label class="mode-option" for="mode-medium">
+            <input type="radio" name="mode" id="mode-medium" value="medium">
+            <span><strong>Medium</strong><br>Aemeath boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling.</span>
+          </label>
+          <label class="mode-option disabled" for="mode-full">
+            <input type="radio" name="mode" id="mode-full" value="full" disabled>
+            <span><strong>Full</strong> <em class="soon">Segera hadir</em><br>Lebih intens dari Medium: Aemeath mengomentari apa pun yang kamu lakukan, membaca dan menilai pekerjaanmu, dan lebih sering berkomentar saat kamu ngoding.</span>
+          </label>
+        </div>
+
+        <div id="medium-consent" class="consent hidden">
+          <p><strong>Sebelum menyalakan Medium</strong>, ini yang terjadi:</p>
+          <ul>
+            <li>Setiap beberapa detik Aemeath membaca nama aplikasi dan judul jendela yang sedang aktif.</li>
+            <li>Judul langsung dibuang setelah dipakai menebak jenis kegiatan (medsos, game, ngoding, dan seterusnya). Yang diingat hanya kategori dan nama aplikasi atau game, dan hanya di memori.</li>
+            <li>Tidak ada yang disimpan ke disk atau dikirim ke internet, termasuk ke chatbot.</li>
+            <li>Jendela pribadi (incognito, InPrivate), pengelola kata sandi, dan layar kunci tidak dibaca.</li>
+            <li>Kamu bisa kembali ke Low kapan saja, dan pembacaannya langsung berhenti.</li>
+          </ul>
+          <div class="buttons">
+            <button type="button" id="medium-accept">Aktifkan Medium</button>
+            <button type="button" id="medium-cancel">Batal</button>
+          </div>
+        </div>
+
+        <div id="medium-options" class="hidden">
+          <div class="head">
+            <label for="doom">Ingatkan kalau scroll medsos</label>
+            <output id="doom-value"></output>
+          </div>
+          <input type="range" id="doom" min="5" max="120" step="5">
+          <p id="activity-now" class="status"></p>
+        </div>
+      </section>
+
+      <hr>
+
+      <section class="row" id="startup">
+        <h2>Startup</h2>
+        <label class="field check" for="startup-toggle">
+          <input type="checkbox" id="startup-toggle">
+          <span>Jalankan Aemeath otomatis saat Windows menyala</span>
+        </label>
+        <p class="hint tight">
+          Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer.
+          Matikan di sini kalau tidak mau; entri startup-nya langsung dihapus.
+        </p>
+        <p id="startup-status" class="status"></p>
+      </section>
+
+      <hr>
+
       <label class="row check">
         <input type="checkbox" id="chatter">
         <span>Aemeath boleh mengajakmu bicara</span>
@@ -111,8 +170,9 @@
       <section class="row" id="commands">
         <h2>Perintah kustom</h2>
         <p class="hint tight0">
-          Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan,
-          misalnya <code>/invoice</code> untuk folder invoice atau <code>/wuwa</code> untuk launcher game.
+          Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan, atau menjalankan perintah PowerShell,
+          misalnya <code>/invoice</code> untuk folder invoice, <code>/wuwa</code> untuk launcher game,
+          atau <code>/matikan</code> untuk mematikan komputer.
           Ketik <code>/</code> saja untuk melihat daftarnya. Perintah dijalankan di komputer ini saja:
           tidak dikirim ke chatbot, dan hanya teks yang kamu ketik sendiri yang bisa memicunya.
         </p>
@@ -120,11 +180,22 @@
         <div class="buttons">
           <button type="button" id="add-command">Tambah perintah</button>
         </div>
+        <label class="field" for="preset">Atau mulai dari contoh</label>
+        <div class="preset-line">
+          <select id="preset"></select>
+          <button type="button" id="add-preset">Tambah contoh</button>
+        </div>
         <p id="command-status" class="status"></p>
         <p class="hint">
           Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
           <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
           Argumen hanya berlaku untuk program berekstensi .exe.
+        </p>
+        <p class="hint">
+          <strong>Perintah PowerShell</strong> dijalankan sebagai kamu (bukan admin), satu baris, dan dihentikan
+          setelah 30 detik. Aemeath selalu bertanya "ya" dulu untuk perintah yang bisa mematikan, menghapus,
+          memformat, atau mengunduh lalu menjalankan sesuatu, dan kamu tidak bisa mematikan pertanyaan itu.
+          Contoh <code>/matikan</code> memakai hitung mundur 60 detik yang bisa dibatalkan dengan <code>/batal</code>.
         </p>
       </section>
     </div>

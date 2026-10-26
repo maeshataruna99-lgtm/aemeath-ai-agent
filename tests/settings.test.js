@@ -51,3 +51,32 @@ test('chat interval is clamped to 1-15 minutes and survives a reload', () => {
   store.save({ chatterIntervalMin: 7.5 });
   assert.equal(createSettingsStore(dir).load().chatterIntervalMin, 7.5);
 });
+
+test('interactive mode defaults to low and only low or medium are accepted', () => {
+  const dir = tempDir('mode');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().interactiveMode, 'low');
+  assert.equal(store.save({ interactiveMode: 'medium' }).interactiveMode, 'medium');
+  assert.equal(createSettingsStore(dir).load().interactiveMode, 'medium');
+
+  // full is announced but not built, so it can never be switched on
+  for (const bad of ['full', 'FULL', 'extreme', '', null, 3, undefined]) {
+    assert.equal(store.save({ interactiveMode: bad }).interactiveMode, 'low', String(bad));
+  }
+});
+
+test('a saved full mode from a hand-edited settings file falls back to low', () => {
+  const dir = tempDir('fullfile');
+  require('node:fs').writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ interactiveMode: 'full' }));
+  assert.equal(createSettingsStore(dir).load().interactiveMode, 'low');
+});
+
+test('the doomscroll limit is a whole number of minutes between 5 and 120', () => {
+  const store = createSettingsStore(tempDir('limit'));
+  assert.equal(store.load().doomscrollLimitMin, 20);
+  assert.equal(store.save({ doomscrollLimitMin: 1 }).doomscrollLimitMin, 5);
+  assert.equal(store.save({ doomscrollLimitMin: 999 }).doomscrollLimitMin, 120);
+  assert.equal(store.save({ doomscrollLimitMin: 33.6 }).doomscrollLimitMin, 34);
+  assert.equal(store.save({ doomscrollLimitMin: 'x' }).doomscrollLimitMin, 20);
+  assert.equal(store.save({ doomscrollLimitMin: NaN }).doomscrollLimitMin, 20);
+});

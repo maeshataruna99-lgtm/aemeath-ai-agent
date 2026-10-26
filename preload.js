@@ -25,5 +25,6 @@ contextBridge.exposeInMainWorld('aemeath', {
   focusWindow: () => ipcRenderer.send('chat:focus'),
   blurWindow: () => ipcRenderer.send('chat:blur'),
   onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),
+  onActivityRemark: (fn) => ipcRenderer.on('activity:remark', (_e, remark) => fn(remark)),
   onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
 });

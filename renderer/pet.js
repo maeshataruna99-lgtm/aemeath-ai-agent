@@ -28,6 +28,7 @@
     watcherEnabled: true,
     chatterEnabled: true,
     chatterIntervalMin: 3.5,
+    interactiveMode: 'low',
     x: null,
     y: null,
   };
@@ -514,6 +515,12 @@
       if (state && state.replied) setTransient('waving', 1800);
     });
     window.aemeath.onChatToggle(toggleChat);
+    // Medium mode: a remark about what Rover is doing, only while the mode is on.
+    window.aemeath.onActivityRemark((remark) => {
+      if (settings.interactiveMode !== 'medium' || !remark || !remark.text) return;
+      showBubble(remark.text);
+      setTransient('waving', 1800);
+    });
     window.aemeath.onDemo(setDemoState);
     window.aemeath.onReset(() => {
       walker.x = clamp(workArea.width / 2, 0, flightBounds().maxX);

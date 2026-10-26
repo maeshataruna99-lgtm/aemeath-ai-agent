@@ -184,6 +184,21 @@ body {
   color: #6b7280;
 }
 
+#chat-log .cmd-out {
+  align-self: stretch;
+  max-width: 100%;
+  max-height: 150px;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: 12px/1.45 Consolas, "Cascadia Mono", monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 #chat-log .err {
   align-self: center;
   max-width: 96%;

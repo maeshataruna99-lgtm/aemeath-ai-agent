@@ -44,6 +44,7 @@
     let forgetTimer = null;
     let commands = [];
     let mode = 'chat'; // 'chat' or 'terminal'
+    let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
 
     function add(kind, text, sources) {
@@ -203,6 +204,7 @@
 
     function close() {
       isOpen = false;
+      confirming = false;
       // Closing the box ends a terminal session; nothing keeps running behind it.
       if (mode === 'terminal') {
         api.terminalStop();
@@ -217,8 +219,9 @@
     }
 
     // Slash commands are answered on this machine: no model, no search, no history.
-    async function runCommand(text) {
-      add('user', text);
+    // Returns false when the text turned out not to be a command, so the caller can chat instead.
+    async function runCommand(text, alreadyShown) {
+      if (!alreadyShown) add('user', text);
       // /change-mode waits for the Windows consent prompt, which can take a while.
       const pending = /^\/change-mode\b/i.test(text)
         ? add('bot pending', 'Menunggu persetujuan Windows (izin admin)...')
@@ -228,10 +231,14 @@
       try {
         const result = await api.runCommand(text);
         if (pending) pending.remove();
+        confirming = Boolean(result.awaitConfirm);
+        if (!result.isCommand) return false;
         add(result.ok ? 'bot' : 'err', result.text);
+        if (result.output) add('cmd-out', result.output);
         if (result.mode) setMode(result.mode, result.cwd);
         if (result.launched && options.onCommand) options.onCommand();
       } catch {
+        confirming = false;
         add('err', 'Perintahnya gagal dijalankan.');
       } finally {
         busy = false;
@@ -268,21 +275,13 @@
       }
     }
 
-    async function submit() {
-      const text = input.value.trim();
-      if (!text || busy) return;
-      input.value = '';
-      hideSuggestions();
-      if (mode === 'terminal') {
-        return /^\/change-mode\b/i.test(text) ? runCommand(text) : runTerminal(text);
-      }
-      if (text.startsWith('/')) return runCommand(text);
+    // An ordinary chat message. `shown` means Rover's line is already in the log.
+    async function sendChat(text, shown) {
+      if (!shown) add('user', text);
       if (!ready) {
-        add('user', text);
         add('err', 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
         return;
       }
-      add('user', text);
       const pending = add('bot pending', 'Aemeath sedang berpikir...');
       busy = true;
       controls();
@@ -306,6 +305,23 @@
         if (isOpen) input.focus();
         touch();
       }
+    }
+
+    async function submit() {
+      const text = input.value.trim();
+      if (!text || busy) return;
+      input.value = '';
+      hideSuggestions();
+      if (mode === 'terminal') {
+        return /^\/change-mode\b/i.test(text) ? runCommand(text) : runTerminal(text);
+      }
+      // While a command waits for a yes, the next line goes to it first. If it turns out
+      // not to be a command at all, it is an ordinary chat message after all.
+      if (confirming || text.startsWith('/')) {
+        if ((await runCommand(text)) !== false) return;
+        return sendChat(text, true);
+      }
+      return sendChat(text, false);
     }
 
     form.addEventListener('submit', (event) => {

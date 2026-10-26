@@ -8,6 +8,7 @@ const {
   ipcMain,
   nativeImage,
   dialog,
+  powerMonitor,
   safeStorage,
   screen,
   shell,
@@ -31,6 +32,9 @@ const { createCommandHandler } = require('./src/commands/command-handler');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
+const { createActivityMonitor } = require('./src/activity/activity-monitor');
+const { createActivityTracker } = require('./src/activity/activity-tracker');
+const { createActivityWatcher } = require('./src/activity/activity-watcher');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -55,6 +59,7 @@ function main() {
   let settingsWin = null;
   let keyStore = null;
   let commandStore = null;
+  let activityTrayTimer = null;
   let tray = null;
   let provider = null;
   let media = null;
@@ -164,14 +169,20 @@ function main() {
   // and it only ever receives commands the settings window saved. The selfie
   // run records launches instead of making them.
   const selfieLaunches = [];
+  const realCommandRunner = createCommandRunner({ shell, spawn, exists: fs.existsSync, env: process.env });
   const commandRunner = isSelfie
     ? {
         run: async (command) => {
-          selfieLaunches.push(command.target);
-          return { ok: true };
+          // Only harmless echo scripts are really run by the verification run; every other
+          // command, shutdown included, is only recorded.
+          if (command.type === 'powershell' && /^Write-Output\b/.test(command.script)) {
+            return realCommandRunner.run(command);
+          }
+          selfieLaunches.push(command.type === 'powershell' ? 'powershell:' + command.name : command.target);
+          return { ok: true, output: '' };
         },
       }
-    : createCommandRunner({ shell, spawn, exists: fs.existsSync, env: process.env });
+    : realCommandRunner;
   // Terminal mode: /change-mode asks Windows for admin consent (UAC) and then opens a
   // PowerShell that runs as the normal user. The selfie run skips the real prompt.
   const terminal = createTerminalController({
@@ -179,6 +190,33 @@ function main() {
     createSession: () => createTerminalSession({ spawn, cwd: os.homedir() }),
     isEnabled: () => settings.terminalEnabled !== false,
   });
+  // Interactive mode "medium": while it is on, Aemeath reads which app is in front, sorts it
+  // into a category and comments on a few things (a game starting, long social media
+  // sessions). Off by default. Nothing is stored or sent anywhere. The selfie run feeds
+  // samples by hand and moves its own clock, so no real window is ever read.
+  let selfieNow = 1000000;
+  let selfieSample = null;
+  const selfieRemarks = [];
+  const activity = createActivityMonitor({
+    createWatcher: (onSample) => {
+      if (!isSelfie) return createActivityWatcher({ onSample });
+      selfieSample = onSample;
+      return {
+        start() {},
+        stop() {
+          selfieSample = null;
+        },
+      };
+    },
+    tracker: createActivityTracker({ getLimitMin: () => settings.doomscrollLimitMin }),
+    getIdleSeconds: () => (isSelfie ? 0 : powerMonitor.getSystemIdleTime()),
+    onRemark: (remark) => {
+      if (isSelfie) selfieRemarks.push(remark.kind);
+      win?.webContents?.send('activity:remark', remark);
+    },
+    now: isSelfie ? () => selfieNow : Date.now,
+  });
+
   const builtins = {
     'change-mode': {
       description: 'Ganti mode obrolan dan terminal PowerShell',
@@ -267,16 +305,31 @@ function main() {
     ipcMain.on('settings-window:set', (_event, patch) => {
       const next = {};
       if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
-      for (const flag of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled']) {
+      for (const flag of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin']) {
         if (patch && typeof patch[flag] === 'boolean') next[flag] = patch[flag];
       }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
         next.chatterIntervalMin = patch.chatterIntervalMin;
       }
+      // Only modes that exist can be chosen; `full` is not built yet.
+      if (patch && (patch.interactiveMode === 'low' || patch.interactiveMode === 'medium')) {
+        next.interactiveMode = patch.interactiveMode;
+      }
+      if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
       Object.assign(settings, settingsStore.save(next));
       win?.webContents?.send('settings:updated', settings);
+      applyActivityMode();
+      applyStartup();
       updateTray();
     });
+
+    // Whether Windows will really start her at login, for the settings window to show.
+    ipcMain.handle('startup:status', (event) => (fromWindow(event, settingsWin) ? startupStatus() : null));
+
+    // What Aemeath currently sees, as a category and never a window title.
+    ipcMain.handle('activity:current', (event) =>
+      fromWindow(event, settingsWin) ? { mode: settings.interactiveMode, label: activity.describe() } : null,
+    );
 
     ipcMain.on('chat:open-settings', (event) => {
       if (fromWindow(event, win)) openSettingsWindow();
@@ -383,6 +436,8 @@ function main() {
   app.on('window-all-closed', () => app.quit());
   app.on('before-quit', () => {
     terminal.stop();
+    activity.stop();
+    if (activityTrayTimer) clearInterval(activityTrayTimer);
     if (provider) provider.stop();
     if (media) media.stop();
     if (aggregateTimer) clearInterval(aggregateTimer);
@@ -424,6 +479,45 @@ function main() {
     settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
   }
 
+  // Starting with Windows. In development the entry must name the app folder too, or
+  // Windows would launch a bare Electron with nothing to show. It is re-applied on every
+  // launch, so a moved folder repairs itself. The verification run never touches the list.
+  function loginItemOptions() {
+    return app.isPackaged ? {} : { path: process.execPath, args: [app.getAppPath()] };
+  }
+
+  function applyStartup() {
+    if (isSelfie) return;
+    try {
+      app.setLoginItemSettings({ openAtLogin: settings.startAtLogin !== false, ...loginItemOptions() });
+    } catch (error) {
+      console.error('[aemeath] startup entry failed: ' + error.message);
+    }
+  }
+
+  function startupStatus() {
+    const wanted = settings.startAtLogin !== false;
+    try {
+      const item = app.getLoginItemSettings(loginItemOptions());
+      return { wanted: wanted, registered: Boolean(item.openAtLogin), willLaunch: item.executableWillLaunchAtLogin !== false };
+    } catch {
+      return { wanted: wanted, registered: false, willLaunch: false };
+    }
+  }
+
+  function applyActivityMode() {
+    const on = settings.interactiveMode === 'medium';
+    if (on) activity.start();
+    else activity.stop();
+    // keep the tray's "what she sees" line fresh while she is watching
+    if (on && !activityTrayTimer) activityTrayTimer = setInterval(updateTray, 10000);
+    if (!on && activityTrayTimer) {
+      clearInterval(activityTrayTimer);
+      activityTrayTimer = null;
+    }
+    updateTray();
+  }
+
   function startWatchers() {
     provider = createClaudeCodeProvider({
       onEvent: (event) => {
@@ -439,6 +533,8 @@ function main() {
       },
     });
     applyFeatureFlags();
+    applyActivityMode();
+    applyStartup();
 
     aggregateTimer = setInterval(pushAggregate, 5000);
     pushAggregate();
@@ -485,6 +581,9 @@ function main() {
     return [
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
+      ...(activity.running
+        ? [{ label: 'Aktivitas terbaca: ' + (activity.describe() || 'belum ada'), enabled: false }]
+        : []),
       { type: 'separator' },
       { label: 'Fleet Snowfluff GPT...', click: () => toggleChat() },
       { type: 'separator' },
@@ -696,6 +795,8 @@ function main() {
       `window.aemeathSettings.saveCommands([
         { name: '/Invoice', target: ${JSON.stringify(app.getPath('temp'))}, description: 'folder invoice' },
         { name: 'wuwa', target: 'https://example.com/wuwa' },
+        { name: 'halo', type: 'powershell', script: 'Write-Output "halo dari perintah"', confirm: false, description: 'sapaan dari PowerShell' },
+        { name: 'matikan', type: 'powershell', script: 'shutdown /s /t 60 /c "Aemeath: komputer akan mati dalam 60 detik."', confirm: false, description: 'matikan komputer' },
         { name: 'bad name', target: 'notepad.exe' },
       ]).then((r) => JSON.stringify({ saved: r.saved.map((c) => c.name), errors: r.errors.map((e) => e.message) }))`,
     );
@@ -708,6 +809,9 @@ function main() {
     await sleep(300);
     const shotCommands = await settingsWin.webContents.capturePage();
     fs.writeFileSync(path.join(dir, 'settings-commands.png'), shotCommands.toPNG());
+    await settingsWin.webContents.executeJavaScript(`document.getElementById('add-preset').scrollIntoView()`);
+    await sleep(300);
+    fs.writeFileSync(path.join(dir, 'settings-commands-ps.png'), (await settingsWin.webContents.capturePage()).toPNG());
 
     const requestsBefore = selfieRequests.length;
     win.webContents.send('chat:toggle'); // close
@@ -778,6 +882,90 @@ function main() {
       `JSON.stringify({ terminal: document.getElementById('chat').classList.contains('terminal'), last: document.querySelector('#chat-log .msg:last-child').textContent })`,
     );
     console.log('[aemeath] terminal mode off ' + modeOff);
+
+    // PowerShell commands: a harmless one runs and prints, a risky one asks first and can be
+    // cancelled, and the verification run only records what would have been shut down.
+    const lastReplies = (n) =>
+      win.webContents.executeJavaScript(
+        `JSON.stringify([...document.querySelectorAll('#chat-log .msg')].slice(-${n}).map((m) => m.className.replace('msg ', '') + ': ' + m.textContent.slice(0, 90)))`,
+      );
+    const psBefore = selfieLaunches.length;
+    await submit('/halo', 3500);
+    console.log('[aemeath] powershell command: ' + (await lastReplies(2)));
+    await submit('/matikan', 800);
+    console.log('[aemeath] risky command asks first: ' + (await lastReplies(1)) + ' | launched so far: ' + (selfieLaunches.length - psBefore));
+    await submit('nanti dulu', 800);
+    console.log('[aemeath] answered no: ' + (await lastReplies(1)) + ' | launched: ' + (selfieLaunches.length - psBefore));
+    await submit('/matikan', 800);
+    await submit('ya', 900);
+    console.log('[aemeath] answered yes: ' + (await lastReplies(1)) + ' | recorded: ' + JSON.stringify(selfieLaunches.slice(psBefore)));
+    await submit('apa kabar Fleet?', 900);
+    console.log('[aemeath] plain text after that is chat again: ' + (await lastReplies(1)));
+    fs.writeFileSync(path.join(dir, 'chat-powershell.png'), (await win.webContents.capturePage()).toPNG());
+
+    // Interactive mode: go through the settings window like a user would (consent
+    // first), then drive the real monitor with hand-made samples on a clock the
+    // selfie moves itself. No real window is read.
+    win.webContents.send('chat:toggle'); // close the chat box so remarks can show
+    await sleep(500);
+    const inSettings = (code) => settingsWin.webContents.executeJavaScript(code);
+    await sleep(300);
+    console.log(
+      '[aemeath] startup in settings: ' +
+        (await inSettings(
+          `JSON.stringify({ checked: document.getElementById('startup-toggle').checked, status: document.getElementById('startup-status').textContent })`,
+        )) +
+        ' | setting: ' + settings.startAtLogin,
+    );
+    await inSettings(`document.getElementById('tab-general').click(); document.getElementById('mode-medium').click();`);
+    await sleep(400);
+    console.log(
+      '[aemeath] medium consent ' +
+        (await inSettings(
+          `JSON.stringify({ consentShown: !document.getElementById('medium-consent').classList.contains('hidden'), mediumChecked: document.getElementById('mode-medium').checked, fullDisabled: document.getElementById('mode-full').disabled, soon: document.querySelector('.soon').textContent })`,
+        )) +
+        ' | mode in settings: ' + settings.interactiveMode + ' | reading: ' + activity.running,
+    );
+    fs.writeFileSync(path.join(dir, 'settings-interactive-consent.png'), (await settingsWin.webContents.capturePage()).toPNG());
+
+    await inSettings(`document.getElementById('medium-accept').click()`);
+    await sleep(900);
+    console.log('[aemeath] medium on | mode: ' + settings.interactiveMode + ' | reading: ' + activity.running);
+
+    selfieSample({ process: 'RobloxPlayerBeta', title: 'TOPSECRETTITLE', path: 'C:\\Users\\someone\\game.exe' });
+    await sleep(1100);
+    const bubbleText = () => win.webContents.executeJavaScript(`document.getElementById('bubble').textContent`);
+    console.log('[aemeath] game remark: ' + JSON.stringify(await bubbleText()));
+    await win.webContents.executeJavaScript(`document.getElementById('bubble').click()`);
+
+    // 21 minutes of Instagram in 3 second steps (the default limit is 20 minutes)
+    selfieRemarks.length = 0;
+    selfieSample({ process: 'chrome', title: 'Instagram - Google Chrome', path: '' });
+    for (let i = 0; i < 420; i++) {
+      selfieNow += 3000;
+      selfieSample({ process: 'chrome', title: 'Instagram - Google Chrome', path: '' });
+    }
+    await sleep(1100);
+    console.log('[aemeath] remarks made: ' + JSON.stringify(selfieRemarks) + ' | bubble: ' + JSON.stringify(await bubbleText()));
+    fs.writeFileSync(path.join(dir, 'activity-remark.png'), (await win.webContents.capturePage()).toPNG());
+
+    const trayLine = menuTemplate().find((item) => item.label && item.label.startsWith('Aktivitas'));
+    const seen = await inSettings(`window.aemeathSettings.getActivity().then((a) => JSON.stringify(a))`);
+    console.log('[aemeath] what she sees: tray ' + JSON.stringify(trayLine && trayLine.label) + ' | settings ' + seen);
+    console.log('[aemeath] title leaked anywhere: ' + (JSON.stringify([trayLine, seen, selfieRemarks]).includes('TOPSECRET')));
+    fs.writeFileSync(path.join(dir, 'settings-interactive-on.png'), (await settingsWin.webContents.capturePage()).toPNG());
+
+    await inSettings(`window.aemeathSettings.set({ interactiveMode: 'full' })`);
+    await sleep(500);
+    console.log('[aemeath] asking for full -> mode stays ' + settings.interactiveMode);
+
+    await inSettings(`document.getElementById('mode-low').click()`);
+    await sleep(700);
+    console.log(
+      '[aemeath] back to low | mode: ' + settings.interactiveMode + ' | reading: ' + activity.running +
+        ' | sees: ' + activity.describe() + ' | tray line gone: ' +
+        !menuTemplate().some((item) => item.label && item.label.startsWith('Aktivitas')),
+    );
     app.quit();
   }
 

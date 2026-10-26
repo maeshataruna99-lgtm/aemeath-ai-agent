@@ -17,6 +17,9 @@ const DEFAULTS = {
   chatWebSearch: false,
   chatOfflineFallback: true,
   terminalEnabled: true,
+  startAtLogin: true,
+  interactiveMode: 'low',
+  doomscrollLimitMin: 20,
   x: null,
   y: null,
 };
@@ -26,14 +29,29 @@ const MAX_SCALE = 3;
 // Average gap between Aemeath's remarks, in minutes.
 const MIN_CHAT_INTERVAL = 1;
 const MAX_CHAT_INTERVAL = 15;
+// Minutes of continuous social media before Aemeath says something (medium mode).
+const MIN_DOOMSCROLL_LIMIT = 5;
+const MAX_DOOMSCROLL_LIMIT = 120;
+// Interactive modes that exist today. `full` is announced in the settings but not built yet,
+// so a saved `full` falls back to `low` instead of being honoured.
+const INTERACTIVE_MODES = ['low', 'medium'];
 
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
   return Math.min(MAX_CHAT_INTERVAL, Math.max(MIN_CHAT_INTERVAL, value));
 }
 
+function keepActivity(data) {
+  if (!INTERACTIVE_MODES.includes(data.interactiveMode)) data.interactiveMode = DEFAULTS.interactiveMode;
+  const limit = data.doomscrollLimitMin;
+  data.doomscrollLimitMin =
+    typeof limit === 'number' && Number.isFinite(limit)
+      ? Math.min(MAX_DOOMSCROLL_LIMIT, Math.max(MIN_DOOMSCROLL_LIMIT, Math.round(limit)))
+      : DEFAULTS.doomscrollLimitMin;
+}
+
 function keepFlags(data) {
-  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled']) {
+  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin']) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
 }
@@ -80,6 +98,7 @@ function createSettingsStore(userDataPath) {
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
+    keepActivity(data);
     return data;
   }
 
@@ -89,6 +108,7 @@ function createSettingsStore(userDataPath) {
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
+    keepActivity(data);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;
@@ -119,4 +139,7 @@ module.exports = {
   MAX_SCALE,
   MIN_CHAT_INTERVAL,
   MAX_CHAT_INTERVAL,
+  MIN_DOOMSCROLL_LIMIT,
+  MAX_DOOMSCROLL_LIMIT,
+  INTERACTIVE_MODES,
 };
