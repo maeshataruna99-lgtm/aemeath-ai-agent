@@ -40,3 +40,14 @@ test('chatterEnabled stays boolean', () => {
   assert.equal(store.save({ chatterEnabled: 'x' }).chatterEnabled, true);
   assert.equal(store.save({ chatterEnabled: false }).chatterEnabled, false);
 });
+
+test('chat interval is clamped to 1-15 minutes and survives a reload', () => {
+  const dir = tempDir('interval');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().chatterIntervalMin, 3.5);
+  assert.equal(store.save({ chatterIntervalMin: 0 }).chatterIntervalMin, 1);
+  assert.equal(store.save({ chatterIntervalMin: 99 }).chatterIntervalMin, 15);
+  assert.equal(store.save({ chatterIntervalMin: 'x' }).chatterIntervalMin, 3.5);
+  store.save({ chatterIntervalMin: 7.5 });
+  assert.equal(createSettingsStore(dir).load().chatterIntervalMin, 7.5);
+});

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src file:; script-src file:">
+  <title>Pengaturan Aemeath</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <main>
+    <h1>Pengaturan Aemeath</h1>
+
+    <label class="row check">
+      <input type="checkbox" id="chatter">
+      <span>Aemeath boleh mengajakmu bicara</span>
+    </label>
+
+    <section class="row">
+      <div class="head">
+        <label for="interval">Jeda antar celetukan</label>
+        <output id="value"></output>
+      </div>
+      <input type="range" id="interval" min="1" max="15" step="0.5">
+      <div class="scale"><span>sering</span><span>jarang</span></div>
+      <p id="range" class="hint"></p>
+    </section>
+  </main>
+  <script src="../src/dialogue.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

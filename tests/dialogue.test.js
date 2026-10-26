@@ -56,3 +56,12 @@ test('the same line is not repeated back to back', () => {
     previous = line;
   }
 });
+
+test('chatIntervalRange spreads 60%-140% around the average', () => {
+  const { chatIntervalRange } = require('../src/dialogue');
+  const range = chatIntervalRange(5);
+  assert.equal(range.minMs, 5 * 60000 * 0.6);
+  assert.equal(range.maxMs, 5 * 60000 * 1.4);
+  const fast = chatIntervalRange(1);
+  assert.ok(fast.minMs < fast.maxMs && fast.minMs >= 30000);
+});

@@ -25,6 +25,7 @@ function main() {
   app.setAppUserModelId('aemeath.ai.agent');
 
   let win = null;
+  let settingsWin = null;
   let tray = null;
   let provider = null;
   let media = null;
@@ -94,6 +95,19 @@ function main() {
       updateTray();
     });
 
+    // The settings window may only change the keys listed here.
+    ipcMain.handle('settings-window:get', () => settings);
+    ipcMain.on('settings-window:set', (_event, patch) => {
+      const next = {};
+      if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
+      if (patch && typeof patch.chatterIntervalMin === 'number') {
+        next.chatterIntervalMin = patch.chatterIntervalMin;
+      }
+      Object.assign(settings, settingsStore.save(next));
+      win?.webContents?.send('settings:updated', settings);
+      updateTray();
+    });
+
     ipcMain.on('app:quit', () => app.quit());
     ipcMain.on('pet:contextmenu', () => {
       if (tray) tray.popUpContextMenu(Menu.buildFromTemplate(menuTemplate()));
@@ -106,6 +120,34 @@ function main() {
     if (media) media.stop();
     if (aggregateTimer) clearInterval(aggregateTimer);
   });
+
+  function openSettingsWindow() {
+    if (settingsWin) {
+      settingsWin.show();
+      settingsWin.focus();
+      return;
+    }
+    settingsWin = new BrowserWindow({
+      width: 400,
+      height: 300,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      autoHideMenuBar: true,
+      title: 'Pengaturan Aemeath',
+      webPreferences: {
+        preload: path.join(__dirname, 'settings-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    // The pet overlay sits at the screen-saver level; stay above it.
+    settingsWin.setAlwaysOnTop(true, 'screen-saver');
+    settingsWin.on('closed', () => {
+      settingsWin = null;
+    });
+    settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+  }
 
   function startWatchers() {
     provider = createClaudeCodeProvider({
@@ -195,6 +237,7 @@ function main() {
         label: 'Aemeath bicara: ' + (settings.chatterEnabled ? 'aktif' : 'nonaktif'),
         click: () => toggleFeature('chatterEnabled'),
       },
+      { label: 'Pengaturan...', click: () => openSettingsWindow() },
       { label: 'Atur ulang posisi', click: () => win?.webContents?.send('pet:reset') },
       { type: 'separator' },
       { label: 'Keluar', click: () => app.quit() },
@@ -264,6 +307,28 @@ function main() {
       fs.writeFileSync(file, image.toPNG());
       console.log('[aemeath] selfie saved: ' + state);
     }
+
+    // Settings window: drive the slider like a user would and check it sticks.
+    openSettingsWindow();
+    await sleep(1200);
+    const before = settings.chatterIntervalMin;
+    await settingsWin.webContents.executeJavaScript(
+      `(() => {
+        const slider = document.getElementById('interval');
+        slider.value = '8';
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`,
+    );
+    await sleep(600);
+    console.log(
+      '[aemeath] settings interval ' + before + ' -> ' + settings.chatterIntervalMin +
+        ' (stored ' + settingsStore.data.chatterIntervalMin + ')',
+    );
+    const shot = await settingsWin.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'settings-window.png'), shot.toPNG());
+    console.log('[aemeath] selfie saved: settings-window');
+    Object.assign(settings, settingsStore.save({ chatterIntervalMin: before }));
     app.quit();
   }
 

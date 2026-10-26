@@ -54,6 +54,14 @@
   };
 
   const RECENT_LIMIT = 4;
+  // Remarks come at random between 60% and 140% of the configured average.
+  const SPREAD_LOW = 0.6;
+  const SPREAD_HIGH = 1.4;
+
+  function chatIntervalRange(averageMinutes) {
+    const base = averageMinutes * 60000;
+    return { minMs: base * SPREAD_LOW, maxMs: base * SPREAD_HIGH };
+  }
 
   function createDialogue(options) {
     const rng = (options && options.rng) || Math.random;
@@ -92,5 +100,5 @@
     };
   }
 
-  return { createDialogue: createDialogue, LINES: LINES };
+  return { createDialogue: createDialogue, chatIntervalRange: chatIntervalRange, LINES: LINES };
 });

@@ -11,12 +11,21 @@ const DEFAULTS = {
   musicEnabled: true,
   watcherEnabled: true,
   chatterEnabled: true,
+  chatterIntervalMin: 3.5,
   x: null,
   y: null,
 };
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
+// Average gap between Aemeath's remarks, in minutes.
+const MIN_CHAT_INTERVAL = 1;
+const MAX_CHAT_INTERVAL = 15;
+
+function clampInterval(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
+  return Math.min(MAX_CHAT_INTERVAL, Math.max(MIN_CHAT_INTERVAL, value));
+}
 
 function clampScale(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.scale;
@@ -50,12 +59,14 @@ function createSettingsStore(userDataPath) {
       data = Object.assign({}, DEFAULTS);
     }
     data.scale = clampScale(data.scale);
+    data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     return data;
   }
 
   function save(patch) {
     data = Object.assign({}, data, patch || {});
     data.scale = clampScale(data.scale);
+    data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;
@@ -78,4 +89,12 @@ function createSettingsStore(userDataPath) {
   };
 }
 
-module.exports = { createSettingsStore, migrateLegacySettings, DEFAULTS, MIN_SCALE, MAX_SCALE };
+module.exports = {
+  createSettingsStore,
+  migrateLegacySettings,
+  DEFAULTS,
+  MIN_SCALE,
+  MAX_SCALE,
+  MIN_CHAT_INTERVAL,
+  MAX_CHAT_INTERVAL,
+};

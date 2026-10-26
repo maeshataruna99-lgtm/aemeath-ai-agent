@@ -16,13 +16,20 @@
   const BOB_PX = 4;
   const BOB_PERIOD_MS = 2400;
   const CHAT_FIRST_MS = 40000;
-  const CHAT_MIN_MS = 120000;
-  const CHAT_MAX_MS = 300000;
   const CLICK_CHAT_CHANCE = 0.35;
 
   let atlas = null;
   let sprite = null;
-  let settings = { scale: 1, speed: 120, musicEnabled: true, watcherEnabled: true, chatterEnabled: true, x: null, y: null };
+  let settings = {
+    scale: 1,
+    speed: 120,
+    musicEnabled: true,
+    watcherEnabled: true,
+    chatterEnabled: true,
+    chatterIntervalMin: 3.5,
+    x: null,
+    y: null,
+  };
   let workArea = { width: 1920, height: 1080 };
 
   let walker = null;
@@ -155,12 +162,17 @@
     return bubbleUntil === 0 && bubbleQueue.length === 0;
   }
 
+  function scheduleChat(from) {
+    const range = AemeathDialogue.chatIntervalRange(settings.chatterIntervalMin || 3.5);
+    nextChatAt = from + range.minMs + Math.random() * (range.maxMs - range.minMs);
+  }
+
   // Aemeath occasionally says something to Rover when nothing else is on screen.
   function maybeChat(now) {
     if (now < nextChatAt || settings.chatterEnabled === false) return;
     if (demoState || dragState || now < transientUntil || !bubbleIdle()) return;
     showBubble(dialogue.next(chatContext()));
-    nextChatAt = now + CHAT_MIN_MS + Math.random() * (CHAT_MAX_MS - CHAT_MIN_MS);
+    scheduleChat(now);
   }
 
   function tick(now) {
@@ -431,9 +443,11 @@
     });
     window.aemeath.onSettingsUpdated((next) => {
       const scaleChanged = next.scale !== settings.scale;
+      const intervalChanged = next.chatterIntervalMin !== settings.chatterIntervalMin;
       settings = Object.assign({}, settings, next);
       if (walker) walker.speed = settings.speed;
       if (scaleChanged) applyScale();
+      if (intervalChanged) scheduleChat(performance.now());
     });
     window.aemeath.onDemo(setDemoState);
     window.aemeath.onReset(() => {
