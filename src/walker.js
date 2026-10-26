@@ -4,7 +4,7 @@
 // headings can be horizontal, vertical or diagonal.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.AemethWalker = factory();
+  else root.AemeathWalker = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 

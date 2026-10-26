@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const { AemethAtlas, AemethWalker } = window;
+  const { AemeathAtlas, AemeathWalker } = window;
   const canvas = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const musicBadge = document.getElementById('music');
@@ -61,17 +61,17 @@
   }
 
   async function boot() {
-    const init = await window.aemeth.init();
+    const init = await window.aemeath.init();
     atlas = init.atlas;
     settings = Object.assign({}, settings, init.settings);
     workArea = init.workArea;
-    AemethAtlas.validateAtlas(atlas);
+    AemeathAtlas.validateAtlas(atlas);
     applyScale();
 
     const bounds = flightBounds();
     const savedX = typeof settings.x === 'number' ? settings.x : workArea.width / 2;
     const savedY = typeof settings.y === 'number' ? settings.y : bounds.maxY;
-    walker = AemethWalker.createWalker({
+    walker = AemeathWalker.createWalker({
       x: clamp(savedX, bounds.minX, bounds.maxX),
       y: clamp(savedY, bounds.minY, bounds.maxY),
       speed: typeof settings.speed === 'number' ? settings.speed : 120,
@@ -86,7 +86,7 @@
     sprite.src = init.spriteUrl;
 
     setTransient('waving', 2200);
-    showBubble('Aemeth hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.');
+    showBubble('Aemeath hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.');
 
     wireEvents();
   }
@@ -142,7 +142,7 @@
       if (now < transientUntil || sessionRunning() || decisionPending()) {
         haltWalker();
       } else {
-        AemethWalker.stepWalker(walker, now, dt, flightBounds());
+        AemeathWalker.stepWalker(walker, now, dt, flightBounds());
       }
     } else {
       haltWalker();
@@ -171,7 +171,7 @@
     const anim = atlas.animations[sheetAnim];
     const elapsed = now - animStart;
     const frame = Math.floor((elapsed / 1000) * anim.fps);
-    const rect = AemethAtlas.frameRect(atlas, sheetAnim, frame);
+    const rect = AemeathAtlas.frameRect(atlas, sheetAnim, frame);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       ctx.drawImage(
@@ -262,7 +262,7 @@
   }
 
   function persistPosition() {
-    window.aemeth.saveSettings({
+    window.aemeath.saveSettings({
       x: walker.x,
       y: walker.y,
       scale: settings.scale,
@@ -274,7 +274,7 @@
     settings.scale = clamp(settings.scale + delta, 0.5, 3);
     applyScale();
     positionPet();
-    window.aemeth.saveSettings({ scale: settings.scale });
+    window.aemeath.saveSettings({ scale: settings.scale });
   }
 
   function handleSessionEvent(event) {
@@ -309,11 +309,11 @@
       setAnim(MUSIC_ANIM, now);
     } else if (state === 'session-finished') {
       setAnim('review', now);
-      showBubble('[aemeth-ai-agent]\nSesi AI selesai.\nContoh ringkasan: semua tes lulus.');
+      showBubble('[aemeath-ai-agent]\nSesi AI selesai.\nContoh ringkasan: semua tes lulus.');
       updateBubble(now);
     } else if (state === 'session-failed') {
       setAnim('failed', now);
-      showBubble('[aemeth-ai-agent]\nSesi AI gagal: contoh pesan error.');
+      showBubble('[aemeath-ai-agent]\nSesi AI gagal: contoh pesan error.');
       updateBubble(now);
     } else {
       musicStatus = { playing: false, title: '', artist: '', app: '' };
@@ -325,7 +325,7 @@
   function setHover(next) {
     if (hoverState === next) return;
     hoverState = next;
-    window.aemeth.setHover(next);
+    window.aemeath.setHover(next);
   }
 
   function wireEvents() {
@@ -380,27 +380,27 @@
 
     canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      window.aemeth.openContextMenu();
+      window.aemeath.openContextMenu();
     });
 
     bubble.addEventListener('click', () => hideBubble());
 
-    window.aemeth.onSessionEvent(handleSessionEvent);
-    window.aemeth.onMediaStatus((status) => {
+    window.aemeath.onSessionEvent(handleSessionEvent);
+    window.aemeath.onMediaStatus((status) => {
       musicStatus = status;
       updateMusicBadge();
     });
-    window.aemeth.onAggregate((agg) => {
+    window.aemeath.onAggregate((agg) => {
       aggregate = agg;
     });
-    window.aemeth.onSettingsUpdated((next) => {
+    window.aemeath.onSettingsUpdated((next) => {
       const scaleChanged = next.scale !== settings.scale;
       settings = Object.assign({}, settings, next);
       if (walker) walker.speed = settings.speed;
       if (scaleChanged) applyScale();
     });
-    window.aemeth.onDemo(setDemoState);
-    window.aemeth.onReset(() => {
+    window.aemeath.onDemo(setDemoState);
+    window.aemeath.onReset(() => {
       walker.x = clamp(workArea.width / 2, 0, flightBounds().maxX);
       walker.y = homeY();
       haltWalker();

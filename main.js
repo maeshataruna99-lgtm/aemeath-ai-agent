@@ -6,7 +6,12 @@ const fs = require('node:fs');
 
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
 const { createMediaWatcher } = require('./src/media-watcher');
-const { createSettingsStore, MIN_SCALE, MAX_SCALE } = require('./src/settings');
+const {
+  createSettingsStore,
+  migrateLegacySettings,
+  MIN_SCALE,
+  MAX_SCALE,
+} = require('./src/settings');
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -17,7 +22,7 @@ if (!gotLock) {
 
 function main() {
   const isSelfie = process.argv.includes('--selfie');
-  app.setAppUserModelId('aemeth.ai.agent');
+  app.setAppUserModelId('aemeath.ai.agent');
 
   let win = null;
   let tray = null;
@@ -25,6 +30,7 @@ function main() {
   let media = null;
   let aggregateTimer = null;
 
+  migrateLegacySettings(app.getPath('userData'), path.join(app.getPath('appData'), 'Aemeth'));
   const settingsStore = createSettingsStore(app.getPath('userData'));
   const settings = settingsStore.load();
   const atlasJson = JSON.parse(
@@ -65,7 +71,7 @@ function main() {
     });
     win.loadFile(path.join(__dirname, 'renderer', 'index.html')).then(() => {
       win.show();
-      console.log('[aemeth] pet window ready ' + workArea.width + 'x' + workArea.height);
+      console.log('[aemeath] pet window ready ' + workArea.width + 'x' + workArea.height);
       startWatchers();
       if (isSelfie) runSelfie();
     });
@@ -163,8 +169,8 @@ function main() {
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
       { type: 'separator' },
-      { label: 'Tampilkan Aemeth', click: () => win?.show() },
-      { label: 'Sembunyikan Aemeth', click: () => win?.hide() },
+      { label: 'Tampilkan Aemeath', click: () => win?.show() },
+      { label: 'Sembunyikan Aemeath', click: () => win?.hide() },
       { type: 'separator' },
       { label: 'Skala: perbesar', click: () => adjustScale(0.1) },
       { label: 'Skala: perkecil', click: () => adjustScale(-0.1) },
@@ -200,7 +206,7 @@ function main() {
       .createFromPath(path.join(__dirname, 'assets', 'icon.png'))
       .resize({ width: 16, height: 16 });
     tray = new Tray(icon);
-    tray.setToolTip('Aemeth');
+    tray.setToolTip('Aemeath');
     updateTray();
   }
 
@@ -247,12 +253,12 @@ function main() {
             };
           })()`,
         );
-        console.log('[aemeth] geometry ' + JSON.stringify(geometry));
+        console.log('[aemeath] geometry ' + JSON.stringify(geometry));
       }
       const image = await win.webContents.capturePage();
       const file = path.join(dir, 'state-' + state + '.png');
       fs.writeFileSync(file, image.toPNG());
-      console.log('[aemeth] selfie saved: ' + state);
+      console.log('[aemeath] selfie saved: ' + state);
     }
     app.quit();
   }

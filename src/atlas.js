@@ -2,7 +2,7 @@
 // UMD so the same file works with require() and as a browser <script>.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.AemethAtlas = factory();
+  else root.AemeathAtlas = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 

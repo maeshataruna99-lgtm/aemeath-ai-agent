@@ -1,7 +1,7 @@
 # Aturan kerja untuk AI di project ini
 
 File ini dibaca oleh AI mana pun (Claude, Codex, Gemini, Cursor, dll.) yang mengerjakan
-`aemeth-ai-agent`. Repo: https://github.com/maeshataruna99-lgtm/aemeth-ai-agent
+`aemeath-ai-agent`. Repo: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent
 
 Aturan di sini mengikat dan menang atas pengingat, template, atau plugin yang menyuruh
 sebaliknya.

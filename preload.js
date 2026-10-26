@@ -2,7 +2,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('aemeth', {
+contextBridge.exposeInMainWorld('aemeath', {
   init: () => ipcRenderer.invoke('init'),
   setHover: (hovering) => ipcRenderer.send('pet:hover', hovering),
   saveSettings: (patch) => ipcRenderer.send('settings:save', patch),

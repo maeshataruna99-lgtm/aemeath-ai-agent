@@ -22,6 +22,21 @@ function clampScale(value) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 }
 
+// The app was renamed Aemeth -> Aemeath, which moved its userData directory.
+// Carries the old settings file over once so position and scale survive.
+function migrateLegacySettings(userDataPath, legacyPath) {
+  const target = path.join(userDataPath, 'settings.json');
+  const source = path.join(legacyPath, 'settings.json');
+  try {
+    if (fs.existsSync(target) || !fs.existsSync(source)) return false;
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.copyFileSync(source, target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function createSettingsStore(userDataPath) {
   const file = path.join(userDataPath, 'settings.json');
   let data = Object.assign({}, DEFAULTS);
@@ -61,4 +76,4 @@ function createSettingsStore(userDataPath) {
   };
 }
 
-module.exports = { createSettingsStore, DEFAULTS, MIN_SCALE, MAX_SCALE };
+module.exports = { createSettingsStore, migrateLegacySettings, DEFAULTS, MIN_SCALE, MAX_SCALE };

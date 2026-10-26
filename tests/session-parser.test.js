@@ -44,7 +44,7 @@ test('a finished turn emits turn-finished with the last assistant text', () => {
   assert.equal(started.length, 1);
   const finished = emissions.find((e) => e.type === 'turn-finished');
   assert.ok(finished, 'turn-finished emitted');
-  assert.equal(finished.projectName, 'aemeth-ai-agent');
+  assert.equal(finished.projectName, 'aemeath-ai-agent');
   assert.match(finished.summary, /Semua tes lulus/);
   assert.equal(tracker.state, 'finished');
 });

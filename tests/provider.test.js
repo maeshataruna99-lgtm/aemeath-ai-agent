@@ -24,7 +24,7 @@ function waitFor(predicate, timeoutMs = 8000) {
 }
 
 test('provider reports live turns and stays silent about history', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeth-provider-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeath-provider-'));
   const projectDir = path.join(root, 'C--work-demo');
   fs.mkdirSync(projectDir, { recursive: true });
   const file = path.join(projectDir, 'session.jsonl');

@@ -90,7 +90,7 @@ test('ordinary tools and subagent lines never request a decision', () => {
 });
 
 test('provider counts live pending decisions and ignores history', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeth-decision-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeath-decision-'));
   const dir = path.join(root, 'C--work-demo');
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, 'session.jsonl');

@@ -1,7 +1,7 @@
 # Lingkungan & daftar skill
 
 Baca dulu `CLAUDE.md` di folder ini (aturan wajib, termasuk larangan credit/watermark AI).
-Repo: https://github.com/maeshataruna99-lgtm/aemeth-ai-agent
+Repo: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent
 
 ## Lingkungan kerja
 

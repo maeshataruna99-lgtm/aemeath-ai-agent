@@ -1,8 +1,8 @@
 {
-  "name": "aemeth-ai-agent",
-  "productName": "Aemeth",
+  "name": "aemeath-ai-agent",
+  "productName": "Aemeath",
   "version": "0.1.0",
-  "description": "Aemeth desktop pet that walks on your desktop, reacts to your activity, and watches running AI sessions.",
+  "description": "Aemeath desktop pet that walks on your desktop, reacts to your activity, and watches running AI sessions.",
   "main": "main.js",
   "license": "MIT",
   "scripts": {
