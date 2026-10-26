@@ -68,3 +68,10 @@ CC BY-SA unless otherwise noted. Each entry names its source page, and the
 paraphrases are shared under the same license. See `lorebook/README.md` and
 `lorebook/sources.json`. Wuthering Waves and its characters belong to Kuro
 Games; this is an unofficial fan project.
+
+## Web search
+
+When the optional web search is switched on, short excerpts are fetched at run time
+from the Wuthering Waves Wiki on Fandom and from Wikipedia. Both publish their text
+under CC BY-SA; each answer that uses an excerpt shows its source page. Excerpts are
+not stored.

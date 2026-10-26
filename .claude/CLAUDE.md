@@ -150,3 +150,6 @@ Proyek ini selalu dijaga sebagai karya penggemar yang terbuka dan **non-komersia
   lisensinya di `NOTICE.md`; trivia lorebook juga di `lorebook/sources.json`.
 - Jangan memasukkan aset atau teks yang lisensinya tidak jelas atau melarang
   pembagian ulang.
+- Kunci API (mis. DeepSeek) hanya boleh ada di penyimpanan lokal terenkripsi di folder
+  data aplikasi. Jangan menulisnya ke repo, log, commit, README, fixture, atau keluaran
+  chat, dan jangan meminta pemilik menempelkannya ke percakapan dengan AI.

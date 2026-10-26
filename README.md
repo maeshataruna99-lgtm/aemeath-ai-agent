@@ -7,13 +7,38 @@ memantau sesi AI Claude yang sedang berjalan.
 
 - Berjalan-jalan di area kerja desktop, berhenti iseng, bisa digeser, dan diubah
   ukurannya (Ctrl+scroll atau menu tray).
-- Klik Aemeath untuk membuatnya melompat; klik kanan untuk menu.
+- Klik Aemeath untuk membuka kotak chat di sampingnya; klik kanan untuk menu.
 - Musik: mengikuti media session Windows dan menampilkan judul lagu di gelembung kecil.
 - Sesi AI: membaca transkrip Claude Code di `~/.claude/projects`; saat sesi selesai
   Aemeath menampilkan ringkasan hasilnya, saat gagal animasi `failed` dengan pesan error.
+- Chatbot: ngobrol dengan Aemeath lewat API DeepSeek langsung di kotak chat yang muncul saat
+  kamu mengeklik Aemeath (atau lewat menu tray "Ngobrol dengan Aemeath..."). Aemeath menjawab
+  sebagai dirinya dan memakai lorebook sebagai pegangan untuk pertanyaan Wuthering Waves. Kunci API diatur di Pengaturan dan hanya disimpan
+  terenkripsi di komputer ini, di luar folder proyek. Penyedia lain bisa ditambah lewat
+  `src/chat/providers/`.
+- Pencarian web (opsional, di Pengaturan): untuk pertanyaan informasi, Aemeath mencari dulu di
+  Wuthering Waves Wiki (soal game) atau Wikipedia (topik lain), lalu menjawab dengan gayanya dan
+  mencantumkan sumber. Ini pencarian ensiklopedia, bukan mesin pencari umum.
+- Mode offline: tanpa API key atau tanpa internet, Aemeath tetap menjawab dari lorebook yang
+  tersimpan. Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
 - Tray: skala, kecepatan jalan, deteksi musik, pemantau sesi, reset posisi, keluar.
 
 Pengaturan (skala, kecepatan, posisi) disimpan di user data aplikasi, bukan di repo.
+
+## Privasi chatbot
+
+- Kunci API tidak pernah ada di repo, log, atau jendela selain Pengaturan. Aplikasi
+  menyimpannya terenkripsi dengan penyimpanan kredensial Windows di folder data
+  aplikasi, dan hanya proses utama yang bisa membacanya.
+- Pesan yang kamu ketik di kotak chat dikirim ke penyedia yang dipilih (DeepSeek)
+  untuk dijawab, bersama catatan lorebook sebagai bahan jawaban. Isi sesi AI, berkas, dan
+  layarmu tidak ikut dikirim.
+- Jika pencarian web dinyalakan, kata kunci pertanyaanmu dikirim ke Wuthering Waves Wiki
+  (Fandom) atau Wikipedia, dan hasilnya ikut dikirim ke penyedia chatbot sebagai bahan
+  jawaban. Pencarian mati secara bawaan.
+- Riwayat percakapan hanya ada di memori dan dilupakan 10 menit setelah kotak chat ditutup.
+- Pesan yang jelas tidak pantas disaring di komputer dan tidak pernah dikirim; balasan tidak
+  pantas diganti sebelum ditampilkan.
 
 ## Menjalankan
 
