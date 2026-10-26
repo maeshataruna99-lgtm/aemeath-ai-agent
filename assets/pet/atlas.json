@@ -1,0 +1,23 @@
+{
+  "id": "aemeath-mini--cunuo",
+  "displayName": "Aemeeth Mini",
+  "description": "A Q-style pixel Aemeath companion with soft expressions and small animated desktop-pet motions.",
+  "sheet": "spritesheet.webp",
+  "cellWidth": 192,
+  "cellHeight": 208,
+  "columns": 8,
+  "rows": 9,
+  "sheetWidth": 1536,
+  "sheetHeight": 1872,
+  "animations": {
+    "idle": { "row": 0, "frames": 6, "fps": 8 },
+    "running-right": { "row": 1, "frames": 8, "fps": 12 },
+    "running-left": { "row": 2, "frames": 8, "fps": 12 },
+    "waving": { "row": 3, "frames": 4, "fps": 6 },
+    "jumping": { "row": 4, "frames": 5, "fps": 10 },
+    "failed": { "row": 5, "frames": 8, "fps": 8 },
+    "waiting": { "row": 6, "frames": 6, "fps": 6 },
+    "running": { "row": 7, "frames": 6, "fps": 10 },
+    "review": { "row": 8, "frames": 6, "fps": 8 }
+  }
+}

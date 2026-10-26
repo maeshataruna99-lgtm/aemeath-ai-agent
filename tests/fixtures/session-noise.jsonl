@@ -1,0 +1,5 @@
+{"type":"queue-operation","operation":"enqueue","content":"halo"}
+{"parentUuid":null,"isSidechain":false,"type":"user","isMeta":true,"message":{"role":"user","content":"<system-reminder>ingat aturan project</system-reminder>"}}
+{"parentUuid":"x","isSidechain":false,"type":"user","isSidechain":true,"message":{"role":"user","content":"subagent turn"}}
+{"parentUuid":"y","isSidechain":false,"type":"attachment","attachment":{"type":"hook_success","hookName":"PostToolUse"},"timestamp":"2026-10-26T12:00:00.000Z"}
+{"type":"system","subtype":"status","level":"info"}

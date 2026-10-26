@@ -1,0 +1,4 @@
+{"type":"bridge-session","sessionId":"22222222-2222-2222-2222-222222222222"}
+{"type":"queue-operation","operation":"enqueue","timestamp":"2026-10-26T11:00:00.000Z","sessionId":"22222222-2222-2222-2222-222222222222","content":"lanjutkan pekerjaannya"}
+{"parentUuid":null,"isSidechain":false,"cwd":"C:\\work\\demo-app","type":"user","message":{"role":"user","content":"lanjutkan pekerjaannya"},"timestamp":"2026-10-26T11:00:01.000Z"}
+{"parentUuid":"u1","isSidechain":false,"type":"assistant","isApiErrorMessage":true,"message":{"id":"msg_e1","type":"message","role":"assistant","content":[{"type":"text","text":"API Error: 500 overloaded_error"}]},"timestamp":"2026-10-26T11:00:20.000Z"}
