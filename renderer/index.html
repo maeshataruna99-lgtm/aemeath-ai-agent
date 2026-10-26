@@ -10,12 +10,31 @@
   <div id="stage">
     <div id="bubble" class="hidden"></div>
     <div id="music" class="hidden"></div>
+    <div id="chat" class="hidden">
+      <div id="chat-head">
+        <span>Ngobrol dengan Aemeath</span>
+        <span>
+          <button id="chat-reset" type="button" title="Mulai percakapan baru">&#8634;</button>
+          <button id="chat-close" type="button" title="Tutup (Esc)">&#10005;</button>
+        </span>
+      </div>
+      <div id="chat-notice" class="hidden">
+        <span id="chat-notice-text"></span>
+        <button id="chat-settings" type="button">Buka Pengaturan</button>
+      </div>
+      <div id="chat-log" aria-live="polite"></div>
+      <form id="chat-form" autocomplete="off">
+        <input id="chat-input" type="text" maxlength="600" placeholder="Tulis pesan untuk Aemeath...">
+        <button id="chat-send" type="submit">Kirim</button>
+      </form>
+    </div>
     <canvas id="pet" width="192" height="208"></canvas>
   </div>
   <script src="../src/walker.js"></script>
   <script src="../src/atlas.js"></script>
   <script src="../src/dialogue.js"></script>
   <script src="../src/lorebook.js"></script>
+  <script src="chat-panel.js"></script>
   <script src="pet.js"></script>
 </body>
 </html>

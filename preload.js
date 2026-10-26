@@ -14,4 +14,12 @@ contextBridge.exposeInMainWorld('aemeath', {
   onSettingsUpdated: (fn) => ipcRenderer.on('settings:updated', (_e, s) => fn(s)),
   onDemo: (fn) => ipcRenderer.on('demo:set-state', (_e, state) => fn(state)),
   onReset: (fn) => ipcRenderer.on('pet:reset', () => fn()),
+  chatStatus: () => ipcRenderer.invoke('chat:status'),
+  chatSend: (text) => ipcRenderer.invoke('chat:send', text),
+  chatReset: () => ipcRenderer.invoke('chat:reset'),
+  openSettings: () => ipcRenderer.send('chat:open-settings'),
+  focusWindow: () => ipcRenderer.send('chat:focus'),
+  blurWindow: () => ipcRenderer.send('chat:blur'),
+  onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),
+  onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
 });

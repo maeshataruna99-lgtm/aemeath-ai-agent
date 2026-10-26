@@ -24,6 +24,56 @@
       <div class="scale"><span>sering</span><span>jarang</span></div>
       <p id="range" class="hint"></p>
     </section>
+
+    <hr>
+
+    <section class="row" id="chatbot">
+      <h2>Chatbot</h2>
+
+      <label class="field" for="provider">Penyedia</label>
+      <select id="provider"></select>
+
+      <label class="field" for="model">Model</label>
+      <select id="model"></select>
+
+      <label class="field check" for="websearch">
+        <input type="checkbox" id="websearch">
+        <span>Cari di web agar jawaban lebih akurat</span>
+      </label>
+      <p class="hint tight">
+        Memakai Wuthering Waves Wiki untuk pertanyaan game dan Wikipedia untuk topik lain.
+        Kata kunci pertanyaanmu dikirim ke situs itu, lalu hasilnya ikut dijadikan bahan jawaban
+        dengan sumber tertera. Bukan mesin pencari umum.
+      </p>
+
+      <label class="field check" for="offline">
+        <input type="checkbox" id="offline">
+        <span>Tetap ngobrol tanpa kunci atau internet</span>
+      </label>
+      <p class="hint tight">
+        Saat kunci belum ada atau internet putus, Aemeath menjawab dari lorebook yang tersimpan.
+        Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
+      </p>
+
+      <label class="field" for="apikey">Kunci API</label>
+      <input type="password" id="apikey" autocomplete="off" spellcheck="false"
+             placeholder="Tempel kunci di sini">
+      <div class="buttons">
+        <button type="button" id="save-key">Simpan kunci</button>
+        <button type="button" id="clear-key">Hapus kunci</button>
+      </div>
+      <p id="key-status" class="status"></p>
+
+      <p class="hint">
+        Kunci hanya disimpan di komputer ini, terenkripsi lewat penyimpanan kredensial sistem,
+        di luar folder proyek. Kunci tidak pernah dikirim ke repo, ke jendela lain, atau ke
+        siapa pun selain <span id="provider-name">penyedia</span>.
+      </p>
+      <p class="hint">
+        Pesan yang kamu ketik di kotak chat dikirim ke <span id="provider-name-2">penyedia</span>
+        untuk dijawab. Riwayat percakapan hanya ada di memori dan dilupakan beberapa menit setelah kotak chat ditutup.
+      </p>
+    </section>
   </main>
   <script src="../src/dialogue.js"></script>
   <script src="settings.js"></script>

@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const { AemeathAtlas, AemeathWalker, AemeathDialogue, AemeathLorebook } = window;
+  const { AemeathAtlas, AemeathWalker, AemeathDialogue, AemeathLorebook, AemeathChatPanel } = window;
   const canvas = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const musicBadge = document.getElementById('music');
@@ -16,7 +16,6 @@
   const BOB_PX = 4;
   const BOB_PERIOD_MS = 2400;
   const CHAT_FIRST_MS = 40000;
-  const CLICK_CHAT_CHANCE = 0.35;
   const TRIVIA_CHANCE = 0.3;
   const BUBBLE_MAX_MS = 16000;
 
@@ -46,6 +45,8 @@
   let dragState = null;
   const dialogue = AemeathDialogue.createDialogue();
   let lorebook = null;
+  let chatThinking = false;
+  let chatPanel = null;
   let nextChatAt = 0;
 
   const bubbleQueue = [];
@@ -94,6 +95,16 @@
       speed: typeof settings.speed === 'number' ? settings.speed : 120,
     });
 
+    chatPanel = AemeathChatPanel.create({
+      api: window.aemeath,
+      anchor: () => ({
+        centerX: walker.x + petWidth() / 2,
+        top: walker.y,
+        bottom: walker.y + petHeight(),
+      }),
+      bounds: () => workArea,
+    });
+
     sprite = new Image();
     sprite.onload = () => requestAnimationFrame(tick);
     sprite.onerror = () => {
@@ -115,10 +126,15 @@
 
   function currentBaseAnim() {
     if (walker.mode === 'fly') return walker.facing >= 0 ? 'running-right' : 'running-left';
+    if (chatThinking) return 'waiting';
     if (decisionPending()) return 'confused';
     if (sessionRunning()) return 'running';
     if (musicEnabled() && musicStatus.playing) return MUSIC_ANIM;
     return 'idle';
+  }
+
+  function chatOpen() {
+    return Boolean(chatPanel && chatPanel.isOpen());
   }
 
   function decisionPending() {
@@ -174,7 +190,7 @@
   // Aemeath occasionally says something to Rover when nothing else is on screen.
   function maybeChat(now) {
     if (now < nextChatAt || settings.chatterEnabled === false) return;
-    if (demoState || dragState || now < transientUntil || !bubbleIdle()) return;
+    if (demoState || dragState || chatOpen() || now < transientUntil || !bubbleIdle()) return;
     const context = chatContext();
     const trivia = !context.decisionPending && Math.random() < TRIVIA_CHANCE ? lorebook.next() : null;
     if (trivia) showBubble(trivia.text, trivia.credit);
@@ -187,7 +203,7 @@
     lastTick = now;
 
     if (!demoState && !dragState) {
-      if (now < transientUntil || sessionRunning() || decisionPending()) {
+      if (now < transientUntil || sessionRunning() || decisionPending() || chatThinking || chatOpen()) {
         haltWalker();
       } else {
         AemeathWalker.stepWalker(walker, now, dt, flightBounds());
@@ -210,6 +226,7 @@
     draw(now);
     updateBubble(now);
     if (!bubble.classList.contains('hidden')) positionBubble();
+    if (chatOpen()) chatPanel.reposition();
     requestAnimationFrame(tick);
   }
 
@@ -307,6 +324,11 @@
   }
 
   function updateBubble(now) {
+    // The chat box takes the bubble's place; queued remarks wait until it closes.
+    if (chatOpen()) {
+      if (bubbleUntil) hideBubble();
+      return;
+    }
     if (bubbleUntil && now > bubbleUntil) hideBubble();
     if (bubbleUntil === 0 && bubbleQueue.length > 0) {
       const item = bubbleQueue.shift();
@@ -395,6 +417,12 @@
     }
   }
 
+  // Clicking the pet (or the tray item) opens or closes the chat box beside her.
+  function toggleChat() {
+    chatPanel.toggle();
+    if (chatPanel.isOpen()) setTransient('waving', 1200);
+  }
+
   function setHover(next) {
     if (hoverState === next) return;
     hoverState = next;
@@ -407,7 +435,10 @@
       if (dragState) return;
       const target = e.target;
       const hovering =
-        target === canvas || bubble.contains(target) || musicBadge.contains(target);
+        target === canvas ||
+        bubble.contains(target) ||
+        musicBadge.contains(target) ||
+        chatPanel.contains(target);
       setHover(hovering);
     });
 
@@ -437,10 +468,7 @@
       if (!dragState) return;
       canvas.classList.remove('dragging');
       if (!dragState.moved) {
-        setTransient('jumping', 1200);
-        if (settings.chatterEnabled !== false && bubbleIdle() && Math.random() < CLICK_CHAT_CHANCE) {
-          showBubble(dialogue.onClick());
-        }
+        toggleChat();
       } else {
         persistPosition();
       }
@@ -480,6 +508,11 @@
       if (scaleChanged) applyScale();
       if (intervalChanged) scheduleChat(performance.now());
     });
+    window.aemeath.onChatState((state) => {
+      chatThinking = Boolean(state && state.thinking);
+      if (state && state.replied) setTransient('waving', 1800);
+    });
+    window.aemeath.onChatToggle(toggleChat);
     window.aemeath.onDemo(setDemoState);
     window.aemeath.onReset(() => {
       walker.x = clamp(workArea.width / 2, 0, flightBounds().maxX);

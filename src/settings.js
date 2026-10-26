@@ -12,6 +12,10 @@ const DEFAULTS = {
   watcherEnabled: true,
   chatterEnabled: true,
   chatterIntervalMin: 3.5,
+  chatProvider: 'deepseek',
+  chatModel: 'deepseek-flash',
+  chatWebSearch: false,
+  chatOfflineFallback: true,
   x: null,
   y: null,
 };
@@ -25,6 +29,19 @@ const MAX_CHAT_INTERVAL = 15;
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
   return Math.min(MAX_CHAT_INTERVAL, Math.max(MIN_CHAT_INTERVAL, value));
+}
+
+// Provider and model are plain identifiers; anything else falls back to defaults.
+function keepFlags(data) {
+  for (const key of ['chatWebSearch', 'chatOfflineFallback']) {
+    if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
+  }
+}
+
+function keepStrings(data) {
+  for (const key of ['chatProvider', 'chatModel']) {
+    if (typeof data[key] !== 'string' || data[key] === '') data[key] = DEFAULTS[key];
+  }
 }
 
 function clampScale(value) {
@@ -60,6 +77,8 @@ function createSettingsStore(userDataPath) {
     }
     data.scale = clampScale(data.scale);
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
+    keepStrings(data);
+    keepFlags(data);
     return data;
   }
 
@@ -67,6 +86,8 @@ function createSettingsStore(userDataPath) {
     data = Object.assign({}, data, patch || {});
     data.scale = clampScale(data.scale);
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
+    keepStrings(data);
+    keepFlags(data);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;

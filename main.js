@@ -1,12 +1,26 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  ipcMain,
+  nativeImage,
+  safeStorage,
+  screen,
+} = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
 const { createMediaWatcher } = require('./src/media-watcher');
 const { loadLorebook } = require('./src/lorebook-loader');
+const { createKeyStore } = require('./src/chat/key-store');
+const { createProviders } = require('./src/chat/providers');
+const { createChatService } = require('./src/chat/chat-service');
+const { createWebSearch } = require('./src/chat/web-search');
+const { createLocalResponder } = require('./src/chat/local-responder');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -29,6 +43,7 @@ function main() {
 
   let win = null;
   let settingsWin = null;
+  let keyStore = null;
   let tray = null;
   let provider = null;
   let media = null;
@@ -56,7 +71,98 @@ function main() {
     }
   });
 
+  // The selfie run answers with a canned reply so the chat UI can be checked
+  // without a real key or network access.
+  const selfieRequests = [];
+  const selfieFetch = async (_url, init) => {
+    selfieRequests.push(init && init.body);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: 'Halo, Rover! Ini balasan contoh untuk uji tampilan.' } }],
+      }),
+    };
+  };
+  const providers = createProviders({ fetchImpl: isSelfie ? selfieFetch : undefined });
+
+  const selfieSearch = {
+    search: async () => ({
+      results: [
+        {
+          title: 'Exostrider',
+          text: 'Contoh hasil pencarian untuk uji tampilan.',
+          source: {
+            title: 'Wuthering Waves Wiki: Exostrider',
+            url: 'https://wutheringwaves.fandom.com/wiki/Exostrider',
+            license: 'CC BY-SA',
+          },
+        },
+      ],
+    }),
+  };
+
+  // Lore entries with the credit of the page they came from, for offline answers.
+  const loreEntries = () =>
+    lorebookData.entries.map((e) => ({
+      id: e.id,
+      topic: e.topic,
+      text: e.text,
+      credit: lorebookData.sources[e.source],
+    }));
+
+  function chatConfig() {
+    const provider = providers.get(settings.chatProvider) || providers.get(providers.defaultId);
+    const known = provider.models.some((m) => m.id === settings.chatModel);
+    return { provider: provider.id, model: known ? settings.chatModel : provider.defaultModel };
+  }
+
+  const chatService = createChatService({
+    providers,
+    getKey: (id) => (keyStore ? keyStore.get(id) : null),
+    getConfig: chatConfig,
+    getKnowledge: () => lorebookData.entries.map((e) => ({ topic: e.topic, text: e.text })),
+    getFeatures: () => ({
+      webSearch: settings.chatWebSearch === true,
+      offlineFallback: settings.chatOfflineFallback !== false,
+    }),
+    search: isSelfie ? selfieSearch : createWebSearch(),
+    localResponder: createLocalResponder({ getEntries: loreEntries }),
+  });
+
+  // Never includes a key: only whether one exists.
+  function chatStatus() {
+    const config = chatConfig();
+    return {
+      provider: config.provider,
+      model: config.model,
+      secure: keyStore.secure,
+      webSearch: settings.chatWebSearch === true,
+      offlineFallback: settings.chatOfflineFallback !== false,
+      providers: providers.list.map((p) => ({
+        id: p.id,
+        name: p.name,
+        keyUrl: p.keyUrl,
+        models: p.models,
+        hasKey: keyStore.has(p.id),
+      })),
+    };
+  }
+
+  const fromWindow = (event, target) => Boolean(target) && event.sender === target.webContents;
+
   app.whenReady().then(() => {
+    // The selfie run keeps keys in memory so it can never touch a real saved key.
+    keyStore = createKeyStore({
+      dir: app.getPath('userData'),
+      crypto: isSelfie
+        ? { isAvailable: () => false }
+        : {
+            isAvailable: () => safeStorage.isEncryptionAvailable(),
+            encrypt: (text) => safeStorage.encryptString(text),
+            decrypt: (buffer) => safeStorage.decryptString(buffer),
+          },
+    });
     const workArea = screen.getPrimaryDisplay().workArea;
     win = new BrowserWindow({
       x: workArea.x,
@@ -112,12 +218,69 @@ function main() {
     ipcMain.on('settings-window:set', (_event, patch) => {
       const next = {};
       if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
+      for (const flag of ['chatWebSearch', 'chatOfflineFallback']) {
+        if (patch && typeof patch[flag] === 'boolean') next[flag] = patch[flag];
+      }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
         next.chatterIntervalMin = patch.chatterIntervalMin;
       }
       Object.assign(settings, settingsStore.save(next));
       win?.webContents?.send('settings:updated', settings);
       updateTray();
+    });
+
+    ipcMain.on('chat:open-settings', (event) => {
+      if (fromWindow(event, win)) openSettingsWindow();
+    });
+    // The overlay is click-through and unfocused by default; typing needs focus.
+    ipcMain.on('chat:focus', (event) => {
+      if (fromWindow(event, win)) win.focus();
+    });
+    ipcMain.on('chat:blur', (event) => {
+      if (fromWindow(event, win)) win.blur();
+    });
+    ipcMain.handle('chat:status', (event) =>
+      fromWindow(event, win) || fromWindow(event, settingsWin) ? chatStatus() : null,
+    );
+    ipcMain.handle('chat:send', async (event, text) => {
+      if (!fromWindow(event, win)) return { ok: false, error: 'Tidak diizinkan.' };
+      win?.webContents?.send('chat:state', { thinking: true });
+      try {
+        const reply = await chatService.send(text);
+        win?.webContents?.send('chat:state', { thinking: false, replied: true });
+        return { ok: true, text: reply.text, mode: reply.mode, sources: reply.sources };
+      } catch (error) {
+        win?.webContents?.send('chat:state', { thinking: false, replied: false });
+        return { ok: false, code: error.code || 'unknown', error: error.message };
+      }
+    });
+    ipcMain.handle('chat:reset', (event) => {
+      if (fromWindow(event, win)) chatService.reset();
+      return true;
+    });
+    // Key management is only accepted from the settings window.
+    ipcMain.handle('chat:set-key', (event, payload) => {
+      if (!fromWindow(event, settingsWin)) return { ok: false, error: 'Tidak diizinkan.' };
+      const provider = payload && providers.get(payload.provider);
+      if (!provider) return { ok: false, error: 'Penyedia tidak dikenal.' };
+      return keyStore.set(provider.id, payload.key);
+    });
+    ipcMain.handle('chat:clear-key', (event, providerId) => {
+      if (!fromWindow(event, settingsWin)) return false;
+      const provider = providers.get(providerId);
+      if (provider) keyStore.clear(provider.id);
+      return true;
+    });
+    ipcMain.handle('chat:set-config', (event, payload) => {
+      if (!fromWindow(event, settingsWin)) return null;
+      const provider = payload && providers.get(payload.provider);
+      if (provider) {
+        const model = provider.models.some((m) => m.id === payload.model)
+          ? payload.model
+          : provider.defaultModel;
+        Object.assign(settings, settingsStore.save({ chatProvider: provider.id, chatModel: model }));
+      }
+      return chatStatus();
     });
 
     ipcMain.on('app:quit', () => app.quit());
@@ -133,6 +296,13 @@ function main() {
     if (aggregateTimer) clearInterval(aggregateTimer);
   });
 
+  // Chat lives in a box next to the pet; the tray only asks the overlay to toggle it.
+  function toggleChat() {
+    if (!win) return;
+    win.show();
+    win.webContents.send('chat:toggle');
+  }
+
   function openSettingsWindow() {
     if (settingsWin) {
       settingsWin.show();
@@ -140,9 +310,9 @@ function main() {
       return;
     }
     settingsWin = new BrowserWindow({
-      width: 400,
-      height: 300,
-      resizable: false,
+      width: 420,
+      height: 640,
+      resizable: true,
       minimizable: false,
       maximizable: false,
       autoHideMenuBar: true,
@@ -223,6 +393,8 @@ function main() {
     return [
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
+      { type: 'separator' },
+      { label: 'Ngobrol dengan Aemeath...', click: () => toggleChat() },
       { type: 'separator' },
       { label: 'Tampilkan Aemeath', click: () => win?.show() },
       { label: 'Sembunyikan Aemeath', click: () => win?.hide() },
@@ -343,6 +515,86 @@ function main() {
     fs.writeFileSync(path.join(dir, 'settings-window.png'), shot.toPNG());
     console.log('[aemeath] selfie saved: settings-window');
     Object.assign(settings, settingsStore.save({ chatterIntervalMin: before }));
+
+    // Chatbot without a key: the lorebook answers, and the model is never called.
+    const ask = async (text) => {
+      await win.webContents.executeJavaScript(
+        `(() => {
+          document.getElementById('chat-input').value = ${JSON.stringify(text)};
+          document.getElementById('chat-form').requestSubmit();
+        })()`,
+      );
+      await sleep(1000);
+    };
+    const lastMessages = () =>
+      win.webContents.executeJavaScript(
+        `JSON.stringify([...document.querySelectorAll('#chat-log .msg')].slice(-2).map((m) => m.textContent))`,
+      );
+    win.webContents.send('chat:toggle');
+    await sleep(1200);
+    await ask('Apa itu Exostrider?');
+    console.log('[aemeath] offline known ' + (await lastMessages()));
+    await ask('Resep nasi goreng yang enak bagaimana?');
+    console.log('[aemeath] offline unknown ' + (await lastMessages()));
+    console.log('[aemeath] offline model calls ' + selfieRequests.length);
+    const shotOffline = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'chat-offline.png'), shotOffline.toPNG());
+    win.webContents.send('chat:toggle');
+    await sleep(500);
+
+    // Chatbot: save a throwaway key through the settings window, chat through the
+    // chat window against the canned reply, and make sure the key never shows up
+    // anywhere a renderer can read it.
+    const selfieKey = 'selfie-test-key-0123456789';
+    await settingsWin.webContents.executeJavaScript(
+      `(async () => {
+        document.getElementById('apikey').value = '${selfieKey}';
+        document.getElementById('save-key').click();
+      })()`,
+    );
+    await sleep(800);
+    const settingsLeak = await settingsWin.webContents.executeJavaScript(
+      `JSON.stringify({
+        inputEmpty: document.getElementById('apikey').value === '',
+        pageHasKey: document.documentElement.outerHTML.includes('${selfieKey}')
+          || document.body.innerText.includes('${selfieKey}'),
+        api: Object.keys(window.aemeathSettings),
+        status: document.getElementById('key-status').textContent,
+      })`,
+    );
+    console.log('[aemeath] key check (settings) ' + settingsLeak);
+    const shotSettings = await settingsWin.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'settings-chatbot.png'), shotSettings.toPNG());
+
+    // With a key and web search on, the model receives the lookup results.
+    Object.assign(settings, settingsStore.save({ chatWebSearch: true }));
+    selfieRequests.length = 0;
+    win.webContents.send('chat:toggle');
+    await sleep(1200);
+    await win.webContents.executeJavaScript(
+      `(() => {
+        document.getElementById('chat-input').value = 'Apa itu Exostrider sebenarnya?';
+        document.getElementById('chat-form').requestSubmit();
+      })()`,
+    );
+    await sleep(1200);
+    const chatCheck = await win.webContents.executeJavaScript(
+      `JSON.stringify({
+        panelVisible: !document.getElementById('chat').classList.contains('hidden'),
+        messages: [...document.querySelectorAll('#chat-log .msg')].map((m) => m.className + ': ' + m.textContent),
+        api: Object.keys(window.aemeath),
+        pageHasKey: document.documentElement.outerHTML.includes('${selfieKey}'),
+      })`,
+    );
+    console.log('[aemeath] chat check ' + chatCheck);
+    console.log(
+      '[aemeath] search block sent to model ' +
+        selfieRequests.some((body) => String(body).includes('Hasil pencarian web')),
+    );
+    Object.assign(settings, settingsStore.save({ chatWebSearch: false }));
+    const shotChat = await win.webContents.capturePage();
+    fs.writeFileSync(path.join(dir, 'chat-panel.png'), shotChat.toPNG());
+    console.log('[aemeath] selfie saved: chat-panel');
     app.quit();
   }
 

@@ -46,11 +46,6 @@
       'Sudah larut, Rover. Kamu dulu bilang tidur itu penting, ingat?',
       'Malam begini mengingatkanku pada badai dulu. Istirahatlah, aku jaga di sini.',
     ],
-    click: [
-      'Hei, jangan diusik terus~ Tapi kalau kamu yang menyentuh, tidak apa-apa.',
-      'Hup! Lompat. Aku bisa melakukannya seharian.',
-      'Kamu memanggilku, Rover?',
-    ],
   };
 
   const RECENT_LIMIT = 4;
@@ -96,7 +91,6 @@
 
     return {
       next: (context) => pickFrom(categoryFor(context)),
-      onClick: () => pickFrom('click'),
     };
   }
 
