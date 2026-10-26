@@ -8,6 +8,8 @@
   const ctx = canvas.getContext('2d');
 
   const MUSIC_ANIM = 'waving';
+  // The sheet has one '?' row; it is published as `failed` and reused for a pending decision.
+  const ANIM_ALIASES = { confused: 'failed' };
   const TRANSIENT_MS = 4000;
   const BUBBLE_MS = 7000;
   const FLOOR_GAP = 8;
@@ -24,7 +26,7 @@
   let animStart = 0;
   let transientUntil = 0;
   let musicStatus = { playing: false, title: '', artist: '', app: '' };
-  let aggregate = { running: 0 };
+  let aggregate = { running: 0, awaitingDecision: 0 };
   let demoState = null;
   let lastTick = 0;
   let hoverState = false;
@@ -95,9 +97,14 @@
 
   function currentBaseAnim() {
     if (walker.mode === 'fly') return walker.facing >= 0 ? 'running-right' : 'running-left';
+    if (decisionPending()) return 'confused';
     if (sessionRunning()) return 'running';
     if (musicEnabled() && musicStatus.playing) return MUSIC_ANIM;
     return 'idle';
+  }
+
+  function decisionPending() {
+    return settings.watcherEnabled !== false && aggregate.awaitingDecision > 0;
   }
 
   function sessionRunning() {
@@ -132,7 +139,7 @@
     lastTick = now;
 
     if (!demoState && !dragState) {
-      if (now < transientUntil || sessionRunning()) {
+      if (now < transientUntil || sessionRunning() || decisionPending()) {
         haltWalker();
       } else {
         AemethWalker.stepWalker(walker, now, dt, flightBounds());
@@ -159,10 +166,12 @@
 
   function draw(now) {
     if (!atlas) return;
-    const anim = atlas.animations[animName] || atlas.animations.idle;
+    const wanted = ANIM_ALIASES[animName] || animName;
+    const sheetAnim = atlas.animations[wanted] ? wanted : 'idle';
+    const anim = atlas.animations[sheetAnim];
     const elapsed = now - animStart;
     const frame = Math.floor((elapsed / 1000) * anim.fps);
-    const rect = AemethAtlas.frameRect(atlas, animName, frame);
+    const rect = AemethAtlas.frameRect(atlas, sheetAnim, frame);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       ctx.drawImage(
@@ -271,6 +280,13 @@
   function handleSessionEvent(event) {
     if (settings.watcherEnabled === false) return;
     if (event.type === 'turn-started') return; // the aggregate drives the animation
+    if (event.type === 'decision-resolved') return;
+    if (event.type === 'decision-requested') {
+      showBubble(
+        '[' + event.projectName + ']\nSesi AI butuh keputusanmu:\n' + (event.summary || '(tanpa detail)'),
+      );
+      return;
+    }
     if (event.type === 'turn-finished') {
       setTransient('review', TRANSIENT_MS);
       showBubble(

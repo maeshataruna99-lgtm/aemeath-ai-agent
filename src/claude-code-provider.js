@@ -11,6 +11,8 @@ const parser = require('./session-parser');
 const COALESCE_MS = 300;
 const RESCAN_MS = 15000;
 const ACTIVE_MAX_AGE_MS = 10 * 60 * 1000;
+// A pending decision may wait a long time for the human, but not forever.
+const DECISION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 function createClaudeCodeProvider(options) {
   const opts = options || {};
@@ -158,12 +160,24 @@ function createClaudeCodeProvider(options) {
     return count;
   }
 
+  function pendingDecisionCount(now) {
+    const at = now || Date.now();
+    let count = 0;
+    for (const entry of tracked.values()) {
+      if (!entry.tracker.pendingDecision) continue;
+      if (at - entry.lastAppendAt > DECISION_MAX_AGE_MS) continue;
+      count += 1;
+    }
+    return count;
+  }
+
   return {
     start: start,
     stop: stop,
     activeSessionCount: activeSessionCount,
+    pendingDecisionCount: pendingDecisionCount,
     listSessionFiles: listSessionFiles,
   };
 }
 
-module.exports = { createClaudeCodeProvider, ACTIVE_MAX_AGE_MS };
+module.exports = { createClaudeCodeProvider, ACTIVE_MAX_AGE_MS, DECISION_MAX_AGE_MS };

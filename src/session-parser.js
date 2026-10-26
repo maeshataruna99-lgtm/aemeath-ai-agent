@@ -19,6 +19,26 @@ function textOf(content) {
   return '';
 }
 
+// Tools that stop the turn until the human answers. Permission prompts are not
+// recorded in transcripts, so only these explicit requests can be detected.
+const DECISION_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode']);
+
+function toolResultIds(content) {
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((b) => b && b.type === 'tool_result' && typeof b.tool_use_id === 'string')
+    .map((b) => b.tool_use_id);
+}
+
+function describeDecision(toolUse) {
+  const input = toolUse.input || {};
+  if (toolUse.name === 'AskUserQuestion') {
+    const first = Array.isArray(input.questions) ? input.questions[0] : null;
+    return (first && (first.question || first.header)) || 'Sesi AI mengajukan pertanyaan.';
+  }
+  return 'Rencana menunggu persetujuanmu.';
+}
+
 function parseLine(line) {
   if (typeof line !== 'string' || line.trim() === '') return null;
   let obj;
@@ -42,6 +62,8 @@ function parseLine(line) {
       // Skip subagent turns, meta entries, hook output and tool results: they
       // are not a human turn and must not wake the pet.
       if (obj.isSidechain || obj.isMeta) return null;
+      const resultIds = toolResultIds(obj.message && obj.message.content);
+      if (resultIds.length) return { kind: 'tool-result', toolUseIds: resultIds, cwd };
       const text = textOf(obj.message && obj.message.content);
       if (!text || text.startsWith('<')) return null;
       return { kind: 'user-message', text, cwd };
@@ -60,7 +82,12 @@ function parseLine(line) {
       if (message.stop_reason === 'end_turn' || message.stop_reason === 'stop_sequence') {
         return { kind: 'turn-finished', text, cwd };
       }
-      return { kind: 'assistant-progress', text, cwd };
+      const toolUses = obj.isSidechain
+        ? []
+        : blocks
+            .filter((b) => b && b.type === 'tool_use' && DECISION_TOOLS.has(b.name))
+            .map((b) => ({ id: b.id, name: b.name, input: b.input }));
+      return { kind: 'assistant-progress', text, toolUses, cwd };
     }
     case 'system':
       if (obj.subtype === 'stop_hook_summary') return { kind: 'turn-finished', text: '', cwd };
@@ -81,6 +108,7 @@ function createTracker(sessionId, projectDir) {
     finishedAt: null,
     lastUserText: '',
     lastAssistantText: '',
+    pendingDecision: null, // { id, tool } while the session waits for the human
   };
 }
 
@@ -112,10 +140,19 @@ function emit(tracker, type, summary) {
 
 // Folds one parsed event into the tracker state machine and returns the
 // transitions that fired (usually zero or one).
+function resolveDecision(tracker, emissions) {
+  if (!tracker.pendingDecision) return;
+  tracker.pendingDecision = null;
+  emissions.push(emit(tracker, 'decision-resolved', ''));
+}
+
 function feedEvent(tracker, event, timestamp) {
   const emissions = [];
   if (!event || event.kind === 'session-open') return emissions;
   if (event.cwd && !tracker.cwd) tracker.cwd = event.cwd;
+  if (event.kind === 'user-message' || event.kind === 'turn-finished' || event.kind === 'turn-failed') {
+    resolveDecision(tracker, emissions);
+  }
 
   switch (event.kind) {
     case 'user-message':
@@ -134,6 +171,16 @@ function feedEvent(tracker, event, timestamp) {
         tracker.state = 'running';
         tracker.startedAt = timestamp;
         emissions.push(emit(tracker, 'turn-started'));
+      }
+      for (const toolUse of event.toolUses || []) {
+        if (tracker.pendingDecision && tracker.pendingDecision.id === toolUse.id) continue;
+        tracker.pendingDecision = { id: toolUse.id, tool: toolUse.name };
+        emissions.push(emit(tracker, 'decision-requested', summarize(describeDecision(toolUse))));
+      }
+      break;
+    case 'tool-result':
+      if (tracker.pendingDecision && event.toolUseIds.includes(tracker.pendingDecision.id)) {
+        resolveDecision(tracker, emissions);
       }
       break;
     case 'turn-finished':

@@ -132,6 +132,7 @@ function main() {
   function pushAggregate() {
     win?.webContents?.send('session:aggregate', {
       running: provider ? provider.activeSessionCount() : 0,
+      awaitingDecision: provider ? provider.pendingDecisionCount() : 0,
     });
   }
 
@@ -157,8 +158,10 @@ function main() {
 
   function menuTemplate() {
     const running = provider ? provider.activeSessionCount() : 0;
+    const awaiting = provider ? provider.pendingDecisionCount() : 0;
     return [
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
+      { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
       { type: 'separator' },
       { label: 'Tampilkan Aemeth', click: () => win?.show() },
       { label: 'Sembunyikan Aemeth', click: () => win?.hide() },
@@ -212,6 +215,7 @@ function main() {
       'running',
       'review',
       'failed',
+      'confused',
       'music',
       'session-finished',
       'session-failed',
