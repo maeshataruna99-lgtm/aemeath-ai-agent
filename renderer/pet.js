@@ -75,10 +75,23 @@
   }
 
   function currentBaseAnim() {
-    if (settings.watcherEnabled !== false && aggregate.running > 0) return 'running';
-    if (musicEnabled() && musicStatus.playing) return MUSIC_ANIM;
     if (walker.mode === 'walk') return walker.direction >= 0 ? 'running-right' : 'running-left';
+    if (sessionRunning()) return 'running';
+    if (musicEnabled() && musicStatus.playing) return MUSIC_ANIM;
     return 'idle';
+  }
+
+  function sessionRunning() {
+    return settings.watcherEnabled !== false && aggregate.running > 0;
+  }
+
+  // Stop wandering so the sprite never slides while a non-walking animation plays.
+  function haltWalker() {
+    if (walker.mode === 'walk') {
+      walker.mode = 'rest';
+      walker.direction = 0;
+      walker.modeUntil = 0;
+    }
   }
 
   function setTransient(name, ms) {
@@ -99,10 +112,16 @@
     lastTick = now;
 
     if (!demoState && !dragState) {
-      AemethWalker.stepWalker(walker, now, dt, {
-        minX: 0,
-        maxX: Math.max(0, workArea.width - petWidth()),
-      });
+      if (now < transientUntil || sessionRunning()) {
+        haltWalker();
+      } else {
+        AemethWalker.stepWalker(walker, now, dt, {
+          minX: 0,
+          maxX: Math.max(0, workArea.width - petWidth()),
+        });
+      }
+    } else {
+      haltWalker();
     }
 
     if (!demoState) {
