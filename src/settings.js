@@ -10,6 +10,7 @@ const DEFAULTS = {
   speed: 120,
   musicEnabled: true,
   watcherEnabled: true,
+  chatterEnabled: true,
   x: null,
   y: null,
 };
@@ -58,6 +59,7 @@ function createSettingsStore(userDataPath) {
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;
+    if (typeof data.chatterEnabled !== 'boolean') data.chatterEnabled = DEFAULTS.chatterEnabled;
     try {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, JSON.stringify(data, null, 2));

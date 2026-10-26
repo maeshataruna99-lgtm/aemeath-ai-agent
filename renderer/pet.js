@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const { AemeathAtlas, AemeathWalker } = window;
+  const { AemeathAtlas, AemeathWalker, AemeathDialogue } = window;
   const canvas = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const musicBadge = document.getElementById('music');
@@ -15,10 +15,14 @@
   const FLOOR_GAP = 8;
   const BOB_PX = 4;
   const BOB_PERIOD_MS = 2400;
+  const CHAT_FIRST_MS = 40000;
+  const CHAT_MIN_MS = 120000;
+  const CHAT_MAX_MS = 300000;
+  const CLICK_CHAT_CHANCE = 0.35;
 
   let atlas = null;
   let sprite = null;
-  let settings = { scale: 1, speed: 120, musicEnabled: true, watcherEnabled: true, x: null, y: null };
+  let settings = { scale: 1, speed: 120, musicEnabled: true, watcherEnabled: true, chatterEnabled: true, x: null, y: null };
   let workArea = { width: 1920, height: 1080 };
 
   let walker = null;
@@ -31,6 +35,8 @@
   let lastTick = 0;
   let hoverState = false;
   let dragState = null;
+  const dialogue = AemeathDialogue.createDialogue();
+  let nextChatAt = 0;
 
   const bubbleQueue = [];
   let bubbleUntil = 0;
@@ -88,6 +94,7 @@
     setTransient('waving', 2200);
     showBubble('Aemeath hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.');
 
+    nextChatAt = performance.now() + CHAT_FIRST_MS;
     wireEvents();
   }
 
@@ -134,6 +141,28 @@
     }
   }
 
+  function chatContext() {
+    return {
+      hour: new Date().getHours(),
+      decisionPending: decisionPending(),
+      sessionRunning: sessionRunning(),
+      musicPlaying: musicEnabled() && musicStatus.playing,
+      flying: walker.mode === 'fly',
+    };
+  }
+
+  function bubbleIdle() {
+    return bubbleUntil === 0 && bubbleQueue.length === 0;
+  }
+
+  // Aemeath occasionally says something to Rover when nothing else is on screen.
+  function maybeChat(now) {
+    if (now < nextChatAt || settings.chatterEnabled === false) return;
+    if (demoState || dragState || now < transientUntil || !bubbleIdle()) return;
+    showBubble(dialogue.next(chatContext()));
+    nextChatAt = now + CHAT_MIN_MS + Math.random() * (CHAT_MAX_MS - CHAT_MIN_MS);
+  }
+
   function tick(now) {
     const dt = lastTick ? Math.min(now - lastTick, 100) : 16;
     lastTick = now;
@@ -157,6 +186,7 @@
       }
     }
 
+    maybeChat(now);
     positionPet(now);
     draw(now);
     updateBubble(now);
@@ -363,8 +393,14 @@
     window.addEventListener('mouseup', () => {
       if (!dragState) return;
       canvas.classList.remove('dragging');
-      if (!dragState.moved) setTransient('jumping', 1200);
-      else persistPosition();
+      if (!dragState.moved) {
+        setTransient('jumping', 1200);
+        if (settings.chatterEnabled !== false && bubbleIdle() && Math.random() < CLICK_CHAT_CHANCE) {
+          showBubble(dialogue.onClick());
+        }
+      } else {
+        persistPosition();
+      }
       dragState = null;
     });
 

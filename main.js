@@ -191,6 +191,10 @@ function main() {
         label: 'Pemantau sesi AI: ' + (settings.watcherEnabled ? 'aktif' : 'nonaktif'),
         click: () => toggleFeature('watcherEnabled'),
       },
+      {
+        label: 'Aemeath bicara: ' + (settings.chatterEnabled ? 'aktif' : 'nonaktif'),
+        click: () => toggleFeature('chatterEnabled'),
+      },
       { label: 'Atur ulang posisi', click: () => win?.webContents?.send('pet:reset') },
       { type: 'separator' },
       { label: 'Keluar', click: () => app.quit() },
