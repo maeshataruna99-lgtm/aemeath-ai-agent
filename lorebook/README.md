@@ -44,6 +44,10 @@ setiap sumber dipakai, dan teks tidak melebihi batas.
 
 ## Sumber dan lisensi
 
+Folder ini dikecualikan dari lisensi kode proyek (PolyForm Noncommercial) dan
+tetap berlisensi CC BY-SA, karena CC BY-SA mewajibkan pembagian ulang dengan
+lisensi yang sama.
+
 Fakta diambil dari Wuthering Waves Wiki di Fandom
 (`wutheringwaves.fandom.com`). Teks komunitas di sana berlisensi CC BY-SA,
 kecuali dinyatakan lain, jadi parafrasa di folder ini juga dibagikan dengan

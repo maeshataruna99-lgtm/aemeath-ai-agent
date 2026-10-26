@@ -1,5 +1,23 @@
 # NOTICE
 
+## Kuro Games
+
+Wuthering Waves, karakter Aemeath, dan nama serta latar terkait adalah milik
+Kuro Games. Proyek ini adalah karya penggemar tidak resmi, tidak berafiliasi
+dengan Kuro Games, dan hanya untuk penggunaan non-komersial.
+
+## Lisensi per bagian
+
+| Bagian | Lisensi |
+|---|---|
+| Kode proyek | PolyForm Noncommercial 1.0.0 (`LICENSE`) |
+| `assets/pet/` | MIT, cuNuo (bagian di bawah) |
+| `lorebook/` | CC BY-SA, Wuthering Waves Wiki (bagian Lorebook di bawah) |
+| `assets/icon.png` | Disediakan pemilik proyek; sumber dan hak ciptanya belum dicatat |
+
+Teks CC BY-SA tidak boleh dibatasi non-komersial, jadi `lorebook/` dikecualikan
+dari lisensi kode dan tetap CC BY-SA.
+
 ## Sprite Aemeath Mini
 
 `assets/pet/spritesheet.webp` dan `assets/pet/pet.json` diambil dari pet "Aemeath Mini"

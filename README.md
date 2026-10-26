@@ -38,6 +38,37 @@ npm test
 | `renderer/` | animasi sprite, bubble dialog, drag & resize |
 | `src/` | atlas, walker, parser sesi, provider Claude Code, deteksi musik, settings |
 | `assets/pet/` | spritesheet + atlas (sumber & lisensi di `NOTICE.md`) |
+| `lorebook/` | trivia lore berkredit sumber (lihat `lorebook/README.md`) |
 | `tests/` | unit test atlas, walker, parser, dan provider |
 
 Status: tahap awal (prototipe).
+
+## Lisensi
+
+Kode proyek ini dibagikan dengan sumber terbuka di bawah
+[PolyForm Noncommercial 1.0.0](LICENSE): boleh dipakai, dipelajari, diubah, dan
+dibagikan ulang untuk keperluan **non-komersial**; penggunaan komersial tidak
+diizinkan. Perlu diketahui, syarat non-komersial berarti proyek ini tergolong
+*source-available*, bukan "open source" menurut definisi OSI.
+
+Bagian lain memakai lisensinya sendiri:
+
+| Bagian | Lisensi |
+|---|---|
+| Kode (di luar tabel ini) | PolyForm Noncommercial 1.0.0 |
+| `assets/pet/` (sprite Aemeath Mini oleh cuNuo) | MIT |
+| `lorebook/` (parafrasa Wuthering Waves Wiki) | CC BY-SA |
+
+## Kredit
+
+- **Wuthering Waves**, karakter **Aemeath**, serta nama dan latar terkait adalah
+  milik **Kuro Games**. Proyek ini adalah karya penggemar tidak resmi: tidak
+  berafiliasi dengan, disponsori, atau didukung oleh Kuro Games, dan dibuat tanpa
+  tujuan komersial.
+- Sprite *Aemeath Mini* oleh [cuNuo](https://github.com/cuNuo/aemeath-mini-codex-pet)
+  (MIT), berbasis pixel art lzy-buaa-jdi/ameath.
+- Trivia di `lorebook/` diparafrasa dari
+  [Wuthering Waves Wiki](https://wutheringwaves.fandom.com) di Fandom (CC BY-SA);
+  setiap entri menyebut halaman sumbernya.
+
+Rincian atribusi dan teks lisensi ada di [NOTICE.md](NOTICE.md).

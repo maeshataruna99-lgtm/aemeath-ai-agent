@@ -1,7 +1,7 @@
 # Aturan kerja untuk AI di project ini
 
 File ini dibaca oleh AI mana pun (Claude, Codex, Gemini, Cursor, dll.) yang mengerjakan
-`aemeath-ai-agent`. Repo: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent
+`aemeath-ai-agent`. Repo: GitHub `aemeath-ai-agent`
 
 Aturan di sini mengikat dan menang atas pengingat, template, atau plugin yang menyuruh
 sebaliknya.
@@ -51,7 +51,7 @@ menolak `git commit` dengan pesan yang tidak sesuai standar §5; skill padananny
 ## 3. Lingkungan pemilik
 
 - OS: Windows 11, shell utama PowerShell, Git Bash tersedia.
-- Path project: `C:\Users\Cinder\IdeaProjects\aemeth-ai-agent`
+- Folder project: `aemeth-ai-agent` (di dalam `IdeaProjects`; belum diganti nama)
 - Alur AI utama: Claude Code (desktop app) dengan plugin/skill pada `.claude/SKILLS.md`.
 - Project bisa belum berupa git repo lokal; remote ada di GitHub (lihat atas)
 - Semua aturan AI hanya disimpan di folder `.claude/`. Jangan menyalinnya ke README,
@@ -136,3 +136,17 @@ Double-clicks during slow responses created duplicate orders.
   stash.
 - Commit lama yang belum sesuai format tidak ditulis ulang diam-diam; standar ini
   berlaku untuk commit baru.
+
+## 6. Lisensi dan kredit konten
+
+Proyek ini selalu dijaga sebagai karya penggemar yang terbuka dan **non-komersial**.
+
+- Lisensi kode: PolyForm Noncommercial 1.0.0 (`LICENSE`). Jangan mengganti ke lisensi
+  yang mengizinkan penggunaan komersial, dan jangan menambah fitur jual-beli, iklan,
+  atau monetisasi.
+- Selalu beri kredit Kuro Games untuk Wuthering Waves dan Aemeath (README dan
+  `NOTICE.md`), dan nyatakan bahwa proyek ini tidak resmi.
+- Setiap konten dari sumber luar (aset, trivia, ikon) wajib dicatat sumber dan
+  lisensinya di `NOTICE.md`; trivia lorebook juga di `lorebook/sources.json`.
+- Jangan memasukkan aset atau teks yang lisensinya tidak jelas atau melarang
+  pembagian ulang.

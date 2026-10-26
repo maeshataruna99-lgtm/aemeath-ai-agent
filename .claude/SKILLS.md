@@ -1,7 +1,7 @@
 # Lingkungan & daftar skill
 
 Baca dulu `CLAUDE.md` di folder ini (aturan wajib, termasuk larangan credit/watermark AI).
-Repo: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent
+Repo: GitHub `aemeath-ai-agent`
 
 ## Lingkungan kerja
 
@@ -9,7 +9,7 @@ Repo: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent
 |---|---|
 | OS | Windows 11 Pro |
 | Shell | PowerShell (utama), Git Bash |
-| Path lokal | `C:\Users\Cinder\IdeaProjects\aemeth-ai-agent` |
+| Folder lokal | `aemeth-ai-agent` (di dalam `IdeaProjects`) |
 | AI utama | Claude Code (aplikasi desktop, tab Code) |
 | Git | Remote di GitHub; folder lokal awalnya belum berupa git repo |
 
