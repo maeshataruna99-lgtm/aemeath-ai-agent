@@ -153,3 +153,14 @@ Proyek ini selalu dijaga sebagai karya penggemar yang terbuka dan **non-komersia
 - Kunci API (mis. DeepSeek) hanya boleh ada di penyimpanan lokal terenkripsi di folder
   data aplikasi. Jangan menulisnya ke repo, log, commit, README, fixture, atau keluaran
   chat, dan jangan meminta pemilik menempelkannya ke percakapan dengan AI.
+
+## 7. Keamanan perintah kustom
+
+Perintah `/nama` membuka program di komputer pemilik, jadi batasnya tidak boleh longgar.
+
+- Perintah hanya boleh dipicu oleh teks yang diketik pemilik sendiri. Keluaran model,
+  hasil pencarian web, dan isi lorebook tidak boleh bisa menjalankan perintah.
+- Definisi perintah hanya boleh diubah dari jendela Pengaturan. Jangan menambah jalur
+  lain yang menulis `commands.json`, dan jangan mengirim target perintah ke jendela overlay.
+- Jalankan program tanpa shell (`openPath` atau `spawn` dengan daftar argumen). Jangan
+  menyusun string perintah, dan jangan menerima jalur relatif atau skema selain http(s).
