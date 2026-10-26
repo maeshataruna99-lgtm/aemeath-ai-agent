@@ -164,3 +164,14 @@ Perintah `/nama` membuka program di komputer pemilik, jadi batasnya tidak boleh 
   lain yang menulis `commands.json`, dan jangan mengirim target perintah ke jendela overlay.
 - Jalankan program tanpa shell (`openPath` atau `spawn` dengan daftar argumen). Jangan
   menyusun string perintah, dan jangan menerima jalur relatif atau skema selain http(s).
+
+### Mode terminal (`/change-mode`)
+
+- Masuk ke mode terminal harus selalu lewat gerbang UAC (persetujuan dari sistem operasi). Jangan
+  menambah jalur yang melewatinya, dan jangan meminta pemilik mengetik YA sebagai pengganti.
+- Terminal berjalan sebagai pengguna biasa. Jangan menjalankan aplikasi atau shell yang hidup
+  lama dengan hak admin, dan jangan menjalankan perintah admin lewat berkas sementara (celah
+  balapan yang bisa disalahgunakan proses lain).
+- Hanya teks yang diketik pemilik yang boleh sampai ke shell. Keluaran model, hasil pencarian,
+  dan lorebook tidak boleh bisa menulis ke terminal. Jangan menyimpan perintah atau keluarannya.
+- `change-mode` dan nama bawaan lain dicadangkan; perintah kustom bernama sama harus ditolak.

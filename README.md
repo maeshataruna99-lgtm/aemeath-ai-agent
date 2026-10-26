@@ -61,11 +61,22 @@ misalnya `/invoice` untuk folder invoice atau `/wuwa` untuk launcher game. Ketik
 melihat daftar, Tab melengkapi nama, `/help` menampilkan daftar perintah. Perintah dijalankan
 di komputer ini dan tidak dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 
+`/change-mode` adalah perintah bawaan: namanya dicadangkan, jadi perintah kustom dengan nama
+yang sama ditolak.
+
+### Mode terminal
+
+Ketik `/change-mode` dan kotak chat berubah menjadi PowerShell. Windows lebih dulu meminta
+persetujuan admin (UAC); setelah kamu menyetujuinya, terminal terbuka dan berjalan sebagai
+**kamu, bukan sebagai admin**. Direktori dan variabel bertahan antar-perintah, keluarannya tampil
+di kotak chat (batas 30 detik per perintah dan 20 ribu karakter keluaran). `exit` atau
+`/change-mode` lagi kembali ke obrolan. Chatbot tidak ikut campur sama sekali di mode ini.
+
 ### Pengaturan dan menu
 
-- **Jendela Pengaturan** (tray → "Pengaturan..."): celetukan dan slider jedanya, chatbot
-  (penyedia, model, API key, pencarian web, mode offline), dan perintah kustom (dengan
-  pemilih berkas dan folder).
+- **Jendela Pengaturan** (tray → "Pengaturan...") punya tiga tab: *Umum* (celetukan dan slider
+  jedanya), *Chatbot* (penyedia, model, API key, pencarian web, mode offline), dan *Perintah*
+  (perintah bawaan, sakelar mode terminal, dan perintah kustom dengan pemilih berkas dan folder).
 - **Menu tray**: ngobrol, tampilkan atau sembunyikan, skala, kecepatan jalan, deteksi musik,
   pemantau sesi AI, celetukan, pengaturan, atur ulang posisi, keluar.
 
@@ -93,6 +104,17 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
   yang boleh mengubahnya. Kotak chat hanya mengirim nama perintah.
 - Tujuan harus jalur lengkap atau tautan `http(s)`. Program dijalankan tanpa shell dengan
   daftar argumen terpisah, jadi karakter seperti `;` atau `&&` tidak ditafsirkan sebagai perintah.
+
+**Mode terminal**
+- Masuk hanya lewat `/change-mode`, dan itu selalu melewati prompt UAC dari Windows. Tidak ada
+  kode di dalam aplikasi yang bisa menyetujuinya untukmu, jadi mode ini tidak bisa menyala diam-diam.
+- Terminal berjalan dengan hak akses penggunamu, bukan admin. Tidak ada proses ber-hak-tinggi yang
+  hidup lama, dan aplikasinya sendiri tidak pernah dijalankan sebagai admin.
+- Hanya teks yang kamu ketik di kotak chat yang sampai ke shell. Balasan chatbot, hasil pencarian,
+  dan lorebook tidak bisa mengetik ke terminal.
+- Sesi ditutup saat kotak chat ditutup, saat kamu mengetik `exit`, setelah 15 menit diam, atau saat
+  aplikasi berhenti (juga bila aplikasi mati mendadak). Perintah dan keluarannya tidak dicatat ke
+  disk. Sakelar di Pengaturan bisa mematikan fitur ini sepenuhnya.
 
 ## Menjalankan
 
@@ -128,7 +150,8 @@ bentrok dengan Aemeath yang sedang berjalan.
 | `src/media-watcher.js`, `scripts/` | deteksi musik lewat media session Windows |
 | `src/dialogue.js`, `src/lorebook*.js` | celetukan dan pemilih trivia berkredit |
 | `src/chat/` | layanan chat, provider DeepSeek, persona, penyaring, pencarian web, jawaban offline, penyimpanan kunci |
-| `src/commands/` | penyimpanan, penjalan, dan penangan perintah kustom |
+| `src/commands/` | penyimpanan, penjalan, dan penangan perintah kustom dan bawaan |
+| `src/terminal/` | gerbang UAC, sesi PowerShell, dan pengendali mode terminal |
 | `src/settings.js` | penyimpanan pengaturan dan migrasi dari nama lama |
 | `assets/pet/` | spritesheet dan atlas (sumber dan lisensi di `NOTICE.md`) |
 | `lorebook/` | trivia lore berkredit sumber (lihat `lorebook/README.md`) |
