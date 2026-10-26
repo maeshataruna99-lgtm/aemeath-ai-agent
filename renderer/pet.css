@@ -60,6 +60,13 @@ body {
   transform: rotate(45deg);
 }
 
+#bubble .credit {
+  margin-top: 6px;
+  font-size: 11px;
+  font-style: italic;
+  color: #6b7280;
+}
+
 #bubble.below::after {
   bottom: auto;
   top: -9px;

@@ -6,6 +6,7 @@ const fs = require('node:fs');
 
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
 const { createMediaWatcher } = require('./src/media-watcher');
+const { loadLorebook } = require('./src/lorebook-loader');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -37,6 +38,14 @@ function main() {
   const atlasJson = JSON.parse(
     fs.readFileSync(path.join(__dirname, 'assets', 'pet', 'atlas.json'), 'utf8'),
   );
+
+  // Trivia is optional: a broken lorebook must not stop the pet from starting.
+  let lorebookData = { sources: {}, entries: [] };
+  try {
+    lorebookData = loadLorebook(path.join(__dirname, 'lorebook'));
+  } catch (error) {
+    console.error('[aemeath] lorebook disabled: ' + error.message);
+  }
 
   app.on('second-instance', () => {
     if (win) {
@@ -80,6 +89,7 @@ function main() {
     ipcMain.handle('init', () => ({
       settings: settings,
       atlas: atlasJson,
+      lorebook: lorebookData,
       spriteUrl: '../assets/pet/spritesheet.webp',
       workArea: { width: workArea.width, height: workArea.height },
     }));
@@ -269,6 +279,7 @@ function main() {
       'review',
       'failed',
       'confused',
+      'trivia',
       'music',
       'session-finished',
       'session-failed',

@@ -40,3 +40,13 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+## Lorebook
+
+The trivia in `lorebook/` is paraphrased from the Wuthering Waves Wiki on Fandom
+(https://wutheringwaves.fandom.com), whose community content is available under
+CC BY-SA unless otherwise noted. Each entry names its source page, and the
+paraphrases are shared under the same license. See `lorebook/README.md` and
+`lorebook/sources.json`. Wuthering Waves and its characters belong to Kuro
+Games; this is an unofficial fan project.

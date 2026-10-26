@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const { AemeathAtlas, AemeathWalker, AemeathDialogue } = window;
+  const { AemeathAtlas, AemeathWalker, AemeathDialogue, AemeathLorebook } = window;
   const canvas = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const musicBadge = document.getElementById('music');
@@ -17,6 +17,8 @@
   const BOB_PERIOD_MS = 2400;
   const CHAT_FIRST_MS = 40000;
   const CLICK_CHAT_CHANCE = 0.35;
+  const TRIVIA_CHANCE = 0.3;
+  const BUBBLE_MAX_MS = 16000;
 
   let atlas = null;
   let sprite = null;
@@ -43,6 +45,7 @@
   let hoverState = false;
   let dragState = null;
   const dialogue = AemeathDialogue.createDialogue();
+  let lorebook = null;
   let nextChatAt = 0;
 
   const bubbleQueue = [];
@@ -79,6 +82,7 @@
     settings = Object.assign({}, settings, init.settings);
     workArea = init.workArea;
     AemeathAtlas.validateAtlas(atlas);
+    lorebook = AemeathLorebook.createLorebook(init.lorebook);
     applyScale();
 
     const bounds = flightBounds();
@@ -171,7 +175,10 @@
   function maybeChat(now) {
     if (now < nextChatAt || settings.chatterEnabled === false) return;
     if (demoState || dragState || now < transientUntil || !bubbleIdle()) return;
-    showBubble(dialogue.next(chatContext()));
+    const context = chatContext();
+    const trivia = !context.decisionPending && Math.random() < TRIVIA_CHANCE ? lorebook.next() : null;
+    if (trivia) showBubble(trivia.text, trivia.credit);
+    else showBubble(dialogue.next(context));
     scheduleChat(now);
   }
 
@@ -272,8 +279,26 @@
     musicBadge.style.top = Math.max(8, walker.y + petHeight() - 40) + 'px';
   }
 
-  function showBubble(text) {
-    bubbleQueue.push(text);
+  function showBubble(text, credit) {
+    bubbleQueue.push({ text: text, credit: credit || null });
+  }
+
+  function renderBubble(item) {
+    bubble.textContent = '';
+    const body = document.createElement('div');
+    body.textContent = item.text;
+    bubble.appendChild(body);
+    if (item.credit) {
+      const credit = document.createElement('div');
+      credit.className = 'credit';
+      credit.textContent = 'Sumber: ' + item.credit.title + ' (' + item.credit.license + ')';
+      bubble.appendChild(credit);
+    }
+  }
+
+  // Longer remarks stay up longer so they can be read.
+  function bubbleDuration(text) {
+    return clamp(4000 + text.length * 55, BUBBLE_MS, BUBBLE_MAX_MS);
   }
 
   function hideBubble() {
@@ -284,10 +309,11 @@
   function updateBubble(now) {
     if (bubbleUntil && now > bubbleUntil) hideBubble();
     if (bubbleUntil === 0 && bubbleQueue.length > 0) {
-      bubble.textContent = bubbleQueue.shift();
+      const item = bubbleQueue.shift();
+      renderBubble(item);
       bubble.classList.remove('hidden');
       positionBubble();
-      bubbleUntil = now + BUBBLE_MS;
+      bubbleUntil = now + bubbleDuration(item.text);
     }
   }
 
@@ -349,6 +375,11 @@
       musicStatus = { playing: true, title: 'Demo Song', artist: 'Demo Artist', app: 'demo.exe' };
       updateMusicBadge();
       setAnim(MUSIC_ANIM, now);
+    } else if (state === 'trivia') {
+      setAnim('idle', now);
+      const trivia = lorebook.next();
+      if (trivia) showBubble(trivia.text, trivia.credit);
+      updateBubble(now);
     } else if (state === 'session-finished') {
       setAnim('review', now);
       showBubble('[aemeath-ai-agent]\nSesi AI selesai.\nContoh ringkasan: semua tes lulus.');
