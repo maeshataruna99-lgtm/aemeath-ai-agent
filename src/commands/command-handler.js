@@ -8,16 +8,25 @@ const { RESERVED } = require('./command-store');
 
 // getCommands() -> [{ name, target, args, description }]
 // run(command) -> Promise<{ ok, code?, error? }>
+// builtins: { [name]: { description, run() -> Promise<{ ok, text, mode? }> } }, for the
+// commands Aemeath ships with. Their names are reserved, so a custom command can never
+// shadow one.
 function createCommandHandler(options) {
   const getCommands = options.getCommands;
   const run = options.run;
+  const builtins = options.builtins || {};
+
+  function builtinNote() {
+    const names = Object.keys(builtins).map((name) => '/' + name);
+    return names.length ? ' Bawaan: ' + names.join(', ') + '.' : '';
+  }
 
   function helpText(commands) {
     if (commands.length === 0) {
-      return 'Belum ada perintah, Rover. Tambahkan di Pengaturan, bagian Perintah kustom, lalu ketik / diikuti namanya, misalnya /invoice.';
+      return 'Belum ada perintah kustom, Rover. Tambahkan di Pengaturan, tab Perintah kustom, lalu ketik / diikuti namanya, misalnya /invoice.' + builtinNote();
     }
     const names = commands.map((c) => '/' + c.name).join(', ');
-    return 'Perintah yang kuhafal: ' + names + '. Tambah atau ubah di Pengaturan, ya.';
+    return 'Perintah yang kuhafal: ' + names + '. Tambah atau ubah di Pengaturan, ya.' + builtinNote();
   }
 
   // Returns { isCommand: false } for ordinary chat, otherwise { isCommand: true, ok, text }
@@ -29,6 +38,10 @@ function createCommandHandler(options) {
 
     const name = match[1].toLowerCase();
     const commands = getCommands();
+    if (Object.prototype.hasOwnProperty.call(builtins, name)) {
+      const result = await builtins[name].run();
+      return { isCommand: true, ok: result.ok, text: result.text, mode: result.mode, cwd: result.cwd };
+    }
     if (name === '' || RESERVED.has(name)) {
       return { isCommand: true, ok: true, text: helpText(commands) };
     }

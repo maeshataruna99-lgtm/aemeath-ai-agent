@@ -13,7 +13,9 @@ const MAX_COMMANDS = 30;
 const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 const ENV_PREFIX = /^%[A-Za-z0-9_]+%/;
-const RESERVED = new Set(['help', 'bantuan']);
+// Names that belong to Aemeath: the help words and the built-in commands.
+const BUILTIN_NAMES = ['change-mode'];
+const RESERVED = new Set(['help', 'bantuan'].concat(BUILTIN_NAMES));
 const MAX_TARGET = 500;
 const MAX_ARGS = 300;
 const MAX_DESCRIPTION = 60;
@@ -41,7 +43,7 @@ function normalizeCommands(list) {
     if (!NAME_PATTERN.test(name)) {
       return fail('Nama hanya boleh huruf kecil, angka, - dan _ (maksimal 24 karakter).');
     }
-    if (RESERVED.has(name)) return fail('Nama "' + name + '" sudah dipakai Aemeath.');
+    if (RESERVED.has(name)) return fail('Nama "' + name + '" sudah dipakai perintah bawaan Aemeath.');
     if (seen.has(name)) return fail('Nama "' + name + '" dipakai dua kali.');
     if (!target) return fail('Isi program, folder, atau tautan yang mau dibuka.');
     if (target.length > MAX_TARGET) return fail('Jalur terlalu panjang.');
@@ -88,4 +90,12 @@ function createCommandStore(options) {
   return { list: () => commands.slice(), save: save };
 }
 
-module.exports = { createCommandStore, normalizeCommands, isUrl, MAX_COMMANDS, FILE_NAME, RESERVED };
+module.exports = {
+  createCommandStore,
+  normalizeCommands,
+  isUrl,
+  MAX_COMMANDS,
+  FILE_NAME,
+  RESERVED,
+  BUILTIN_NAMES,
+};
