@@ -23,6 +23,7 @@ AI lain yang tidak mendukung skill cukup memperlakukannya sebagai panduan cara k
 | Skill | Fungsi |
 |---|---|
 | `no-coauthored-by` | Menjaga commit & PR bebas trailer kredit AI. Salinan: `.claude/skills/no-coauthored-by/` |
+| `commit-message` | Menulis pesan commit sesuai standar Conventional Commits. Salinan: `.claude/skills/commit-message/` |
 | `watermarks-remover:remove-ai-marks` | Membersihkan penanda AI dari teks/dokumen/kode |
 | `watermarks-remover:clean-user-facing-text` | Membersihkan teks yang tampil ke pengguna |
 | `graphify` | Mengubah kode/dokumen jadi knowledge graph; dipakai untuk pertanyaan arsitektur |
@@ -70,6 +71,8 @@ NestJS/Prisma (`nestjs-*`, `prisma-model-generator`, `getpage-optimizer`,
 - `.claude/settings.json` memasang hook `PreToolUse` pada `Bash|PowerShell`.
 - `.claude/hooks/block-coauthored-by.js` menolak `git commit` / `gh pr create|edit`
   yang mengandung `Co-Authored-By:` (exit code 2).
+- `.claude/hooks/check-commit-message.js` menolak `git commit` yang pesannya tidak
+  sesuai Conventional Commits (exit code 2).
 - Butuh Node.js di PATH.
 
 ## Memindahkan lingkungan ke mesin lain

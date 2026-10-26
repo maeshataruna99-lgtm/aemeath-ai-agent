@@ -30,12 +30,14 @@ menulis ulang history diam-diam.
 Penegakan otomatis (khusus Claude Code): `.claude/hooks/block-coauthored-by.js` memblokir
 perintah `git commit` / `gh pr create|edit` yang membawa trailer `Co-Authored-By`
 (dipasang lewat `.claude/settings.json`). Skill padanannya ada di
-`.claude/skills/no-coauthored-by/SKILL.md`.
+`.claude/skills/no-coauthored-by/SKILL.md`. Hook `.claude/hooks/check-commit-message.js`
+menolak `git commit` dengan pesan yang tidak sesuai standar §5; skill padanannya ada di
+`.claude/skills/commit-message/SKILL.md`.
 
 ## 2. Cara bekerja dengan pemilik
 
-- Bahasa percakapan: **Bahasa Indonesia** (kode, nama identifier, dan commit message
-  boleh Inggris; ikuti gaya yang sudah ada di repo).
+- Bahasa percakapan: **Bahasa Indonesia** (kode dan nama identifier boleh Inggris,
+  ikuti gaya yang sudah ada di repo; pesan commit mengikuti standar di §5).
 - Bertindaklah jika informasi sudah cukup; tanya hanya untuk keputusan yang memang
   milik pemilik.
 - Laporkan hasil apa adanya: jika tes gagal atau langkah dilewati, katakan.
@@ -59,10 +61,78 @@ perintah `git commit` / `gh pr create|edit` yang membawa trailer `Co-Authored-By
 
 1. Skill proses dulu (brainstorming → rencana; debugging → perbaikan), baru skill
    implementasi.
-2. Sebelum menulis commit/PR: `no-coauthored-by`.
+2. Sebelum menulis commit/PR: `no-coauthored-by` dan `commit-message`.
 3. Sebelum menyerahkan teks/dokumen: `watermarks-remover:remove-ai-marks` dan
    `watermarks-remover:clean-user-facing-text`.
 4. Untuk pertanyaan arsitektur codebase: `graphify` (jika `graphify-out/` ada, query
    graph dulu).
 
 Daftar lengkap skill ada di `.claude/SKILLS.md`.
+
+## 5. Standar pesan commit
+
+Semua pesan commit di repo ini ditulis dalam Bahasa Inggris dan mengikuti
+**Conventional Commits**. Berlaku untuk commit biasa, `--amend`, pesan squash, dan
+merge message.
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Subjek
+
+- `type` wajib salah satu dari: `feat` (fitur baru), `fix` (perbaikan bug), `docs`
+  (dokumentasi saja), `style` (formatting saja, tanpa ubah logika), `refactor` (ubah
+  struktur tanpa ubah perilaku), `perf` (performa), `test` (tes), `build` (build system
+  dan dependensi), `ci` (pipeline CI), `chore` (pemeliharaan lain), `revert`
+  (membatalkan commit).
+- `scope` opsional, huruf kecil, menyebut modul/komponen: `feat(api):`.
+- Breaking change: tambahkan `!` sebelum titik dua, contoh `feat(api)!: drop v1`.
+- Kata kerja perintah (imperative): `add`, bukan `added` atau `adds`.
+- Huruf kecil di awal subjek (kecuali proper noun), tanpa titik di akhir.
+- Satu baris subjek maksimal 72 karakter, idealnya ≤ 50.
+- Spesifik dan informatif: `chore: bump eslint to 9.12`, bukan `chore: update`.
+
+### Body (opsional, disarankan untuk perubahan non-trivial)
+
+- Dipisahkan satu baris kosong dari subjek.
+- Jelaskan **apa** yang berubah dan **mengapa** (konteks, motivasi, dampak), bukan
+  *how* baris-per-baris — itu terlihat di diff.
+- Bungkus baris pada 72 karakter.
+
+### Footer (opsional)
+
+- `BREAKING CHANGE: <penjelasan>` untuk perubahan yang merusak kompatibilitas.
+- Referensi issue/PR: `Closes #123`, `Refs #45`.
+- Tanpa trailer kredit siapa pun (aturan §1).
+
+### Contoh
+
+```
+feat(api): add retry with exponential backoff on 5xx
+
+Upstream returns 5xx sporadically under load, which aborted the sync
+job and forced a manual restart. Backoff starts at 500 ms and caps at
+30 s so a struggling upstream is not hammered.
+
+Closes #112
+```
+
+```
+fix: disable submit button while request is in flight
+
+Double-clicks during slow responses created duplicate orders.
+```
+
+### Tambahan
+
+- Satu commit untuk satu perubahan logis; jangan campur fitur dengan refactor yang
+  tidak berhubungan.
+- Jangan commit WIP (`wip`, `tes dulu`, `fix later`) — selesaikan dulu atau simpan di
+  stash.
+- Commit lama yang belum sesuai format tidak ditulis ulang diam-diam; standar ini
+  berlaku untuk commit baru.

@@ -9,6 +9,12 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-coauthored-by.js\"",
             "timeout": 10,
             "statusMessage": "Checking commit message for co-author trailer"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-commit-message.js\"",
+            "timeout": 10,
+            "statusMessage": "Checking commit message format"
           }
         ]
       }
