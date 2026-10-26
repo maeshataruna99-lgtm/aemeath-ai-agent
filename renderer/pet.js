@@ -10,10 +10,13 @@
   const MUSIC_ANIM = 'waving';
   const TRANSIENT_MS = 4000;
   const BUBBLE_MS = 7000;
+  const FLOOR_GAP = 8;
+  const BOB_PX = 4;
+  const BOB_PERIOD_MS = 2400;
 
   let atlas = null;
   let sprite = null;
-  let settings = { scale: 1, speed: 120, musicEnabled: true, watcherEnabled: true, x: null };
+  let settings = { scale: 1, speed: 120, musicEnabled: true, watcherEnabled: true, x: null, y: null };
   let workArea = { width: 1920, height: 1080 };
 
   let walker = null;
@@ -42,6 +45,19 @@
     return (atlas ? atlas.cellHeight : 208) * settings.scale;
   }
 
+  function flightBounds() {
+    return {
+      minX: 0,
+      maxX: Math.max(0, workArea.width - petWidth()),
+      minY: 0,
+      maxY: Math.max(0, workArea.height - petHeight() - FLOOR_GAP),
+    };
+  }
+
+  function homeY() {
+    return flightBounds().maxY;
+  }
+
   async function boot() {
     const init = await window.aemeth.init();
     atlas = init.atlas;
@@ -50,9 +66,12 @@
     AemethAtlas.validateAtlas(atlas);
     applyScale();
 
+    const bounds = flightBounds();
     const savedX = typeof settings.x === 'number' ? settings.x : workArea.width / 2;
+    const savedY = typeof settings.y === 'number' ? settings.y : bounds.maxY;
     walker = AemethWalker.createWalker({
-      x: clamp(savedX, 0, workArea.width - petWidth()),
+      x: clamp(savedX, bounds.minX, bounds.maxX),
+      y: clamp(savedY, bounds.minY, bounds.maxY),
       speed: typeof settings.speed === 'number' ? settings.speed : 120,
     });
 
@@ -75,7 +94,7 @@
   }
 
   function currentBaseAnim() {
-    if (walker.mode === 'walk') return walker.direction >= 0 ? 'running-right' : 'running-left';
+    if (walker.mode === 'fly') return walker.facing >= 0 ? 'running-right' : 'running-left';
     if (sessionRunning()) return 'running';
     if (musicEnabled() && musicStatus.playing) return MUSIC_ANIM;
     return 'idle';
@@ -87,9 +106,10 @@
 
   // Stop wandering so the sprite never slides while a non-walking animation plays.
   function haltWalker() {
-    if (walker.mode === 'walk') {
+    if (walker.mode === 'fly') {
       walker.mode = 'rest';
-      walker.direction = 0;
+      walker.dirX = 0;
+      walker.dirY = 0;
       walker.modeUntil = 0;
     }
   }
@@ -115,10 +135,7 @@
       if (now < transientUntil || sessionRunning()) {
         haltWalker();
       } else {
-        AemethWalker.stepWalker(walker, now, dt, {
-          minX: 0,
-          maxX: Math.max(0, workArea.width - petWidth()),
-        });
+        AemethWalker.stepWalker(walker, now, dt, flightBounds());
       }
     } else {
       haltWalker();
@@ -133,9 +150,10 @@
       }
     }
 
-    positionPet();
+    positionPet(now);
     draw(now);
     updateBubble(now);
+    if (!bubble.classList.contains('hidden')) positionBubble();
     requestAnimationFrame(tick);
   }
 
@@ -166,26 +184,41 @@
     canvas.style.height = petHeight() + 'px';
   }
 
-  function positionPet() {
-    const maxX = Math.max(0, workArea.width - petWidth());
-    walker.x = clamp(walker.x, 0, maxX);
+  // Ghost hover: a slow vertical sway so a resting pet still floats.
+  function bobOffset(now) {
+    if (dragState) return 0;
+    return Math.sin((now / BOB_PERIOD_MS) * Math.PI * 2) * BOB_PX;
+  }
+
+  function positionPet(now) {
+    const bounds = flightBounds();
+    walker.x = clamp(walker.x, bounds.minX, bounds.maxX);
+    walker.y = clamp(walker.y, bounds.minY, bounds.maxY);
     canvas.style.left = Math.round(walker.x) + 'px';
+    canvas.style.top = Math.round(walker.y + bobOffset(now || 0)) + 'px';
     positionMusicBadge();
   }
 
+  // The bubble sits above the pet, or below it when there is no room above.
   function positionBubble() {
     const width = bubble.offsetWidth || 200;
     const height = bubble.offsetHeight || 60;
-    bubble.style.left =
-      clamp(walker.x + petWidth() / 2 - width / 2, 8, Math.max(8, workArea.width - width - 8)) + 'px';
-    bubble.style.top = Math.max(8, workArea.height - 8 - petHeight() - height - 16) + 'px';
+    const centerX = walker.x + petWidth() / 2;
+    const left = clamp(centerX - width / 2, 8, Math.max(8, workArea.width - width - 8));
+    const above = walker.y - height - 16;
+    const below = bubble.classList.contains('below');
+    const placeBelow = above < 8;
+    if (placeBelow !== below) bubble.classList.toggle('below', placeBelow);
+    bubble.style.left = left + 'px';
+    bubble.style.top = (placeBelow ? walker.y + petHeight() + 16 : above) + 'px';
+    bubble.style.setProperty('--arrow-x', clamp(centerX - left, 16, Math.max(16, width - 16)) + 'px');
   }
 
   function positionMusicBadge() {
     if (musicBadge.classList.contains('hidden')) return;
     musicBadge.style.left =
       clamp(walker.x + petWidth() + 10, 8, Math.max(8, workArea.width - 310)) + 'px';
-    musicBadge.style.top = Math.max(8, workArea.height - petHeight() - 40) + 'px';
+    musicBadge.style.top = Math.max(8, walker.y + petHeight() - 40) + 'px';
   }
 
   function showBubble(text) {
@@ -220,7 +253,12 @@
   }
 
   function persistPosition() {
-    window.aemeth.saveSettings({ x: walker.x, scale: settings.scale, speed: walker.speed });
+    window.aemeth.saveSettings({
+      x: walker.x,
+      y: walker.y,
+      scale: settings.scale,
+      speed: walker.speed,
+    });
   }
 
   function adjustScale(delta) {
@@ -286,15 +324,24 @@
 
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      dragState = { startX: e.screenX, walkerX: walker.x, moved: false };
+      dragState = {
+        startX: e.screenX,
+        startY: e.screenY,
+        walkerX: walker.x,
+        walkerY: walker.y,
+        moved: false,
+      };
       canvas.classList.add('dragging');
     });
 
     window.addEventListener('mousemove', (e) => {
       if (!dragState) return;
       const dx = e.screenX - dragState.startX;
-      if (Math.abs(dx) > 3) dragState.moved = true;
-      walker.x = clamp(dragState.walkerX + dx, 0, Math.max(0, workArea.width - petWidth()));
+      const dy = e.screenY - dragState.startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+      const bounds = flightBounds();
+      walker.x = clamp(dragState.walkerX + dx, bounds.minX, bounds.maxX);
+      walker.y = clamp(dragState.walkerY + dy, bounds.minY, bounds.maxY);
     });
 
     window.addEventListener('mouseup', () => {
@@ -338,7 +385,9 @@
     });
     window.aemeth.onDemo(setDemoState);
     window.aemeth.onReset(() => {
-      walker.x = workArea.width / 2;
+      walker.x = clamp(workArea.width / 2, 0, flightBounds().maxX);
+      walker.y = homeY();
+      haltWalker();
       persistPosition();
     });
   }

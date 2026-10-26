@@ -11,6 +11,7 @@ const DEFAULTS = {
   musicEnabled: true,
   watcherEnabled: true,
   x: null,
+  y: null,
 };
 
 const MIN_SCALE = 0.5;

@@ -13,47 +13,73 @@ function seededRng(seed) {
   };
 }
 
-test('walker stays inside bounds across modes', () => {
-  const walker = createWalker({ x: 500, speed: 200, rng: seededRng(7) });
-  const bounds = { minX: 0, maxX: 1000 };
+const BOUNDS = { minX: 0, maxX: 1000, minY: 0, maxY: 600 };
+
+test('walker stays inside bounds on both axes', () => {
+  const walker = createWalker({ x: 500, y: 300, speed: 300, rng: seededRng(7) });
   let now = 0;
   for (let i = 0; i < 5000; i++) {
     now += 100;
-    stepWalker(walker, now, 100, bounds);
-    assert.ok(walker.x >= bounds.minX && walker.x <= bounds.maxX, 'x=' + walker.x);
+    stepWalker(walker, now, 100, BOUNDS);
+    assert.ok(walker.x >= BOUNDS.minX && walker.x <= BOUNDS.maxX, 'x=' + walker.x);
+    assert.ok(walker.y >= BOUNDS.minY && walker.y <= BOUNDS.maxY, 'y=' + walker.y);
   }
 });
 
-test('walker turns at the edges instead of resting mid-run', () => {
-  const walker = createWalker({ x: 0, speed: 500, rng: seededRng(3) });
-  walker.mode = 'walk';
-  walker.direction = -1;
-  walker.modeUntil = 60000;
-  const events = stepWalker(walker, 1000, 100, { minX: 0, maxX: 2000 });
-  assert.deepEqual(events, ['turn']);
-  assert.equal(walker.direction, 1);
-  assert.equal(walker.mode, 'walk');
+test('walker starts flying toward a target with a unit heading', () => {
+  const walker = createWalker({ x: 100, y: 500, speed: 100, rng: seededRng(2) });
+  const events = stepWalker(walker, 1, 16, BOUNDS);
+  assert.deepEqual(events, ['start-fly']);
+  assert.equal(walker.mode, 'fly');
+  assert.ok(Math.abs(Math.hypot(walker.dirX, walker.dirY) - 1) < 1e-9);
 });
 
-test('walker rests after the walk window expires', () => {
-  const walker = createWalker({ x: 100, speed: 50, rng: seededRng(11) });
-  walker.mode = 'walk';
-  walker.direction = 1;
-  walker.modeUntil = 1000;
-  const events = stepWalker(walker, 1500, 100, { minX: 0, maxX: 2000 });
+test('walker flies vertically and diagonally, not only sideways', () => {
+  const walker = createWalker({ x: 500, y: 300, speed: 200, rng: seededRng(5) });
+  let now = 0;
+  let sawUp = false;
+  let sawDown = false;
+  let sawDiagonal = false;
+  for (let i = 0; i < 3000; i++) {
+    now += 50;
+    stepWalker(walker, now, 50, BOUNDS);
+    if (walker.mode !== 'fly') continue;
+    if (walker.dirY < -0.3) sawUp = true;
+    if (walker.dirY > 0.3) sawDown = true;
+    if (Math.abs(walker.dirX) > 0.3 && Math.abs(walker.dirY) > 0.3) sawDiagonal = true;
+  }
+  assert.ok(sawUp && sawDown && sawDiagonal);
+});
+
+test('walker moves toward its target and rests on arrival', () => {
+  const walker = createWalker({ x: 0, y: 0, speed: 100, rng: seededRng(11) });
+  walker.mode = 'fly';
+  walker.targetX = 300;
+  walker.targetY = 400;
+  walker.dirX = 0.6;
+  walker.dirY = 0.8;
+  const events = stepWalker(walker, 1000, 6000, BOUNDS);
   assert.deepEqual(events, ['start-rest']);
+  assert.equal(walker.x, 300);
+  assert.equal(walker.y, 400);
   assert.equal(walker.mode, 'rest');
-  assert.equal(walker.direction, 0);
+  assert.equal(walker.dirX, 0);
+  assert.equal(walker.dirY, 0);
 });
 
-test('walker walks left when seeded so and advances', () => {
-  const walker = createWalker({ x: 900, speed: 100, rng: seededRng(2) });
-  // force the rest -> walk transition deterministically
+test('facing follows horizontal heading and survives near-vertical flight', () => {
+  const walker = createWalker({ x: 500, y: 500, speed: 100, rng: () => 0 });
+  // rng() === 0 makes the target (minX, minY) = (0, 0): up and to the left
+  stepWalker(walker, 10, 16, BOUNDS);
+  assert.equal(walker.facing, -1);
+
+  // straight up: facing must not change
+  walker.x = 0;
+  walker.y = 500;
+  walker.mode = 'rest';
   walker.modeUntil = 0;
-  const events = stepWalker(walker, 1000, 16, { minX: 0, maxX: 1000 });
-  assert.deepEqual(events, ['start-walk']);
-  assert.equal(walker.mode, 'walk');
-  const before = walker.x;
-  stepWalker(walker, 1100, 100, { minX: 0, maxX: 1000 });
-  assert.notEqual(walker.x, before);
+  walker.rng = () => 0; // target = (0, 0) -> purely vertical
+  stepWalker(walker, 20, 16, BOUNDS);
+  assert.ok(Math.abs(walker.dirX) < 0.01);
+  assert.equal(walker.facing, -1);
 });

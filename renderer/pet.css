@@ -17,7 +17,8 @@ body {
 
 #pet {
   position: absolute;
-  bottom: 8px;
+  top: 0;
+  left: 0;
   image-rendering: pixelated;
   cursor: grab;
 }
@@ -48,7 +49,8 @@ body {
 #bubble::after {
   content: "";
   position: absolute;
-  left: 24px;
+  left: var(--arrow-x, 24px);
+  margin-left: -7px;
   bottom: -9px;
   width: 14px;
   height: 14px;
@@ -56,6 +58,12 @@ body {
   border-right: 2px solid #f472b6;
   border-bottom: 2px solid #f472b6;
   transform: rotate(45deg);
+}
+
+#bubble.below::after {
+  bottom: auto;
+  top: -9px;
+  transform: rotate(225deg);
 }
 
 #music {
