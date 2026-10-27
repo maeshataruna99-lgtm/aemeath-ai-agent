@@ -75,7 +75,7 @@ body {
 
 #chat {
   position: absolute;
-  width: 340px;
+  width: 400px;
   box-sizing: border-box;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.98);
@@ -98,6 +98,14 @@ body {
   border-right: 2px solid #f472b6;
   border-bottom: 2px solid #f472b6;
   transform: rotate(45deg);
+}
+
+#chat.large {
+  width: 560px;
+}
+
+#chat.side::after {
+  display: none;
 }
 
 #chat.below::after {
@@ -203,6 +211,10 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: text;
+}
+
+#chat.large #chat-log .cmd-out {
+  max-height: 380px;
 }
 
 #chat-log .err {

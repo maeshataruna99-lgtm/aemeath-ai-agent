@@ -100,7 +100,8 @@
     chatPanel = AemeathChatPanel.create({
       api: window.aemeath,
       anchor: () => ({
-        centerX: walker.x + petWidth() / 2,
+        left: walker.x,
+        right: walker.x + petWidth(),
         top: walker.y,
         bottom: walker.y + petHeight(),
       }),
@@ -402,6 +403,11 @@
   }
 
   function setDemoState(state) {
+    // the verification run uses this to let her move again after the demo poses
+    if (state === 'free') {
+      demoState = null;
+      return;
+    }
     demoState = state;
     const now = performance.now();
     if (state === 'music') {

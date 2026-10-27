@@ -72,7 +72,8 @@ tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alama
   (42 entri parafrasa, 13 sumber) dengan baris "Sumber: ..." di bawahnya.
 - **Kotak chat di samping Aemeath.** Klik Aemeath (atau pilih "Fleet Snowfluff GPT..." di
   tray), ketik, tekan Enter. Esc menutup, tombol ↺ memulai percakapan baru. Tidak ada jendela
-  terpisah, dan kotaknya menyesuaikan ruang supaya tidak menutupi Aemeath.
+  terpisah. Kotaknya muncul di atas, di bawah, atau di samping Aemeath, mana yang paling lega, supaya
+  daftar pesannya tetap nyaman dibaca dan tidak menutupinya. Tombol □ memperbesar kotaknya.
 - **Persona.** Chat memakai API DeepSeek (`deepseek-flash` atau `deepseek-v4-pro`). Aemeath
   menjawab sebagai dirinya: ceria, jahil, hangat, memperlakukan Rover seperti sosok wali, dan
   mengutamakan info Wuthering Waves yang akurat. Topik lain boleh dibahas dengan gayanya. Kalau

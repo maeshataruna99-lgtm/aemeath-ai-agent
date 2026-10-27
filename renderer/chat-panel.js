@@ -8,8 +8,12 @@
   const MAX_MESSAGES = 14;
   const GAP = 16; // space between the pet and the box
   const EDGE = 8; // space kept to the screen edge
-  const LOG_MAX = 240;
-  const LOG_MIN = 70;
+  const LOG_MAX = 340;
+  const LOG_MAX_LARGE = 520;
+  const LOG_MIN = 140; // the message list never gets smaller than this
+  const WIDTH = 400;
+  const WIDTH_LARGE = 560;
+  const SIZE_KEY = 'aemeath.chatLarge';
   const IDLE_CLOSE_MS = 3 * 60 * 1000;
   const TERMINAL_IDLE_MS = 15 * 60 * 1000;
   const FORGET_AFTER_MS = 10 * 60 * 1000;
@@ -34,6 +38,7 @@
     const closeButton = document.getElementById('chat-close');
     const suggest = document.getElementById('chat-suggest');
     const modeBadge = document.getElementById('chat-mode');
+    const sizeButton = document.getElementById('chat-size');
 
     let isOpen = false;
     let busy = false;
@@ -44,6 +49,7 @@
     let forgetTimer = null;
     let commands = [];
     let mode = 'chat'; // 'chat' or 'terminal'
+    let large = false;
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
 
@@ -159,29 +165,40 @@
       reposition();
     }
 
-    // The box sits above the pet, or below it when that side has more room. If
-    // neither side fits the whole box, the message list shrinks to the room left
-    // so the box never covers her.
+    // The box sits above Aemeath, below her, or beside her, whichever leaves room for a
+    // comfortable message list (see src/chat-layout.js). It only covers her on a screen
+    // too small for any of that.
     function reposition() {
       if (!isOpen) return;
-      const anchor = options.anchor();
-      const bounds = options.bounds();
-      const width = el.offsetWidth || 340;
-      const chrome = el.offsetHeight - log.offsetHeight;
-      const natural = chrome + Math.min(log.scrollHeight, LOG_MAX);
-      const roomAbove = anchor.top - GAP - EDGE;
-      const roomBelow = bounds.height - (anchor.bottom + GAP) - EDGE;
-      const placeBelow = natural > roomAbove && roomBelow > roomAbove;
-      const room = placeBelow ? roomBelow : roomAbove;
-      log.style.maxHeight = clamp(room - chrome, LOG_MIN, LOG_MAX) + 'px';
+      const placed = window.AemeathChatLayout.placeBox({
+        anchor: options.anchor(),
+        bounds: options.bounds(),
+        width: el.offsetWidth || (large ? WIDTH_LARGE : WIDTH),
+        chrome: el.offsetHeight - log.offsetHeight,
+        content: log.scrollHeight,
+        logMax: large ? LOG_MAX_LARGE : LOG_MAX,
+        logMin: LOG_MIN,
+        gap: GAP,
+        edge: EDGE,
+      });
+      log.style.maxHeight = placed.logMax + 'px';
+      el.classList.toggle('below', placed.arrow === 'up');
+      el.classList.toggle('side', placed.arrow === 'none');
+      el.style.left = placed.left + 'px';
+      el.style.top = placed.top + 'px';
+      el.style.setProperty('--arrow-x', placed.arrowX + 'px');
+    }
 
-      const height = el.offsetHeight;
-      const left = clamp(anchor.centerX - width / 2, EDGE, Math.max(EDGE, bounds.width - width - EDGE));
-      const top = placeBelow ? anchor.bottom + GAP : anchor.top - GAP - height;
-      el.classList.toggle('below', placeBelow);
-      el.style.left = left + 'px';
-      el.style.top = clamp(top, EDGE, Math.max(EDGE, bounds.height - height - EDGE)) + 'px';
-      el.style.setProperty('--arrow-x', clamp(anchor.centerX - left, 16, Math.max(16, width - 16)) + 'px');
+    function setLarge(next) {
+      large = next;
+      el.classList.toggle('large', large);
+      sizeButton.title = large ? 'Perkecil kotak' : 'Perbesar kotak';
+      try {
+        localStorage.setItem(SIZE_KEY, large ? '1' : '0');
+      } catch {
+        // storage can be blocked; the choice then lasts for this run only
+      }
+      reposition();
     }
 
     async function open() {
@@ -337,6 +354,7 @@
         completeFirst();
       }
     });
+    sizeButton.addEventListener('click', () => setLarge(!large));
     resetButton.addEventListener('click', resetConversation);
     closeButton.addEventListener('click', close);
     settingsButton.addEventListener('click', () => api.openSettings());
@@ -347,6 +365,12 @@
         refreshCommands();
       }
     });
+
+    try {
+      if (localStorage.getItem(SIZE_KEY) === '1') setLarge(true);
+    } catch {
+      // no stored choice
+    }
 
     return {
       toggle: () => (isOpen ? close() : open()),

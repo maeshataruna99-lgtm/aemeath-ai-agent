@@ -800,6 +800,7 @@ function main() {
         { name: '/Invoice', target: ${JSON.stringify(app.getPath('temp'))}, description: 'folder invoice' },
         { name: 'wuwa', target: 'https://example.com/wuwa' },
         { name: 'halo', type: 'powershell', script: 'Write-Output "halo dari perintah"', confirm: false, description: 'sapaan dari PowerShell' },
+        { name: 'panjang', type: 'powershell', script: 'Write-Output (1..40 | ForEach-Object { \"baris $_\" })', confirm: false, description: 'empat puluh baris' },
         { name: 'matikan', type: 'powershell', script: 'shutdown /s /t 60 /c "Aemeath: komputer akan mati dalam 60 detik."', confirm: false, description: 'matikan komputer' },
         { name: 'bad name', target: 'notepad.exe' },
       ]).then((r) => JSON.stringify({ saved: r.saved.map((c) => c.name), errors: r.errors.map((e) => e.message) }))`,
@@ -896,6 +897,15 @@ function main() {
     const psBefore = selfieLaunches.length;
     await submit('/halo', 3500);
     console.log('[aemeath] powershell command: ' + (await lastReplies(2)));
+    // Regression guard: command output used to be squeezed to a sliver inside the message list.
+    const outputSize = () =>
+      win.webContents.executeJavaScript(
+        `JSON.stringify([...document.querySelectorAll('#chat-log .cmd-out')].map((el) => ({ shown: Math.round(el.getBoundingClientRect().height), needs: el.scrollHeight })))`,
+      );
+    console.log('[aemeath] command output sizes after /halo: ' + (await outputSize()));
+    await submit('/panjang', 3500);
+    console.log('[aemeath] command output sizes after /panjang: ' + (await outputSize()));
+    fs.writeFileSync(path.join(dir, 'chat-output.png'), (await win.webContents.capturePage()).toPNG());
     await submit('/matikan', 800);
     console.log('[aemeath] risky command asks first: ' + (await lastReplies(1)) + ' | launched so far: ' + (selfieLaunches.length - psBefore));
     await submit('nanti dulu', 800);
@@ -906,6 +916,75 @@ function main() {
     await submit('apa kabar Fleet?', 900);
     console.log('[aemeath] plain text after that is chat again: ' + (await lastReplies(1)));
     fs.writeFileSync(path.join(dir, 'chat-powershell.png'), (await win.webContents.capturePage()).toPNG());
+
+    // The chat box: its size and where it goes. On this short screen (672 px) Aemeath dragged
+    // to the middle leaves too little room above or below, so the box must go beside her.
+    const boxMetrics = () =>
+      win.webContents.executeJavaScript(
+        `(() => {
+          const el = document.getElementById('chat');
+          const r = el.getBoundingClientRect();
+          const p = document.getElementById('pet').getBoundingClientRect();
+          return JSON.stringify({
+            classes: el.className,
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+            list: document.getElementById('chat-log').style.maxHeight,
+            coversPet: r.left < p.right && r.right > p.left && r.top < p.bottom && r.bottom > p.top,
+            viewport: innerWidth + 'x' + innerHeight,
+          });
+        })()`,
+      );
+    console.log('[aemeath] chat box where she is: ' + (await boxMetrics()));
+    await win.webContents.executeJavaScript(
+      `(() => {
+        const pet = document.getElementById('pet');
+        const r = pet.getBoundingClientRect();
+        const down = { screenX: r.left + 10, screenY: r.top + 10, button: 0, bubbles: true };
+        pet.dispatchEvent(new MouseEvent('mousedown', down));
+        window.dispatchEvent(new MouseEvent('mousemove', { screenX: down.screenX + (560 - r.left), screenY: down.screenY + (263 - r.top), bubbles: true }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      })()`,
+    );
+    await sleep(600);
+    console.log('[aemeath] chat box with her in the middle: ' + (await boxMetrics()));
+    fs.writeFileSync(path.join(dir, 'chat-side.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`document.getElementById('chat-size').click()`);
+    await sleep(400);
+    console.log('[aemeath] chat box large: ' + (await boxMetrics()));
+    fs.writeFileSync(path.join(dir, 'chat-large.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`document.getElementById('chat-size').click()`);
+
+    // Staying still: let her move again, watch her, switch the option on through the
+    // settings window, and watch again. The bob is only a few pixels, so look at the spread.
+    win.webContents.send('chat:toggle'); // close the box so nothing holds her
+    await sleep(400);
+    win.webContents.send('demo:set-state', 'free');
+    const watch = async (ms) => {
+      const seen = [];
+      const until = Date.now() + ms;
+      while (Date.now() < until) {
+        seen.push(
+          await win.webContents.executeJavaScript(
+            `(() => { const c = document.getElementById('pet'); return [parseFloat(c.style.left), parseFloat(c.style.top)]; })()`,
+          ),
+        );
+        await sleep(400);
+      }
+      const xs = seen.map((p) => p[0]);
+      const ys = seen.map((p) => p[1]);
+      return { samples: seen.length, xSpread: Math.round(Math.max(...xs) - Math.min(...xs)), ySpread: Math.round(Math.max(...ys) - Math.min(...ys)) };
+    };
+    console.log('[aemeath] free to move: ' + JSON.stringify(await watch(16000)));
+    await settingsWin.webContents.executeJavaScript(`document.getElementById('tab-general').click(); document.getElementById('still-toggle').click()`);
+    await sleep(700);
+    const trayStill = menuTemplate().find((item) => item.label && item.label.startsWith('Diam di tempat'));
+    console.log('[aemeath] stay still: ' + JSON.stringify(await watch(9000)) + ' | setting: ' + settings.stayStill + ' | tray: ' + JSON.stringify(trayStill && trayStill.label));
+    await settingsWin.webContents.executeJavaScript(`document.getElementById('still-toggle').click()`);
+    await sleep(500);
+    console.log('[aemeath] stay still switched off again: ' + settings.stayStill);
+    win.webContents.send('chat:toggle'); // open the box again for the steps below
+    await sleep(600);
 
     // Interactive mode: go through the settings window like a user would (consent
     // first), then drive the real monitor with hand-made samples on a clock the
