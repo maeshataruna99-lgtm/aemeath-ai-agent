@@ -7,7 +7,7 @@
 const { ChatError, redact, containsSecret } = require('./chat-error');
 const { buildSystemPrompt } = require('./persona');
 const { isUnsafe, deflection } = require('./safety');
-const { shouldSearch, formatSearchBlock } = require('./web-search');
+const { shouldSearch, isRealtimeQuery, formatSearchBlock } = require('./web-search');
 
 const MAX_INPUT = 600;
 const MAX_HISTORY = 20; // user + assistant messages kept for context
@@ -44,9 +44,17 @@ function createChatService(options) {
     return { text: answer.text, mode: 'local', sources: answer.sources || [] };
   }
 
-  async function send(rawText, onChunk) {
-    const text = typeof rawText === 'string' ? rawText.trim() : '';
-    if (!text) throw new ChatError('empty-input', 'Tulis sesuatu dulu, Rover.');
+  async function send(rawText, onChunk, callOptions) {
+    const rawTrimmed = typeof rawText === 'string' ? rawText.trim() : '';
+    const searchCmd = /^\/search(?:\s+([\s\S]*))?$/i.exec(rawTrimmed);
+    const explicitSearch = Boolean(searchCmd || (callOptions && callOptions.forceSearch));
+    const text = searchCmd ? (searchCmd[1] || '').trim() : rawTrimmed;
+    if (!text) {
+      throw new ChatError(
+        'empty-input',
+        explicitSearch ? 'Tulis kata kunci setelah /search ya, Rover.' : 'Tulis sesuatu dulu, Rover.',
+      );
+    }
     if (text.length > MAX_INPUT) {
       throw new ChatError('too-long', 'Pesannya terlalu panjang (maksimal ' + MAX_INPUT + ' karakter).');
     }
@@ -63,22 +71,68 @@ function createChatService(options) {
     if (!provider) throw new ChatError('provider', 'Penyedia chatbot tidak dikenal.');
     const apiKey = getKey(provider.id);
     if (!apiKey) {
-      if (canFallBack) return localAnswer(text, 'no-key');
+      if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key');
       throw new ChatError('no-key', 'Belum ada kunci API ' + provider.name + '. Atur dulu di Pengaturan.');
     }
 
     busy = true;
     // Companion mode only matters on this path: it needs a key and a model to answer.
-    const companion = features.companion === true;
+    const companion = features.companion === true || explicitSearch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const safeText = redact(text, apiKey);
       let found = [];
-      if (features.webSearch && search && !containsSecret(text, apiKey) && shouldSearch(safeText, { companion })) {
-        found = (await search.search(safeText, { companion, apiKey })).results || [];
+      let searchStatus = null;
+      if (explicitSearch && (!search || containsSecret(text, apiKey))) {
+        return {
+          text: 'Maaf Rover, pencarian web tidak dapat dijalankan untuk pesan ini.',
+          mode: 'local',
+          sources: [],
+          searchStatus: 'error',
+        };
       }
-      const content = found.length > 0 ? safeText + '\n\n' + formatSearchBlock(found) : safeText;
+      if (
+        search &&
+        !containsSecret(text, apiKey) &&
+        (explicitSearch || (features.webSearch && shouldSearch(safeText, { companion })))
+      ) {
+        const searchOpts = explicitSearch ? { companion: true, apiKey, force: true } : { companion, apiKey };
+        const searchRes = (await search.search(safeText, searchOpts)) || {};
+        found = searchRes.results || [];
+        searchStatus =
+          searchRes.status || (searchRes.error ? 'error' : found.length > 0 ? 'success' : 'empty');
+
+        if (explicitSearch && searchStatus === 'error') {
+          return {
+            text: 'Maaf Rover, pencarian web gagal karena kendala jaringan atau batas waktu. Aku tidak mau menebak tanpa rujukan—coba lagi sebentar ya.',
+            mode: 'local',
+            sources: [],
+            searchStatus: 'error',
+          };
+        }
+        if (explicitSearch && searchStatus === 'empty') {
+          return {
+            text:
+              'Aku sudah mencari di web, tapi tidak menemukan sumber yang valid untuk "' +
+              safeText +
+              '", Rover. Aku tidak akan mengarang jawaban tanpa bukti—coba kata kunci yang lebih spesifik ya.',
+            mode: 'local',
+            sources: [],
+            searchStatus: 'empty',
+          };
+        }
+      }
+      let content = safeText;
+      if (found.length > 0) {
+        content = safeText + '\n\n' + formatSearchBlock(found);
+      } else if (searchStatus && searchStatus !== 'success' && isRealtimeQuery(safeText)) {
+        content =
+          safeText +
+          '\n\n[Catatan pencarian web: status=' +
+          searchStatus +
+          '. Pencarian web tidak menemukan sumber valid. Jangan menebak atau mengarang fakta, tanggal, atau angka terbaru dari ingatanmu; katakan terus terang kepada Rover bahwa pencarian web belum menemukan sumber yang terverifikasi.]';
+      }
       const messages = [{ role: 'system', content: buildSystemPrompt(getKnowledge(), { companion }) }]
         .concat(history)
         .concat([{ role: 'user', content: content }]);
@@ -94,7 +148,9 @@ function createChatService(options) {
       // History keeps what Rover typed (with any accidental key redacted), not the bulky search block.
       history.push({ role: 'user', content: safeText }, { role: 'assistant', content: answer });
       if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
-      return { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
+      const result = { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
+      if (searchStatus) result.searchStatus = searchStatus;
+      return result;
     } catch (error) {
       const failure =
         error instanceof ChatError

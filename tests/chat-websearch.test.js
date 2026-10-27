@@ -121,9 +121,10 @@ test('lookup failures never throw', async () => {
       throw new Error('offline');
     },
   }).search('Apa itu Exostrider?');
-  assert.deepEqual(down, { results: [], error: 'network' });
+  assert.deepEqual(down, { status: 'error', results: [], error: 'network' });
 
   const blocked = await createWebSearch({ fetchImpl: async () => json({}, 402) }).search('Apa itu Exostrider?');
+  assert.equal(blocked.status, 'error');
   assert.deepEqual(blocked.results, []);
 
   const slow = await createWebSearch({
@@ -137,6 +138,7 @@ test('lookup failures never throw', async () => {
         });
       }),
   }).search('Apa itu Exostrider?');
+  assert.equal(slow.status, 'error');
   assert.equal(slow.error, 'timeout');
 });
 
@@ -200,10 +202,61 @@ test('with web search off, or for small talk, nothing is looked up', async () =>
 });
 
 test('a failed lookup still gets an answer, just without sources', async () => {
-  const search = { search: async () => ({ results: [], error: 'network' }) };
+  const search = { search: async () => ({ status: 'error', results: [], error: 'network' }) };
   const { chat, sent } = service({ webSearch: true, offlineFallback: false }, search);
   const answer = await chat.send('Apa itu Exostrider?');
   assert.equal(answer.mode, 'ai');
   assert.deepEqual(answer.sources, []);
   assert.equal(sent[0].messages[sent[0].messages.length - 1].content, 'Apa itu Exostrider?');
+});
+
+test('realtime game questions prioritize real-time web search ahead of static wiki', async () => {
+  const fetchImpl = fakeFetch([
+    ['api.deepseek.com/v1/tools/search', () =>
+      json({
+        results: [
+          {
+            title: 'Wuthering Waves Patch 2.2 Release Notes',
+            url: 'https://wutheringwaves.kurogames.com/en/news/patch-2-2',
+            site_name: 'Kuro Games',
+            summary: 'Patch terbaru Wuthering Waves menghadirkan area dan resonator baru.',
+          },
+        ],
+      })],
+    WIKI_SEARCH,
+    WIKI_PARSE,
+  ]);
+  const res = await createWebSearch({ fetchImpl }).search('Apa patch terbaru Wuthering Waves?', { apiKey: KEY });
+  assert.equal(res.status, 'success');
+  assert.equal(res.results.length, 1);
+  assert.equal(res.results[0].source.url, 'https://wutheringwaves.kurogames.com/en/news/patch-2-2');
+  assert.equal(res.results[0].source.provider, 'DeepSeek Search');
+  assert.ok(fetchImpl.calls[0].includes('api.deepseek.com/v1/tools/search'));
+  assert.ok(fetchImpl.calls.every((u) => !u.includes('fandom.com')));
+});
+
+test('explicit /search halts model generation on empty or error status to prevent hallucination', async () => {
+  const emptySearch = { search: async () => ({ status: 'empty', results: [], error: null }) };
+  const emptySvc = service({ webSearch: false, offlineFallback: false }, emptySearch);
+  const emptyReply = await emptySvc.chat.send('/search jadwal rilis rahasia 2099');
+  assert.equal(emptyReply.mode, 'local');
+  assert.equal(emptyReply.searchStatus, 'empty');
+  assert.deepEqual(emptyReply.sources, []);
+  assert.equal(emptySvc.sent.length, 0);
+
+  const errorSearch = { search: async () => ({ status: 'error', results: [], error: 'network' }) };
+  const errorSvc = service({ webSearch: false, offlineFallback: false }, errorSearch);
+  const errorReply = await errorSvc.chat.send('/search jadwal F1 terbaru');
+  assert.equal(errorReply.mode, 'local');
+  assert.equal(errorReply.searchStatus, 'error');
+  assert.deepEqual(errorReply.sources, []);
+  assert.equal(errorSvc.sent.length, 0);
+
+  const okSearch = { search: async () => ({ status: 'success', results: [RESULT], error: null }) };
+  const okSvc = service({ webSearch: false, offlineFallback: false }, okSearch);
+  const okReply = await okSvc.chat.send('/search Exostrider');
+  assert.equal(okReply.mode, 'ai');
+  assert.equal(okReply.searchStatus, 'success');
+  assert.deepEqual(okReply.sources, [RESULT.source]);
+  assert.equal(okSvc.sent.length, 1);
 });

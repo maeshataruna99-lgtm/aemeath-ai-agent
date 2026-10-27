@@ -15,9 +15,10 @@ contextBridge.exposeInMainWorld('aemeath', {
   onDemo: (fn) => ipcRenderer.on('demo:set-state', (_e, state) => fn(state)),
   onReset: (fn) => ipcRenderer.on('pet:reset', () => fn()),
   chatStatus: () => ipcRenderer.invoke('chat:status'),
-  chatSend: (text) => ipcRenderer.invoke('chat:send', text),
+  chatSend: (text, requestId) => ipcRenderer.invoke('chat:send', text, requestId),
   chatReset: () => ipcRenderer.invoke('chat:reset'),
   openSettings: () => ipcRenderer.send('chat:open-settings'),
+  openExternal: (url) => ipcRenderer.invoke('chat:open-external', url),
   listCommands: () => ipcRenderer.invoke('command:list'),
   runCommand: (text) => ipcRenderer.invoke('command:run', text),
   terminalRun: (text) => ipcRenderer.invoke('terminal:run', text),
@@ -27,7 +28,11 @@ contextBridge.exposeInMainWorld('aemeath', {
   onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),
   onActivityRemark: (fn) => ipcRenderer.on('activity:remark', (_e, remark) => fn(remark)),
   onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
-  onChatChunk: (fn) => ipcRenderer.on('chat:chunk', (_e, chunk) => fn(chunk)),
+  onChatChunk: (fn) => {
+    const listener = (_e, chunk) => fn(chunk);
+    ipcRenderer.on('chat:chunk', listener);
+    return () => ipcRenderer.removeListener('chat:chunk', listener);
+  },
   openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
   onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
   onLorebookUpdated: (fn) => ipcRenderer.on('lorebook:updated', (_e, data) => fn(data)),

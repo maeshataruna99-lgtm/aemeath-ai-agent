@@ -52,6 +52,51 @@
     let large = false;
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
+    let requestCounter = 0;
+
+    function isSafeHttpUrl(url) {
+      if (typeof url !== 'string') return false;
+      try {
+        const parsed = new URL(url.trim());
+        return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+      } catch {
+        return false;
+      }
+    }
+
+    function appendSources(container, sources) {
+      if (!sources || sources.length === 0) return;
+      const existing = container.querySelector('.credit');
+      if (existing) existing.remove();
+      const credit = document.createElement('div');
+      credit.className = 'credit';
+      credit.appendChild(document.createTextNode('Sumber: '));
+      sources.forEach((s, index) => {
+        if (index > 0) credit.appendChild(document.createTextNode(', '));
+        const meta = s.provider && s.license ? s.provider + ', ' + s.license : s.license || s.provider || 'Web';
+        const label = s.title + ' (' + meta + ')';
+        if (isSafeHttpUrl(s.url)) {
+          const link = document.createElement('a');
+          link.className = 'credit-link';
+          link.href = s.url.trim();
+          link.title = s.url.trim();
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = label;
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (api.openExternal) api.openExternal(link.href);
+          });
+          credit.appendChild(link);
+        } else {
+          const span = document.createElement('span');
+          span.textContent = label;
+          credit.appendChild(span);
+        }
+      });
+      container.appendChild(credit);
+    }
 
     function updateMessageContent(message, text, isMarkdown) {
       const body = message.querySelector('.msg-body');
@@ -71,6 +116,16 @@
             }
           });
         });
+        body.querySelectorAll('.chat-link').forEach((link) => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const href = link.getAttribute('href');
+            if (isSafeHttpUrl(href) && api.openExternal) {
+              api.openExternal(href.trim());
+            }
+          });
+        });
       } else {
         body.textContent = text;
       }
@@ -85,13 +140,8 @@
       message.appendChild(body);
 
       updateMessageContent(message, text, kind.startsWith('bot') && !kind.includes('pending'));
+      appendSources(message, sources);
 
-      if (sources && sources.length > 0) {
-        const credit = document.createElement('div');
-        credit.className = 'credit';
-        credit.textContent = 'Sumber: ' + sources.map((s) => s.title + ' (' + s.license + ')').join(', ');
-        message.appendChild(credit);
-      }
       log.appendChild(message);
       while (log.children.length > MAX_MESSAGES) log.removeChild(log.firstChild);
       log.scrollTop = log.scrollHeight;
@@ -137,7 +187,7 @@
         note.textContent = command.description;
         button.append(name, note);
         button.addEventListener('click', () => {
-          input.value = '/' + command.name;
+          input.value = '/' + command.name + (command.name === 'search' ? ' ' : '');
           hideSuggestions();
           input.focus();
         });
@@ -278,7 +328,7 @@
         if (pending) pending.remove();
         confirming = Boolean(result.awaitConfirm);
         if (!result.isCommand) return false;
-        add(result.ok ? 'bot' : 'err', result.text);
+        add(result.ok ? 'bot' : 'err', result.text, result.sources);
         if (result.output) add('cmd-out', result.output);
         if (result.mode) setMode(result.mode, result.cwd);
         if (result.launched && options.onCommand) options.onCommand();
@@ -327,12 +377,17 @@
         add('err', 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
         return;
       }
-      const pending = add('bot pending', 'Aemeath sedang berpikir...');
+      const isExplicitSearch = /^\/search(?:\s|$)/i.test(text);
+      const pending = add(
+        'bot pending',
+        isExplicitSearch ? 'Aemeath sedang mencari di web...' : 'Aemeath sedang berpikir...',
+      );
+      const requestId = 'req-' + Date.now() + '-' + (++requestCounter);
       let streamedText = '';
       let isStreaming = false;
 
       const unbindChunk = api.onChatChunk ? api.onChatChunk((chunk) => {
-        if (!chunk || !chunk.delta) return;
+        if (!chunk || chunk.requestId !== requestId || !chunk.delta) return;
         if (!isStreaming) {
           isStreaming = true;
           pending.className = 'msg bot';
@@ -346,17 +401,12 @@
       controls();
       touch();
       try {
-        const result = await api.chatSend(text);
+        const result = await api.chatSend(text, requestId);
         if (result.ok) {
           if (isStreaming) {
-            // Finalize with full text and sources
+            // Finalize with full text and clickable sources
             updateMessageContent(pending, result.text, true);
-            if (result.sources && result.sources.length > 0) {
-              const credit = document.createElement('div');
-              credit.className = 'credit';
-              credit.textContent = 'Sumber: ' + result.sources.map((s) => s.title + ' (' + s.license + ')').join(', ');
-              pending.appendChild(credit);
-            }
+            appendSources(pending, result.sources);
           } else {
             pending.remove();
             add('bot', result.text, result.sources);
@@ -370,6 +420,7 @@
         pending.remove();
         add('err', 'Terjadi kesalahan saat mengirim pesan.');
       } finally {
+        if (typeof unbindChunk === 'function') unbindChunk();
         busy = false;
         controls();
         reposition();
@@ -385,6 +436,10 @@
       hideSuggestions();
       if (mode === 'terminal') {
         return /^\/change-mode(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
+      }
+      // Explicit manual web search (/search <query>) streams through chat with forced web lookup.
+      if (!confirming && /^\/search\s+\S/i.test(text)) {
+        return sendChat(text, false);
       }
       // While a command waits for a yes, the next line goes to it first. If it turns out
       // not to be a command at all, it is an ordinary chat message after all.

@@ -38,7 +38,10 @@ const GAME_TERMS = new RegExp(
 );
 const QUESTION = /\?|\b(apa|siapa|kenapa|mengapa|bagaimana|gimana|kapan|dimana|di mana|berapa|jelaskan|ceritakan|sebutkan|info|informasi|tentang|lore|arti|maksud)\b/i;
 // Companion mode (/change-mode-search) also looks up requests, facts, results, and practical how-to queries.
-const COMPANION_QUESTION = /\b(cara|resep|bikin|membuat|masak|memasak|tutorial|contoh|langkah|tips|error|eror|bug|kode|koding|ngoding|how|what|why|recipe|example|fix|pemenang|juara|hasil|jadwal|skor|tanggal|berita|kabar|update|siapakah|apakah)\b/i;
+const COMPANION_QUESTION = /\b(cara|resep|bikin|membuat|masak|memasak|tutorial|contoh|langkah|tips|error|eror|bug|kode|koding|ngoding|how|what|why|recipe|example|fix|pemenang|juara|hasil|jadwal|skor|tanggal|berita|kabar|update|siapakah|apakah|patch|banner|event|rilis|release|terbaru|latest|new|redeem)\b/i;
+// Realtime / freshness queries even for game topics (patch notes, banners, news, events, codes).
+const REALTIME_TERMS = /\b(patch|banner|event|rilis|release|terbaru|latest|update|berita|kabar|jadwal|schedule|redeem|code|kode|versi|version|leaks?|meta|tier|build|kapan|tanggal|202[5-9])\b/i;
+const VALID_HTTP_URL = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 const CODING_TERMS = new RegExp(
   '\\b(kode|koding|ngoding|coding|code|program|pemrograman|programming|script|skrip|function|fungsi|error|eror|bug|debug|' +
     'compile|exception|api|regex|sql|query|array|class|javascript|typescript|js|node|npm|python|java|kotlin|php|laravel|' +
@@ -61,11 +64,21 @@ const COMPANION_FILLER = new Set([
 function shouldSearch(text, options) {
   const message = String(text == null ? '' : text).trim();
   if (message.split(/\s+/).length < 3) return false;
-  return QUESTION.test(message) || Boolean(options && options.companion && COMPANION_QUESTION.test(message));
+  if (QUESTION.test(message)) return true;
+  if (isGameQuestion(message) && isRealtimeQuery(message)) return true;
+  return Boolean(options && options.companion && COMPANION_QUESTION.test(message));
 }
 
 function isGameQuestion(text) {
   return GAME_TERMS.test(String(text == null ? '' : text));
+}
+
+function isRealtimeQuery(text) {
+  return REALTIME_TERMS.test(String(text == null ? '' : text));
+}
+
+function isValidHttpUrl(url) {
+  return VALID_HTTP_URL.test(String(url == null ? '' : url).trim());
 }
 
 // Which topic source suits a non-game question in companion mode.
@@ -308,14 +321,16 @@ function createWebSearch(options) {
           const title = decode(String(item.title || '')).trim();
           const text = decode(String(item.summary || item.snippet || '')).trim().slice(0, MAX_TEXT);
           const url = String(item.url || '').trim();
-          if (!title || !text) return null;
+          // Reject results without a valid HTTP(S) URL: never fabricate a fallback citation URL.
+          if (!title || !text || !isValidHttpUrl(url)) return null;
           return {
             title: title,
             text: text,
             source: {
               title: item.site_name ? item.site_name + ': ' + title : title,
-              url: url || 'https://api.deepseek.com',
-              license: 'DeepSeek Search',
+              url: url,
+              license: 'Web',
+              provider: 'DeepSeek Search',
             },
           };
         })
@@ -351,7 +366,7 @@ function createWebSearch(options) {
           }
           const title = decode(tMatch[2].replace(/<[^>]+>/g, '').trim());
           const snippet = decode(sMatch[1].replace(/<[^>]+>/g, '').trim()).slice(0, MAX_TEXT);
-          if (title && snippet) {
+          if (title && snippet && isValidHttpUrl(url)) {
             results.push({
               title: title,
               text: snippet,
@@ -359,6 +374,7 @@ function createWebSearch(options) {
                 title: title,
                 url: url,
                 license: 'Web',
+                provider: 'DuckDuckGo',
               },
             });
             if (results.length >= MAX_RESULTS) break;
@@ -373,19 +389,25 @@ function createWebSearch(options) {
     }
   }
 
+  async function realtimeWebResults(query, text, apiKey) {
+    let results = [];
+    if (apiKey) {
+      results = await deepseekSearchResults(query, text, apiKey);
+    }
+    if (results.length === 0) {
+      results = await duckduckgoResults(query);
+    }
+    return results;
+  }
+
   async function companionResults(query, text, apiKey) {
     const topic = topicOf(text);
     let results = [];
     if (topic === 'coding') results = await stackOverflowResults(query);
     else if (topic === 'cooking') results = await cookbookResults(query);
 
-    // Primary real-time search: official DeepSeek Search API if apiKey is provided
-    if (results.length === 0 && apiKey) {
-      results = await deepseekSearchResults(query, text, apiKey);
-    }
-    // Fallback real-time search: DuckDuckGo HTML
     if (results.length === 0) {
-      results = await duckduckgoResults(query);
+      results = await realtimeWebResults(query, text, apiKey);
     }
     // Final fallback: Wikipedia
     if (results.length === 0) {
@@ -394,26 +416,41 @@ function createWebSearch(options) {
     return results;
   }
 
-  // Never throws: a failed lookup just means no extra context for the answer.
+  // Never throws: returns { status: 'success'|'empty'|'error', results, error }.
   // options.companion lets non-game questions use the topic sources above.
   async function search(text, options) {
-    const companion = Boolean(options && options.companion);
+    const companion = Boolean(options && (options.companion || options.force));
     const apiKey = options && options.apiKey;
     const query = queryOf(text, companion);
-    if (!query) return { results: [], error: null };
+    if (!query) return { status: 'empty', results: [], error: null };
     try {
       let results = [];
+      const realtime = isRealtimeQuery(text);
       if (isGameQuestion(text)) {
-        results = await wikiResults(query);
+        // Prioritize real-time web search for freshness queries (patch, banner, news, schedule, codes)
+        // while keeping the Wuthering Waves Wiki primary for stable lore questions.
+        if (realtime) {
+          results = await realtimeWebResults(query, text, apiKey);
+        }
+        if (results.length === 0) results = await wikiResults(query);
+        if (results.length === 0 && companion && !realtime) {
+          results = await realtimeWebResults(query, text, apiKey);
+        }
         if (results.length === 0) results = await wikipediaResults(query);
       } else if (companion) {
         results = await companionResults(query, text, apiKey);
       } else {
         results = await wikipediaResults(query);
       }
-      return { results: relevantOnly(results, text).slice(0, MAX_RESULTS), error: null };
+      const filtered = relevantOnly(results, text).slice(0, MAX_RESULTS);
+      return {
+        status: filtered.length > 0 ? 'success' : 'empty',
+        results: filtered,
+        error: null,
+      };
     } catch (error) {
-      return { results: [], error: error && error.name === 'AbortError' ? 'timeout' : 'network' };
+      const code = error && error.name === 'AbortError' ? 'timeout' : 'network';
+      return { status: 'error', results: [], error: code };
     }
   }
 
@@ -431,4 +468,15 @@ function formatSearchBlock(results) {
   ].join('\n');
 }
 
-module.exports = { createWebSearch, shouldSearch, isGameQuestion, topicOf, formatSearchBlock, leadText, plainText, cookbookText };
+module.exports = {
+  createWebSearch,
+  shouldSearch,
+  isGameQuestion,
+  isRealtimeQuery,
+  isValidHttpUrl,
+  topicOf,
+  formatSearchBlock,
+  leadText,
+  plainText,
+  cookbookText,
+};

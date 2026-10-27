@@ -129,6 +129,7 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 - `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
+- `/search <kata kunci>` — pemicu pencarian web manual eksplisit dengan sumber tautan terverifikasi (menghentikan jawaban jika tidak ada sumber valid yang ditemukan).
 
 Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
 

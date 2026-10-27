@@ -115,6 +115,7 @@ function createCommandHandler(options) {
       const result = await builtins[name].run(arg, text);
       const out = { isCommand: true, ok: result.ok, text: result.text, mode: result.mode, cwd: result.cwd };
       if (result.output) out.output = trimOutput(result.output);
+      if (result.sources) out.sources = result.sources;
       return out;
     }
     if (name === '' || RESERVED.has(name)) {

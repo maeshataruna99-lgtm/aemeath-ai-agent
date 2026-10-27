@@ -238,11 +238,21 @@ test('companion topic sources fall back to Wikipedia when they find nothing', as
   assert.deepEqual(results.map((r) => r.source.title), ['Wikipedia: Python']);
 });
 
-test('real-time web search in companion mode uses DeepSeek Search API when key is provided', async () => {
+test('real-time web search in companion mode uses DeepSeek Search API when key is provided and rejects invalid URLs', async () => {
   const fetchImpl = fakeFetch([
     ['api.deepseek.com/v1/tools/search', () =>
       json({
         results: [
+          {
+            title: 'Hasil Tanpa URL Valid',
+            url: '',
+            summary: 'Juara dunia F1 musim terakhir tanpa tautan.',
+          },
+          {
+            title: 'Hasil Skema Berbahaya',
+            url: 'javascript:alert(1)',
+            summary: 'Juara dunia F1 musim terakhir dengan skema tidak aman.',
+          },
           {
             title: 'Max Verstappen Juara Dunia F1 2024',
             url: 'https://f1.example.com/verstappen-2024',
@@ -252,14 +262,16 @@ test('real-time web search in companion mode uses DeepSeek Search API when key i
         ],
       })],
   ]);
-  const { results } = await createWebSearch({ fetchImpl }).search('juara dunia f1 terakhir tanggal', {
+  const { status, results } = await createWebSearch({ fetchImpl }).search('juara dunia f1 terakhir tanggal', {
     companion: true,
     apiKey: KEY,
   });
+  assert.equal(status, 'success');
   assert.equal(results.length, 1);
   assert.equal(results[0].title, 'Max Verstappen Juara Dunia F1 2024');
   assert.equal(results[0].source.url, 'https://f1.example.com/verstappen-2024');
-  assert.equal(results[0].source.license, 'DeepSeek Search');
+  assert.equal(results[0].source.license, 'Web');
+  assert.equal(results[0].source.provider, 'DeepSeek Search');
   assert.match(results[0].text, /Las Vegas tanggal 23 November 2024/);
 });
 

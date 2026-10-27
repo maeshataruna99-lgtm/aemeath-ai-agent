@@ -274,6 +274,28 @@ function main() {
       description: 'Mode pendamping: bantu topik apa saja, bukan cuma wiki (butuh API key)',
       run: (arg) => companionMode.run(arg),
     },
+    search: {
+      description: 'Cari langsung di web dengan sumber terverifikasi (mis. /search jadwal F1)',
+      run: async (arg) => {
+        const q = String(arg == null ? '' : arg).trim();
+        if (!q) {
+          return {
+            ok: false,
+            text: 'Tulis kata kunci setelah /search ya, Rover. Contoh: /search patch terbaru Wuthering Waves',
+          };
+        }
+        try {
+          const reply = await chatService.send(q, undefined, { forceSearch: true });
+          return {
+            ok: reply.searchStatus === 'success',
+            text: reply.text,
+            sources: reply.sources || [],
+          };
+        } catch (error) {
+          return { ok: false, text: error.message || 'Pencarian gagal dijalankan.' };
+        }
+      },
+    },
     review: {
       description: 'Tinjau dan nilai perubahan kodinganmu saat ini (git diff)',
       run: () => workReviewer.review(),
@@ -469,16 +491,34 @@ function main() {
     ipcMain.handle('chat:status', (event) =>
       fromWindow(event, win) || fromWindow(event, settingsWin) ? chatStatus() : null,
     );
-    ipcMain.handle('chat:send', async (event, text) => {
+    ipcMain.handle('chat:open-external', async (event, rawUrl) => {
+      if (!fromWindow(event, win) && !fromWindow(event, settingsWin)) return { ok: false };
+      if (typeof rawUrl !== 'string') return { ok: false };
+      try {
+        const parsed = new URL(rawUrl.trim());
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return { ok: false };
+        if (!isSelfie) await shell.openExternal(parsed.toString());
+        return { ok: true };
+      } catch {
+        return { ok: false };
+      }
+    });
+    ipcMain.handle('chat:send', async (event, text, requestId) => {
       if (!fromWindow(event, win)) return { ok: false, error: 'Tidak diizinkan.' };
       win?.webContents?.send('chat:state', { thinking: true });
       const streaming = settings.chatStreaming !== false;
       try {
         const reply = await chatService.send(text, streaming ? (chunk) => {
-          win?.webContents?.send('chat:chunk', { delta: chunk });
+          win?.webContents?.send('chat:chunk', { requestId, delta: chunk });
         } : undefined);
         win?.webContents?.send('chat:state', { thinking: false, replied: true });
-        return { ok: true, text: reply.text, mode: reply.mode, sources: reply.sources };
+        return {
+          ok: true,
+          text: reply.text,
+          mode: reply.mode,
+          sources: reply.sources,
+          searchStatus: reply.searchStatus,
+        };
       } catch (error) {
         win?.webContents?.send('chat:state', { thinking: false, replied: false });
         return { ok: false, code: error.code || 'unknown', error: error.message };

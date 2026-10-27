@@ -325,6 +325,17 @@ body {
   color: #6b7280;
 }
 
+#chat-log .credit-link {
+  color: #db2777;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+#chat-log .credit-link:hover {
+  color: #be185d;
+}
+
 #chat-log .cmd-out {
   align-self: stretch;
   max-width: 100%;
