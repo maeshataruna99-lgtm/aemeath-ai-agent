@@ -41,6 +41,13 @@ test('chatterEnabled stays boolean', () => {
   assert.equal(store.save({ chatterEnabled: false }).chatterEnabled, false);
 });
 
+test('chatStreaming defaults to true and stays boolean', () => {
+  const store = createSettingsStore(tempDir('stream'));
+  assert.equal(store.load().chatStreaming, true);
+  assert.equal(store.save({ chatStreaming: false }).chatStreaming, false);
+  assert.equal(store.save({ chatStreaming: 'not-bool' }).chatStreaming, true);
+});
+
 test('chat interval is clamped to 1-15 minutes and survives a reload', () => {
   const dir = tempDir('interval');
   const store = createSettingsStore(dir);

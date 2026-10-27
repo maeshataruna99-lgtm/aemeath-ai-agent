@@ -16,6 +16,10 @@ const DEFAULTS = {
   chatModel: 'deepseek-flash',
   chatWebSearch: false,
   chatOfflineFallback: true,
+  // Streaming mode: stream AI responses token by token into the chatbox.
+  chatStreaming: true,
+  // Companion mode (/change-mode-search): any topic, not just the game wiki. Needs an API key.
+  chatCompanionMode: false,
   terminalEnabled: true,
   startAtLogin: true,
   stayStill: false,
@@ -68,6 +72,8 @@ function keepFlags(data) {
   for (const key of [
     'chatWebSearch',
     'chatOfflineFallback',
+    'chatStreaming',
+    'chatCompanionMode',
     'terminalEnabled',
     'startAtLogin',
     'stayStill',

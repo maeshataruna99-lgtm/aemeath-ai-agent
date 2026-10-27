@@ -102,6 +102,13 @@ tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alama
 - **Pencarian web (opsional).** Untuk pertanyaan informasi, Aemeath mencari dulu di Wuthering
   Waves Wiki (soal game) atau Wikipedia (topik lain), memadukan hasilnya dengan gayanya, dan
   menampilkan sumbernya. Ini pencarian ensiklopedia, bukan mesin pencari umum.
+- **Mode pendamping (`/change-mode-search`).** Aemeath tidak lagi terpaku pada wiki Wuthering Waves
+  dan menjadi pendamping penuh untuk topik apa pun sesuai konteks: ngoding, resep masakan, belajar,
+  dan lainnya, dengan jawaban yang lebih tuntas (langkah bernomor, blok kode). Bila pencarian web
+  menyala, pertanyaan koding juga dicari di Stack Overflow dan pertanyaan masak di Wikibooks Cookbook
+  (lalu Wikipedia sebagai cadangan), lengkap dengan sumbernya. Hanya bisa dinyalakan saat API key
+  tersimpan; tanpa kunci, mode ini tidak berlaku dan Aemeath tetap menjawab dari lorebook. Pilihannya
+  disimpan, dan `/change-mode-search off` (atau ketik perintahnya lagi) mengembalikan mode wiki.
 - **Mode offline.** Tanpa API key atau saat internet putus, Aemeath tetap menjawab dari
   lorebook. Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
 - **Penyedia chat bisa ditambah.** Cukup satu berkas di `src/chat/providers/`.
@@ -121,6 +128,7 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium atau Full menyala), sisa timer aktif, dan jumlah tugas serta catatan.
 - `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
+- `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
 
 Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
 

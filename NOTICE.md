@@ -75,3 +75,9 @@ When the optional web search is switched on, short excerpts are fetched at run t
 from the Wuthering Waves Wiki on Fandom and from Wikipedia. Both publish their text
 under CC BY-SA; each answer that uses an excerpt shows its source page. Excerpts are
 not stored.
+
+In companion mode (`/change-mode-search`), coding questions may also fetch an accepted
+answer from Stack Overflow (via the Stack Exchange API) and cooking questions a recipe
+excerpt from the Wikibooks Cookbook (https://en.wikibooks.org/wiki/Cookbook:Table_of_Contents).
+Stack Overflow user contributions and Wikibooks text are licensed under CC BY-SA; each
+answer that uses an excerpt links to its source page, and excerpts are not stored.

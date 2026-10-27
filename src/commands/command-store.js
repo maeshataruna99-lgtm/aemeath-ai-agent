@@ -14,7 +14,7 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 const ENV_PREFIX = /^(?:%[A-Za-z0-9_]+%|~(?:[\\/]|$)|\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})(?:[\\/]|$))/;
 // Names that belong to Aemeath: the help words and the built-in commands.
-const BUILTIN_NAMES = ['change-mode', 'timer', 'todo', 'note', 'stats', 'review'];
+const BUILTIN_NAMES = ['change-mode', 'change-mode-search', 'timer', 'todo', 'note', 'stats', 'review'];
 const RESERVED = new Set(['help', 'bantuan'].concat(BUILTIN_NAMES));
 const MAX_TARGET = 500;
 const MAX_ARGS = 300;

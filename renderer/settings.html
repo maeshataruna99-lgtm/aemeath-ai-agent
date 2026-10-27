@@ -201,6 +201,15 @@
           Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
         </p>
 
+        <label class="field check" for="streaming">
+          <input type="checkbox" id="streaming">
+          <span>Mode streaming teks (muncul kata demi kata)</span>
+        </label>
+        <p class="hint tight">
+          Menampilkan ketikan teks secara langsung (streaming) saat model AI sedang merespons.
+          Matikan jika kamu lebih suka pesan muncul sekaligus setelah selesai.
+        </p>
+
         <label class="field" for="apikey">Kunci API</label>
         <input type="password" id="apikey" autocomplete="off" spellcheck="false"
                placeholder="Tempel kunci di sini">
@@ -232,6 +241,10 @@
         <div class="builtin-row">
           <code>/change-mode</code>
           <span id="change-mode-desc">Ganti kotak chat antara mode obrolan dan terminal PowerShell.</span>
+        </div>
+        <div class="builtin-row">
+          <code>/change-mode-search</code>
+          <span>Mode pendamping: jawab topik bebas (coding, masak, dll) di luar wiki WuWa. Butuh API key.</span>
         </div>
         <div class="builtin-row">
           <code>/timer</code>

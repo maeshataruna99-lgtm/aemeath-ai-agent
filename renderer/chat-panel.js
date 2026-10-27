@@ -53,12 +53,39 @@
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
 
+    function updateMessageContent(message, text, isMarkdown) {
+      const body = message.querySelector('.msg-body');
+      if (!body) return;
+      if (isMarkdown && window.AemeathMarkdown) {
+        body.innerHTML = window.AemeathMarkdown.renderMarkdown(text);
+        body.querySelectorAll('.chat-code-copy').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pre = btn.closest('.chat-code-wrap').querySelector('pre code');
+            if (pre) {
+              navigator.clipboard.writeText(pre.textContent).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Tersalin!';
+                setTimeout(() => { btn.textContent = orig; }, 1800);
+              });
+            }
+          });
+        });
+      } else {
+        body.textContent = text;
+      }
+      log.scrollTop = log.scrollHeight;
+    }
+
     function add(kind, text, sources) {
       const message = document.createElement('div');
       message.className = 'msg ' + kind;
       const body = document.createElement('div');
-      body.textContent = text;
+      body.className = 'msg-body';
       message.appendChild(body);
+
+      updateMessageContent(message, text, kind.startsWith('bot') && !kind.includes('pending'));
+
       if (sources && sources.length > 0) {
         const credit = document.createElement('div');
         credit.className = 'credit';
@@ -240,7 +267,8 @@
     async function runCommand(text, alreadyShown) {
       if (!alreadyShown) add('user', text);
       // /change-mode waits for the Windows consent prompt, which can take a while.
-      const pending = /^\/change-mode\b/i.test(text)
+      // (Not /change-mode-search: that one answers right away.)
+      const pending = /^\/change-mode(?:\s|$)/i.test(text)
         ? add('bot pending', 'Menunggu persetujuan Windows (izin admin)...')
         : null;
       busy = true;
@@ -300,15 +328,41 @@
         return;
       }
       const pending = add('bot pending', 'Aemeath sedang berpikir...');
+      let streamedText = '';
+      let isStreaming = false;
+
+      const unbindChunk = api.onChatChunk ? api.onChatChunk((chunk) => {
+        if (!chunk || !chunk.delta) return;
+        if (!isStreaming) {
+          isStreaming = true;
+          pending.className = 'msg bot';
+        }
+        streamedText += chunk.delta;
+        updateMessageContent(pending, streamedText, true);
+        reposition();
+      }) : null;
+
       busy = true;
       controls();
       touch();
       try {
         const result = await api.chatSend(text);
-        pending.remove();
         if (result.ok) {
-          add('bot', result.text, result.sources);
+          if (isStreaming) {
+            // Finalize with full text and sources
+            updateMessageContent(pending, result.text, true);
+            if (result.sources && result.sources.length > 0) {
+              const credit = document.createElement('div');
+              credit.className = 'credit';
+              credit.textContent = 'Sumber: ' + result.sources.map((s) => s.title + ' (' + s.license + ')').join(', ');
+              pending.appendChild(credit);
+            }
+          } else {
+            pending.remove();
+            add('bot', result.text, result.sources);
+          }
         } else {
+          pending.remove();
           add('err', result.error || 'Terjadi kesalahan.');
           if (result.code === 'no-key' || result.code === 'auth') await refreshStatus();
         }
@@ -330,7 +384,7 @@
       input.value = '';
       hideSuggestions();
       if (mode === 'terminal') {
-        return /^\/change-mode\b/i.test(text) ? runCommand(text) : runTerminal(text);
+        return /^\/change-mode(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
       }
       // While a command waits for a yes, the next line goes to it first. If it turns out
       // not to be a command at all, it is an ordinary chat message after all.

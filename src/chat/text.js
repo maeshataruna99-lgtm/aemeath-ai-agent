@@ -34,13 +34,18 @@ function stem(word) {
   return word.length > 4 && word.endsWith('s') ? word.slice(0, -1) : word;
 }
 
+// Meaningful 2-letter terms that shouldn't be discarded as noise.
+const SHORT_TERMS = new Set([
+  'f1', 'ai', 'ui', 'ux', 'go', 'js', 'ts', 'c', 'db', 'os', 'ip', 'id', 'vr', 'ar',
+]);
+
 function keywords(text) {
   const seen = new Set();
   for (const word of normalize(text).split(' ')) {
-    if (word.length < 3 || STOPWORDS.has(word)) continue;
+    if ((word.length < 3 && !SHORT_TERMS.has(word)) || STOPWORDS.has(word)) continue;
     seen.add(stem(word));
   }
   return Array.from(seen);
 }
 
-module.exports = { normalize, keywords, stem, STOPWORDS };
+module.exports = { normalize, keywords, stem, STOPWORDS, SHORT_TERMS };

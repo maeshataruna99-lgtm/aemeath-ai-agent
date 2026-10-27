@@ -26,6 +26,7 @@ const { createLorebookUpdater, OVERLAY_FILE } = require('./src/lorebook-updater'
 const { createKeyStore } = require('./src/chat/key-store');
 const { createProviders } = require('./src/chat/providers');
 const { createChatService } = require('./src/chat/chat-service');
+const { createCompanionMode } = require('./src/chat/companion-mode');
 const { createWebSearch } = require('./src/chat/web-search');
 const { createLocalResponder } = require('./src/chat/local-responder');
 const { createCommandStore } = require('./src/commands/command-store');
@@ -145,6 +146,17 @@ function main() {
     return { provider: provider.id, model: known ? settings.chatModel : provider.defaultModel };
   }
 
+  // Companion mode (/change-mode-search): Aemeath helps with any topic instead of focusing on
+  // the game wiki. Only in effect while the current provider has a key.
+  const companionMode = createCompanionMode({
+    isOn: () => settings.chatCompanionMode === true,
+    setOn: (on) => {
+      Object.assign(settings, settingsStore.save({ chatCompanionMode: on === true }));
+    },
+    hasKey: () => Boolean(keyStore && keyStore.has(chatConfig().provider)),
+    providerName: () => providers.get(chatConfig().provider).name,
+  });
+
   const chatService = createChatService({
     providers,
     getKey: (id) => (keyStore ? keyStore.get(id) : null),
@@ -153,6 +165,7 @@ function main() {
     getFeatures: () => ({
       webSearch: settings.chatWebSearch === true,
       offlineFallback: settings.chatOfflineFallback !== false,
+      companion: companionMode.active(),
     }),
     search: isSelfie ? selfieSearch : createWebSearch(),
     localResponder: createLocalResponder({ getEntries: loreEntries }),
@@ -167,6 +180,8 @@ function main() {
       secure: keyStore.secure,
       webSearch: settings.chatWebSearch === true,
       offlineFallback: settings.chatOfflineFallback !== false,
+      streaming: settings.chatStreaming !== false,
+      companion: companionMode.active(),
       providers: providers.list.map((p) => ({
         id: p.id,
         name: p.name,
@@ -254,6 +269,10 @@ function main() {
     'change-mode': {
       description: 'Ganti mode obrolan dan terminal ' + platformInfo.shellName,
       run: () => terminal.changeMode(),
+    },
+    'change-mode-search': {
+      description: 'Mode pendamping: bantu topik apa saja, bukan cuma wiki (butuh API key)',
+      run: (arg) => companionMode.run(arg),
     },
     review: {
       description: 'Tinjau dan nilai perubahan kodinganmu saat ini (git diff)',
@@ -358,6 +377,7 @@ function main() {
       for (const flag of [
         'chatWebSearch',
         'chatOfflineFallback',
+        'chatStreaming',
         'terminalEnabled',
         'startAtLogin',
         'stayStill',
@@ -452,8 +472,11 @@ function main() {
     ipcMain.handle('chat:send', async (event, text) => {
       if (!fromWindow(event, win)) return { ok: false, error: 'Tidak diizinkan.' };
       win?.webContents?.send('chat:state', { thinking: true });
+      const streaming = settings.chatStreaming !== false;
       try {
-        const reply = await chatService.send(text);
+        const reply = await chatService.send(text, streaming ? (chunk) => {
+          win?.webContents?.send('chat:chunk', { delta: chunk });
+        } : undefined);
         win?.webContents?.send('chat:state', { thinking: false, replied: true });
         return { ok: true, text: reply.text, mode: reply.mode, sources: reply.sources };
       } catch (error) {

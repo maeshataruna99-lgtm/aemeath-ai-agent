@@ -18,8 +18,9 @@ const OFFLINE_CODES = new Set(['network', 'timeout']);
 // getKey(providerId) -> string | null
 // getConfig() -> { provider, model }
 // getKnowledge() -> [{ topic, text }] (optional)
-// getFeatures() -> { webSearch, offlineFallback } (optional, both off by default)
-// search: { search(text) -> { results } } (optional)
+// getFeatures() -> { webSearch, offlineFallback, companion } (optional, all off by default;
+//   companion = /change-mode-search, answering any topic instead of focusing on the game wiki)
+// search: { search(text, { companion }) -> { results } } (optional)
 // localResponder: { respond(text, reason) -> { text, sources } } (optional)
 //
 // send() resolves to { text, mode: 'ai' | 'local', sources: [{ title, url, license }] }.
@@ -43,7 +44,7 @@ function createChatService(options) {
     return { text: answer.text, mode: 'local', sources: answer.sources || [] };
   }
 
-  async function send(rawText) {
+  async function send(rawText, onChunk) {
     const text = typeof rawText === 'string' ? rawText.trim() : '';
     if (!text) throw new ChatError('empty-input', 'Tulis sesuatu dulu, Rover.');
     if (text.length > MAX_INPUT) {
@@ -67,16 +68,18 @@ function createChatService(options) {
     }
 
     busy = true;
+    // Companion mode only matters on this path: it needs a key and a model to answer.
+    const companion = features.companion === true;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const safeText = redact(text, apiKey);
       let found = [];
-      if (features.webSearch && search && !containsSecret(text, apiKey) && shouldSearch(safeText)) {
-        found = (await search.search(safeText)).results || [];
+      if (features.webSearch && search && !containsSecret(text, apiKey) && shouldSearch(safeText, { companion })) {
+        found = (await search.search(safeText, { companion, apiKey })).results || [];
       }
       const content = found.length > 0 ? safeText + '\n\n' + formatSearchBlock(found) : safeText;
-      const messages = [{ role: 'system', content: buildSystemPrompt(getKnowledge()) }]
+      const messages = [{ role: 'system', content: buildSystemPrompt(getKnowledge(), { companion }) }]
         .concat(history)
         .concat([{ role: 'user', content: content }]);
       const reply = await provider.send({
@@ -84,6 +87,7 @@ function createChatService(options) {
         model: config.model || provider.defaultModel,
         messages: messages,
         signal: controller.signal,
+        onChunk: typeof onChunk === 'function' ? (delta) => onChunk(redact(delta, apiKey)) : undefined,
       });
       const cleanReply = redact(reply.text, apiKey);
       const answer = isUnsafe(cleanReply) ? deflection(turns) : cleanReply;

@@ -179,9 +179,131 @@ body {
   padding: 6px 10px;
   border-radius: 12px;
   line-height: 1.4;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: text;
+}
+
+#chat-log .user {
+  align-self: flex-end;
+  background: #f472b6;
+  color: #fff;
+  white-space: pre-wrap;
+}
+
+#chat-log .msg-body {
+  overflow-wrap: anywhere;
+}
+
+#chat-log .chat-p {
+  margin: 0 0 6px 0;
+}
+
+#chat-log .chat-p:last-child {
+  margin-bottom: 0;
+}
+
+#chat-log .chat-h1,
+#chat-log .chat-h2,
+#chat-log .chat-h3,
+#chat-log .chat-h4 {
+  margin: 8px 0 4px 0;
+  font-weight: 700;
+  color: #9d174d;
+}
+
+#chat-log .chat-h1 { font-size: 1.15em; }
+#chat-log .chat-h2 { font-size: 1.08em; }
+#chat-log .chat-h3 { font-size: 1.02em; }
+#chat-log .chat-h4 { font-size: 0.95em; }
+
+#chat-log .chat-list {
+  margin: 4px 0 6px 18px;
+  padding: 0;
+}
+
+#chat-log .chat-list li {
+  margin-bottom: 3px;
+}
+
+#chat-log .chat-list li:last-child {
+  margin-bottom: 0;
+}
+
+#chat-log .chat-quote {
+  margin: 4px 0 6px 0;
+  padding: 4px 10px;
+  border-left: 3px solid #f472b6;
+  background: #fdf2f8;
+  color: #4b5563;
+  border-radius: 0 6px 6px 0;
+}
+
+#chat-log .chat-hr {
+  border: 0;
+  border-top: 1px dashed #f9a8d4;
+  margin: 8px 0;
+}
+
+#chat-log .chat-inline-code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #d946ef;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 0.92em;
+  border: 1px solid #e2e8f0;
+}
+
+#chat-log .chat-code-wrap {
+  margin: 6px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  background: #0f172a;
+}
+
+#chat-log .chat-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 8px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  color: #94a3b8;
+  font: 11px Consolas, monospace;
+}
+
+#chat-log .chat-code-copy {
+  padding: 1px 6px !important;
+  font-size: 10px !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px !important;
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+  cursor: pointer;
+}
+
+#chat-log .chat-code-copy:hover {
+  background: #475569 !important;
+  color: #fff !important;
+}
+
+#chat-log .chat-code-block {
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  color: #f8fafc;
+  font: 12px/1.45 Consolas, "Cascadia Mono", monospace;
+}
+
+#chat-log .chat-link {
+  color: #db2777;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#chat-log .chat-link:hover {
+  color: #be185d;
 }
 
 #chat-log .bot {

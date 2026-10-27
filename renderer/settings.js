@@ -16,6 +16,7 @@
   const terminal = document.getElementById('terminal');
   const webSearch = document.getElementById('websearch');
   const offline = document.getElementById('offline');
+  const streaming = document.getElementById('streaming');
   const providerNames = [
     document.getElementById('provider-name'),
     document.getElementById('provider-name-2'),
@@ -134,6 +135,7 @@
     for (const element of providerNames) element.textContent = active.name;
     webSearch.checked = status.webSearch;
     offline.checked = status.offlineFallback;
+    if (streaming) streaming.checked = status.streaming !== false;
     clearKey.disabled = !active.hasKey;
     if (active.hasKey) {
       setKeyStatus(
@@ -203,6 +205,12 @@
   offline.addEventListener('change', () => {
     window.aemeathSettings.set({ chatOfflineFallback: offline.checked });
   });
+
+  if (streaming) {
+    streaming.addEventListener('change', () => {
+      window.aemeathSettings.set({ chatStreaming: streaming.checked });
+    });
+  }
 
   provider.addEventListener('change', async () => {
     const active = currentProvider();
