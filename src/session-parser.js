@@ -21,7 +21,7 @@ function textOf(content) {
 
 // Tools that stop the turn until the human answers. Permission prompts are not
 // recorded in transcripts, so only these explicit requests can be detected.
-const DECISION_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode']);
+const DECISION_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode', 'ask_question']);
 
 function toolResultIds(content) {
   if (!Array.isArray(content)) return [];
@@ -32,7 +32,7 @@ function toolResultIds(content) {
 
 function describeDecision(toolUse) {
   const input = toolUse.input || {};
-  if (toolUse.name === 'AskUserQuestion') {
+  if (toolUse.name === 'AskUserQuestion' || toolUse.name === 'ask_question') {
     const first = Array.isArray(input.questions) ? input.questions[0] : null;
     return (first && (first.question || first.header)) || 'Sesi AI mengajukan pertanyaan.';
   }
@@ -93,6 +93,39 @@ function parseLine(line) {
       if (obj.subtype === 'stop_hook_summary') return { kind: 'turn-finished', text: '', cwd };
       if (/error/i.test(obj.subtype || '')) return { kind: 'turn-failed', text: obj.subtype, cwd };
       return null;
+    case 'USER_INPUT': {
+      const raw = textOf(obj.content)
+        .replace(/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i, '$1')
+        .replace(/<ADDITIONAL_METADATA>[\s\S]*?<\/ADDITIONAL_METADATA>/gi, '')
+        .replace(/<USER_SETTINGS_CHANGE>[\s\S]*?<\/USER_SETTINGS_CHANGE>/gi, '')
+        .trim();
+      if (!raw || raw.startsWith('<')) return null;
+      return { kind: 'user-message', text: raw, cwd };
+    }
+    case 'PLANNER_RESPONSE': {
+      const text = textOf(obj.content);
+      if (obj.status === 'ERROR') {
+        return { kind: 'turn-failed', text: text || 'API error', cwd };
+      }
+      const rawCalls = Array.isArray(obj.tool_calls) ? obj.tool_calls : [];
+      const toolUses = rawCalls
+        .map((tc, idx) => {
+          if (!tc || typeof tc !== 'object') return null;
+          const rawName = String(tc.name || (tc.function && tc.function.name) || '');
+          const cleanName = rawName.replace(/^default_api:/, '');
+          const input = tc.args || tc.arguments || tc.input || (tc.function && tc.function.arguments) || {};
+          return {
+            id: String(tc.id || 'ag-' + (obj.step_index != null ? obj.step_index : idx)),
+            name: cleanName,
+            input: typeof input === 'object' && input ? input : {},
+          };
+        })
+        .filter((t) => t && DECISION_TOOLS.has(t.name));
+      if (rawCalls.length === 0 && (obj.status === 'DONE' || !obj.status)) {
+        return { kind: 'turn-finished', text, cwd };
+      }
+      return { kind: 'assistant-progress', text, toolUses, cwd };
+    }
     default:
       return null; // attachments, progress and other bookkeeping
   }
@@ -134,6 +167,7 @@ function emit(tracker, type, summary) {
     projectDir: tracker.projectDir,
     projectName: projectNameOf(tracker),
   };
+  if (tracker.cwd) out.cwd = tracker.cwd;
   if (type !== 'turn-started') out.summary = summary || '';
   return out;
 }

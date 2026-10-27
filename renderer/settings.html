@@ -90,6 +90,23 @@
 
       <hr>
 
+      <section class="row" id="shortcut-section">
+        <h2>Pintasan keyboard</h2>
+        <label class="field" for="shortcut">Panggil atau tutup kotak chat dari mana saja</label>
+        <select id="shortcut">
+          <option value="Alt+Space">Alt + Space (bawaan)</option>
+          <option value="CommandOrControl+Shift+A">Ctrl + Shift + A</option>
+          <option value="CommandOrControl+Shift+Space">Ctrl + Shift + Space</option>
+          <option value="Alt+A">Alt + A</option>
+          <option value="">Nonaktif</option>
+        </select>
+        <p class="hint">
+          Tekan pintasan ini kapan saja untuk langsung mengetik pesan atau menjalankan perintah <code>/nama</code> tanpa mengklik Aemeath.
+        </p>
+      </section>
+
+      <hr>
+
       <label class="row check">
         <input type="checkbox" id="chatter">
         <span>Aemeath boleh mengajakmu bicara</span>
@@ -166,6 +183,22 @@
         <div class="builtin-row">
           <code>/change-mode</code>
           <span>Ganti kotak chat antara mode obrolan dan terminal PowerShell.</span>
+        </div>
+        <div class="builtin-row">
+          <code>/timer</code>
+          <span>Pasang timer fokus atau Pomodoro (mis. <code>/timer 25m Fokus</code>, <code>/timer batal</code>).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/todo</code>
+          <span>Kelola daftar tugas cepat (<code>/todo tambah ...</code>, <code>/todo selesai 1</code>).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/note</code>
+          <span>Simpan atau lihat catatan cepat satu baris (<code>/note ...</code>, <code>/note hapus 1</code>).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/stats</code>
+          <span>Tampilkan ringkasan fokus sesi ini, timer aktif, dan jumlah tugas.</span>
         </div>
         <label class="field check" for="terminal">
           <input type="checkbox" id="terminal">

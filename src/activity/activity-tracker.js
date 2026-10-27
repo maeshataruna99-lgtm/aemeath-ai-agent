@@ -19,6 +19,19 @@ const DEFAULT_LIMIT_MIN = 20;
 
 const MINUTE = 60 * 1000;
 
+const CATEGORY_LABELS = {
+  coding: 'ngoding',
+  work: 'kerja',
+  browser: 'web',
+  video: 'video',
+  chat: 'obrolan',
+  media: 'musik',
+  game: 'game',
+  social: 'medsos',
+  launcher: 'launcher',
+  other: 'lainnya',
+};
+
 function pick(list, rng) {
   return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 }
@@ -41,6 +54,7 @@ function createActivityTracker(options) {
   let gameAway = 0;
   let nextGameReminder = GAME_FIRST_REMINDER_MS;
   let lastRemarkAt = -Infinity;
+  let categoryMs = Object.create(null);
 
   function reset() {
     last = null;
@@ -52,6 +66,7 @@ function createActivityTracker(options) {
     gameAway = 0;
     nextGameReminder = GAME_FIRST_REMINDER_MS;
     lastRemarkAt = -Infinity;
+    categoryMs = Object.create(null);
   }
 
   function resetSessions() {
@@ -108,6 +123,8 @@ function createActivityTracker(options) {
     const ignored = !info || info.category === 'ignored';
 
     if (!idle && !ignored) {
+      const cat = info.category || 'other';
+      categoryMs[cat] = (categoryMs[cat] || 0) + step;
       if (info.social) {
         socialMs += step;
         socialAway = 0;
@@ -159,9 +176,24 @@ function createActivityTracker(options) {
     return { remarks };
   }
 
+  function summary() {
+    const entries = Object.entries(categoryMs)
+      .filter(([, ms]) => ms >= 3000)
+      .sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return null;
+    return entries
+      .map(([cat, ms]) => {
+        const label = CATEGORY_LABELS[cat] || 'lainnya';
+        const mins = Math.floor(ms / MINUTE);
+        return label + ' ' + (mins >= 1 ? mins + ' menit' : '<1 menit');
+      })
+      .join(', ');
+  }
+
   return {
     feed: feed,
     reset: reset,
+    summary: summary,
     get socialMinutes() {
       return minutes(socialMs);
     },

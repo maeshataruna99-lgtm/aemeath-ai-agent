@@ -147,11 +147,7 @@ function createCommandRunner(deps) {
     });
   }
 
-  // Resolves to { ok: true } or { ok: false, code: 'missing' | 'failed' | 'exit' | 'timeout', error? }.
-  async function run(command) {
-    if (command.type === 'powershell') return runPowerShell(command);
-
-    const target = command.target;
+  async function openSingleTarget(target, args) {
     if (isUrl(target)) {
       try {
         await deps.shell.openExternal(target);
@@ -163,10 +159,34 @@ function createCommandRunner(deps) {
 
     const resolved = expandEnv(target, deps.env);
     if (!deps.exists(resolved)) return { ok: false, code: 'missing' };
-    if (command.args && /\.exe$/i.test(resolved)) return startProgram(resolved, parseArgs(command.args));
+    if (args && /\.exe$/i.test(resolved)) return startProgram(resolved, parseArgs(args));
 
     const failure = await deps.shell.openPath(resolved);
     return failure ? { ok: false, code: 'failed', error: failure } : { ok: true };
+  }
+
+  // Resolves to { ok: true } or { ok: false, code: 'missing' | 'failed' | 'exit' | 'timeout', error? }.
+  async function run(command) {
+    if (command.type === 'powershell') return runPowerShell(command);
+
+    if (command.type === 'workflow') {
+      const targets = Array.isArray(command.targets) ? command.targets : [];
+      if (targets.length === 0) return { ok: false, code: 'missing' };
+      // Pre-validate existence of all local targets before launching any
+      for (const target of targets) {
+        if (!isUrl(target)) {
+          const resolved = expandEnv(target, deps.env);
+          if (!deps.exists(resolved)) return { ok: false, code: 'missing' };
+        }
+      }
+      for (const target of targets) {
+        const res = await openSingleTarget(target, '');
+        if (!res.ok) return res;
+      }
+      return { ok: true };
+    }
+
+    return openSingleTarget(command.target, command.args);
   }
 
   return { run: run };

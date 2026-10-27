@@ -71,3 +71,42 @@ test('summarize flattens and caps length', () => {
   assert.equal(parser.summarize(long).length, 280);
   assert.equal(parser.summarize(long).endsWith('...'), true);
 });
+
+test('Antigravity transcript lines (USER_INPUT and PLANNER_RESPONSE) are parsed and tracked', () => {
+  const tracker = parser.createTracker('conv-1', 'antigravity');
+  const lines = [
+    JSON.stringify({
+      step_index: 1,
+      type: 'USER_INPUT',
+      status: 'DONE',
+      cwd: 'C:\\Users\\Cinder\\IdeaProjects\\aemeth-ai-agent',
+      content: '<USER_REQUEST>\nbuat fitur baru\n</USER_REQUEST>',
+    }),
+    JSON.stringify({
+      step_index: 2,
+      type: 'PLANNER_RESPONSE',
+      status: 'DONE',
+      content: 'Sedang bertanya...',
+      tool_calls: [{ id: 'call-1', name: 'default_api:ask_question', args: { questions: [{ question: 'Pilih opsi A atau B?' }] } }],
+    }),
+    JSON.stringify({
+      step_index: 3,
+      type: 'PLANNER_RESPONSE',
+      status: 'DONE',
+      content: 'Fitur selesai dibuat.',
+      tool_calls: [],
+    }),
+  ];
+  const emissions = [];
+  for (const line of lines) {
+    const ev = parser.parseLine(line);
+    if (ev) emissions.push(...parser.feedEvent(tracker, ev, 1000));
+  }
+  assert.deepEqual(
+    emissions.map((e) => e.type),
+    ['turn-started', 'decision-requested', 'decision-resolved', 'turn-finished'],
+  );
+  assert.equal(emissions[1].summary, 'Pilih opsi A atau B?');
+  assert.equal(emissions[3].projectName, 'aemeth-ai-agent');
+  assert.equal(emissions[3].cwd, 'C:\\Users\\Cinder\\IdeaProjects\\aemeth-ai-agent');
+});

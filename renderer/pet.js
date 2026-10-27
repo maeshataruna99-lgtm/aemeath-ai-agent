@@ -53,6 +53,7 @@
 
   const bubbleQueue = [];
   let bubbleUntil = 0;
+  let currentBubbleSessionId = null;
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -308,12 +309,13 @@
     musicBadge.style.top = Math.max(8, walker.y + petHeight() - 40) + 'px';
   }
 
-  function showBubble(text, credit) {
-    bubbleQueue.push({ text: text, credit: credit || null });
+  function showBubble(text, credit, sessionId) {
+    bubbleQueue.push({ text: text, credit: credit || null, sessionId: sessionId || null });
   }
 
   function renderBubble(item) {
     bubble.textContent = '';
+    currentBubbleSessionId = item.sessionId || null;
     const body = document.createElement('div');
     body.textContent = item.text;
     bubble.appendChild(body);
@@ -333,6 +335,7 @@
   function hideBubble() {
     bubble.classList.add('hidden');
     bubbleUntil = 0;
+    currentBubbleSessionId = null;
   }
 
   function updateBubble(now) {
@@ -386,6 +389,8 @@
     if (event.type === 'decision-requested') {
       showBubble(
         '[' + event.projectName + ']\nSesi AI butuh keputusanmu:\n' + (event.summary || '(tanpa detail)'),
+        null,
+        event.sessionId,
       );
       return;
     }
@@ -393,11 +398,15 @@
       setTransient('review', TRANSIENT_MS);
       showBubble(
         '[' + event.projectName + ']\nSesi AI selesai.\n' + (event.summary || '(tanpa ringkasan teks)'),
+        null,
+        event.sessionId,
       );
     } else if (event.type === 'turn-failed') {
       setTransient('failed', TRANSIENT_MS);
       showBubble(
         '[' + event.projectName + ']\nSesi AI gagal: ' + (event.summary || 'error tidak diketahui'),
+        null,
+        event.sessionId,
       );
     }
   }
@@ -507,9 +516,22 @@
       window.aemeath.openContextMenu();
     });
 
-    bubble.addEventListener('click', () => hideBubble());
+    bubble.addEventListener('click', () => {
+      const sid = currentBubbleSessionId;
+      hideBubble();
+      if (sid && typeof window.aemeath.openSession === 'function') {
+        window.aemeath.openSession(sid);
+      }
+    });
 
     window.aemeath.onSessionEvent(handleSessionEvent);
+    if (typeof window.aemeath.onTimerDone === 'function') {
+      window.aemeath.onTimerDone((payload) => {
+        if (!payload || !payload.text) return;
+        setTransient('jumping', 2400);
+        showBubble(payload.text);
+      });
+    }
     window.aemeath.onMediaStatus((status) => {
       musicStatus = status;
       updateMusicBadge();

@@ -370,7 +370,29 @@ test('what the monitor reports and says never contains the window title', () => 
   const { monitor, remarks, watchers } = monitorWith();
   monitor.start();
   watchers[0].onSample({ process: 'RobloxPlayerBeta', title: 'TOPSECRETTITLE', path: 'C:\\Users\\someone\\game.exe' });
-  const seen = JSON.stringify([monitor.describe(), remarks]);
+  const seen = JSON.stringify([monitor.describe(), monitor.summary(), remarks]);
   assert.ok(!seen.includes('TOPSECRETTITLE'));
   assert.ok(!seen.includes('someone'));
+});
+
+test('tracker and monitor report an in-memory category summary and forget it when stopped', () => {
+  const { monitor, watchers } = monitorWith();
+  assert.equal(monitor.summary(), null, 'not running: no summary');
+  monitor.start();
+  assert.equal(monitor.summary(), null, 'no samples yet: no summary');
+
+  // First sample sets the baseline timestamp; subsequent samples accumulate time
+  watchers[0].onSample({ process: 'Code', title: 'index.js - Visual Studio Code', path: '' });
+  for (let i = 0; i < 20; i++) {
+    watchers[0].onSample({ process: 'Code', title: 'index.js - Visual Studio Code', path: '' });
+  }
+  for (let i = 0; i < 5; i++) {
+    watchers[0].onSample({ process: 'chrome', title: 'Instagram - Google Chrome', path: '' });
+  }
+  const sum = monitor.summary();
+  assert.match(sum, /ngoding 1 menit/);
+  assert.match(sum, /medsos <1 menit/);
+
+  monitor.stop();
+  assert.equal(monitor.summary(), null, 'stopping forgets the summary');
 });

@@ -8,6 +8,7 @@ const {
   ipcMain,
   nativeImage,
   dialog,
+  globalShortcut,
   powerMonitor,
   safeStorage,
   screen,
@@ -35,6 +36,7 @@ const { createTerminalController } = require('./src/terminal/terminal-controller
 const { createActivityMonitor } = require('./src/activity/activity-monitor');
 const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
+const { createProductivityHub } = require('./src/productivity/productivity-hub');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -59,6 +61,7 @@ function main() {
   let settingsWin = null;
   let keyStore = null;
   let commandStore = null;
+  let productivity = null;
   let activityTrayTimer = null;
   let tray = null;
   let provider = null;
@@ -178,6 +181,10 @@ function main() {
           if (command.type === 'powershell' && /^Write-Output\b/.test(command.script)) {
             return realCommandRunner.run(command);
           }
+          if (command.type === 'workflow') {
+            selfieLaunches.push('workflow:' + command.name);
+            return { ok: true, output: '' };
+          }
           selfieLaunches.push(command.type === 'powershell' ? 'powershell:' + command.name : command.target);
           return { ok: true, output: '' };
         },
@@ -233,11 +240,18 @@ function main() {
 
   app.whenReady().then(() => {
     // The selfie run uses a throwaway folder so it never touches real commands.
-    commandStore = createCommandStore({
-      dir: isSelfie
-        ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
-        : app.getPath('userData'),
+    const dataDir = isSelfie
+      ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
+      : app.getPath('userData');
+    commandStore = createCommandStore({ dir: dataDir });
+    productivity = createProductivityHub({
+      dir: dataDir,
+      getActivitySummary: () => activity.summary(),
+      onTimerDone: (payload) => {
+        win?.webContents?.send('productivity:timer-done', payload);
+      },
     });
+    Object.assign(builtins, productivity.asBuiltins());
 
     // The selfie run keeps keys in memory so it can never touch a real saved key.
     keyStore = createKeyStore({
@@ -316,10 +330,12 @@ function main() {
         next.interactiveMode = patch.interactiveMode;
       }
       if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
+      if (patch && typeof patch.chatShortcut === 'string') next.chatShortcut = patch.chatShortcut;
       Object.assign(settings, settingsStore.save(next));
       win?.webContents?.send('settings:updated', settings);
       applyActivityMode();
       applyStartup();
+      applyShortcut();
       updateTray();
     });
 
@@ -328,8 +344,20 @@ function main() {
 
     // What Aemeath currently sees, as a category and never a window title.
     ipcMain.handle('activity:current', (event) =>
-      fromWindow(event, settingsWin) ? { mode: settings.interactiveMode, label: activity.describe() } : null,
+      fromWindow(event, settingsWin)
+        ? { mode: settings.interactiveMode, label: activity.describe(), summary: activity.summary() }
+        : null,
     );
+
+    ipcMain.handle('session:open', async (event, sessionId) => {
+      if (!fromWindow(event, win) || isSelfie || !provider) return { ok: false };
+      const info = provider.findSession(sessionId);
+      if (info && info.cwd && path.isAbsolute(info.cwd) && fs.existsSync(info.cwd)) {
+        const err = await shell.openPath(info.cwd);
+        return { ok: !err };
+      }
+      return { ok: false };
+    });
 
     ipcMain.on('chat:open-settings', (event) => {
       if (fromWindow(event, win)) openSettingsWindow();
@@ -435,6 +463,14 @@ function main() {
 
   app.on('window-all-closed', () => app.quit());
   app.on('before-quit', () => {
+    if (!isSelfie) {
+      try {
+        globalShortcut.unregisterAll();
+      } catch {
+        // ignore
+      }
+    }
+    if (productivity) productivity.stop();
     terminal.stop();
     activity.stop();
     if (activityTrayTimer) clearInterval(activityTrayTimer);
@@ -505,6 +541,18 @@ function main() {
     }
   }
 
+  function applyShortcut() {
+    if (isSelfie) return;
+    try {
+      globalShortcut.unregisterAll();
+      if (settings.chatShortcut) {
+        globalShortcut.register(settings.chatShortcut, () => toggleChat());
+      }
+    } catch (error) {
+      console.error('[aemeath] shortcut registration failed: ' + error.message);
+    }
+  }
+
   function applyActivityMode() {
     const on = settings.interactiveMode === 'medium';
     if (on) activity.start();
@@ -535,6 +583,7 @@ function main() {
     applyFeatureFlags();
     applyActivityMode();
     applyStartup();
+    applyShortcut();
 
     aggregateTimer = setInterval(pushAggregate, 5000);
     pushAggregate();
@@ -582,7 +631,10 @@ function main() {
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
       ...(activity.running
-        ? [{ label: 'Aktivitas terbaca: ' + (activity.describe() || 'belum ada'), enabled: false }]
+        ? [
+            { label: 'Aktivitas terbaca: ' + (activity.describe() || 'belum ada'), enabled: false },
+            ...(activity.summary() ? [{ label: 'Rekap sesi: ' + activity.summary(), enabled: false }] : []),
+          ]
         : []),
       { type: 'separator' },
       { label: 'Fleet Snowfluff GPT...', click: () => toggleChat() },

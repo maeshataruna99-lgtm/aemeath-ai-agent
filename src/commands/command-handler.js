@@ -105,14 +105,17 @@ function createCommandHandler(options) {
       if (answered) return answered;
     }
 
-    const match = /^\/(\S*)(?:\s[\s\S]*)?$/.exec(text);
+    const match = /^\/(\S*)(?:\s+([\s\S]*))?$/.exec(text);
     if (!match) return { isCommand: false };
 
     const name = match[1].toLowerCase();
+    const arg = (match[2] || '').trim();
     const commands = getCommands();
     if (Object.prototype.hasOwnProperty.call(builtins, name)) {
-      const result = await builtins[name].run();
-      return { isCommand: true, ok: result.ok, text: result.text, mode: result.mode, cwd: result.cwd };
+      const result = await builtins[name].run(arg, text);
+      const out = { isCommand: true, ok: result.ok, text: result.text, mode: result.mode, cwd: result.cwd };
+      if (result.output) out.output = trimOutput(result.output);
+      return out;
     }
     if (name === '' || RESERVED.has(name)) {
       return { isCommand: true, ok: true, text: helpText(commands) };

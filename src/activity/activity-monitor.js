@@ -41,6 +41,8 @@ function createActivityMonitor(options) {
     },
     // What Aemeath currently sees, as a category, never a window title.
     describe: () => (watcher ? describe(latest) : null),
+    // Cumulative time per category in the current Medium session (in memory only).
+    summary: () => (watcher && typeof options.tracker.summary === 'function' ? options.tracker.summary() : null),
   };
 }
 

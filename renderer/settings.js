@@ -85,6 +85,7 @@
     startupToggle.checked = settings.startAtLogin !== false;
     refreshStartup();
     stillToggle.checked = settings.stayStill === true;
+    shortcutSelect.value = typeof settings.chatShortcut === 'string' ? settings.chatShortcut : 'Alt+Space';
     doom.value = settings.doomscrollLimitMin || 20;
     doomValue.textContent = 'setelah ' + doom.value + ' menit';
     renderMode(settings.interactiveMode === 'medium' ? 'medium' : 'low');
@@ -180,6 +181,11 @@
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });
+  });
+
+  const shortcutSelect = document.getElementById('shortcut');
+  shortcutSelect.addEventListener('change', () => {
+    window.aemeathSettings.set({ chatShortcut: shortcutSelect.value });
   });
 
   // ---- Custom slash commands -------------------------------------------------
@@ -283,6 +289,7 @@
     type.className = 'type';
     for (const [value, label] of [
       ['open', 'Buka program, folder, atau tautan'],
+      ['workflow', 'Buka paket kerja (beberapa tujuan sekaligus)'],
       ['powershell', 'Jalankan perintah PowerShell'],
     ]) {
       const option = document.createElement('option');
@@ -290,12 +297,23 @@
       option.textContent = label;
       type.appendChild(option);
     }
-    type.value = command && command.type === 'powershell' ? 'powershell' : 'open';
+    type.value =
+      command && (command.type === 'powershell' || command.type === 'workflow')
+        ? command.type
+        : 'open';
 
     const target = field('grow target', 'C:\\... atau https://...', command && command.target, 500);
     const pickFile = button('Berkas...');
     const pickFolder = button('Folder...');
     const args = field('grow args', 'Argumen (opsional, khusus program .exe)', command && command.args, 300);
+    const workflowTargets = document.createElement('textarea');
+    workflowTargets.className = 'grow workflow-targets';
+    workflowTargets.rows = 3;
+    workflowTargets.placeholder = 'Satu jalur lengkap atau tautan https:// per baris (minimal 2, maksimal 6)';
+    workflowTargets.value =
+      command && Array.isArray(command.targets) ? command.targets.join('\n') : '';
+    const pickWfFile = button('+ Berkas...');
+    const pickWfFolder = button('+ Folder...');
     const script = field('grow script', 'Perintah PowerShell, satu baris (mis. shutdown /s /t 60)', command && command.script, 500);
     const confirm = checkLine('confirm', 'Tanya dulu sebelum menjalankan', command ? command.confirm !== false : true);
 
@@ -305,17 +323,29 @@
     error.className = 'row-error';
 
     const openLines = [line(target, pickFile, pickFolder), line(args)];
+    const workflowLines = [line(workflowTargets), line(pickWfFile, pickWfFolder)];
     const shellLines = [line(script), line(confirm.label)];
-    row.append(line(slash, name, description, remove), line(type), ...openLines, ...shellLines, note, error);
+    row.append(
+      line(slash, name, description, remove),
+      line(type),
+      ...openLines,
+      ...workflowLines,
+      ...shellLines,
+      note,
+      error,
+    );
 
     function sync() {
-      const shell = type.value === 'powershell';
-      for (const element of openLines) element.classList.toggle('hidden', shell);
-      for (const element of shellLines) element.classList.toggle('hidden', !shell);
+      const mode = type.value;
+      for (const element of openLines) element.classList.toggle('hidden', mode !== 'open');
+      for (const element of workflowLines) element.classList.toggle('hidden', mode !== 'workflow');
+      for (const element of shellLines) element.classList.toggle('hidden', mode !== 'powershell');
     }
     sync();
 
-    for (const input of [name, description, target, args, script]) input.addEventListener('input', scheduleSave);
+    for (const input of [name, description, target, args, workflowTargets, script]) {
+      input.addEventListener('input', scheduleSave);
+    }
     confirm.input.addEventListener('change', scheduleSave);
     type.addEventListener('change', () => {
       sync();
@@ -333,6 +363,14 @@
         scheduleSave();
       });
     }
+    for (const [kind, trigger] of [['file', pickWfFile], ['folder', pickWfFolder]]) {
+      trigger.addEventListener('click', async () => {
+        const picked = await window.aemeathSettings.pickPath(kind);
+        if (!picked) return;
+        workflowTargets.value = (workflowTargets.value.trim() ? workflowTargets.value.trim() + '\n' : '') + picked;
+        scheduleSave();
+      });
+    }
     commandList.appendChild(row);
     return row;
   }
@@ -346,6 +384,11 @@
         type: row.querySelector('.type').value,
         target: row.querySelector('.target').value,
         args: row.querySelector('.args').value,
+        targets: row
+          .querySelector('.workflow-targets')
+          .value.split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean),
         script: row.querySelector('.script').value,
         confirm: row.querySelector('.confirm').checked,
       },
@@ -358,7 +401,13 @@
 
   async function saveCommands() {
     // A brand-new empty row is not an error yet.
-    const rows = collect().filter(({ entry }) => entry.name.trim() || entry.target.trim() || entry.script.trim());
+    const rows = collect().filter(
+      ({ entry }) =>
+        entry.name.trim() ||
+        entry.target.trim() ||
+        entry.script.trim() ||
+        (entry.targets && entry.targets.length > 0),
+    );
     const result = await window.aemeathSettings.saveCommands(rows.map(({ entry }) => entry));
     for (const { row } of collect()) {
       row.querySelector('.row-error').textContent = '';
@@ -427,8 +476,12 @@
 
   async function refreshActivity() {
     const now = await window.aemeathSettings.getActivity();
-    activityNow.textContent =
-      now && now.label ? 'Yang sedang terbaca: ' + now.label + '.' : 'Menunggu aktivitas pertama...';
+    if (!now || !now.label) {
+      activityNow.textContent = 'Menunggu aktivitas pertama...';
+      return;
+    }
+    const extra = now.summary ? ' | Rekap sesi: ' + now.summary + '.' : '';
+    activityNow.textContent = 'Yang sedang terbaca: ' + now.label + '.' + extra;
   }
 
   function renderMode(mode) {

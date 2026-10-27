@@ -14,13 +14,14 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 const ENV_PREFIX = /^%[A-Za-z0-9_]+%/;
 // Names that belong to Aemeath: the help words and the built-in commands.
-const BUILTIN_NAMES = ['change-mode'];
+const BUILTIN_NAMES = ['change-mode', 'timer', 'todo', 'note', 'stats'];
 const RESERVED = new Set(['help', 'bantuan'].concat(BUILTIN_NAMES));
 const MAX_TARGET = 500;
 const MAX_ARGS = 300;
 const MAX_DESCRIPTION = 60;
 const MAX_SCRIPT = 500;
-const TYPES = ['open', 'powershell'];
+const MAX_WORKFLOW_TARGETS = 6;
+const TYPES = ['open', 'powershell', 'workflow'];
 
 // A PowerShell command always asks first when it can end the session, delete or
 // format things, change accounts or boot settings, or download and run code.
@@ -88,6 +89,38 @@ function normalizeCommands(list) {
       return undefined;
     }
 
+    if (type === 'workflow') {
+      const rawTargets = Array.isArray(source.targets)
+        ? source.targets
+        : String(source.target == null ? '' : source.target).split(/\r?\n/);
+      const targets = rawTargets.map((t) => String(t == null ? '' : t).trim()).filter(Boolean);
+      if (targets.length < 2) {
+        return fail('Isi minimal 2 program, folder, atau tautan untuk paket kerja.');
+      }
+      if (targets.length > MAX_WORKFLOW_TARGETS) {
+        return fail('Maksimal ' + MAX_WORKFLOW_TARGETS + ' tujuan dalam satu paket kerja.');
+      }
+      for (const t of targets) {
+        if (t.length > MAX_TARGET) return fail('Jalur terlalu panjang.');
+        if (!isUrl(t) && !ENV_PREFIX.test(t) && !path.isAbsolute(t)) {
+          return fail('Tulis jalur lengkap (mis. C:\\Program Files\\...) atau tautan http/https.');
+        }
+        if (/[\u0000-\u001f]/.test(t)) return fail('Ada karakter yang tidak diizinkan.');
+      }
+      seen.add(name);
+      commands.push({
+        name: name,
+        type: 'workflow',
+        target: '',
+        args: '',
+        script: '',
+        targets: targets,
+        description: description.slice(0, MAX_DESCRIPTION),
+        confirm: false,
+      });
+      return undefined;
+    }
+
     if (!target) return fail('Isi program, folder, atau tautan yang mau dibuka.');
     if (target.length > MAX_TARGET) return fail('Jalur terlalu panjang.');
     if (!isUrl(target) && !ENV_PREFIX.test(target) && !path.isAbsolute(target)) {
@@ -143,6 +176,7 @@ module.exports = {
   isRisky,
   MAX_SCRIPT,
   MAX_COMMANDS,
+  MAX_WORKFLOW_TARGETS,
   FILE_NAME,
   RESERVED,
   BUILTIN_NAMES,

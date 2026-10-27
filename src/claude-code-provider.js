@@ -17,30 +17,58 @@ const DECISION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 function createClaudeCodeProvider(options) {
   const opts = options || {};
   const projectsDir = opts.projectsDir || path.join(os.homedir(), '.claude', 'projects');
+  // When a custom projectsDir is passed in tests without antigravityDir, stay isolated to projectsDir.
+  const antigravityDir =
+    opts.antigravityDir !== undefined
+      ? opts.antigravityDir
+      : opts.projectsDir
+        ? null
+        : path.join(os.homedir(), '.gemini', 'antigravity', 'brain');
   const onEvent = opts.onEvent || function () {};
 
   const timers = new Map(); // file -> pending read timeout
   const tracked = new Map(); // file -> { offset, buffer, tracker, lastAppendAt }
   let watcher = null;
+  let agWatcher = null;
   let rescanTimer = null;
   let running = false;
 
   function listSessionFiles() {
-    if (!fs.existsSync(projectsDir)) return [];
     const files = [];
-    for (const dir of fs.readdirSync(projectsDir, { withFileTypes: true })) {
-      if (!dir.isDirectory()) continue;
-      const dirPath = path.join(projectsDir, dir.name);
-      let entries;
+    if (projectsDir && fs.existsSync(projectsDir)) {
+      let dirs = [];
       try {
-        entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        dirs = fs.readdirSync(projectsDir, { withFileTypes: true });
       } catch {
-        continue;
+        dirs = [];
       }
-      for (const entry of entries) {
-        if (entry.isFile() && entry.name.endsWith('.jsonl')) {
-          files.push(path.join(dirPath, entry.name));
+      for (const dir of dirs) {
+        if (!dir.isDirectory()) continue;
+        const dirPath = path.join(projectsDir, dir.name);
+        let entries;
+        try {
+          entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        } catch {
+          continue;
         }
+        for (const entry of entries) {
+          if (entry.isFile() && entry.name.endsWith('.jsonl')) {
+            files.push(path.join(dirPath, entry.name));
+          }
+        }
+      }
+    }
+    if (antigravityDir && fs.existsSync(antigravityDir)) {
+      let convs = [];
+      try {
+        convs = fs.readdirSync(antigravityDir, { withFileTypes: true });
+      } catch {
+        convs = [];
+      }
+      for (const conv of convs) {
+        if (!conv.isDirectory()) continue;
+        const transcript = path.join(antigravityDir, conv.name, '.system_generated', 'logs', 'transcript.jsonl');
+        if (fs.existsSync(transcript)) files.push(transcript);
       }
     }
     return files;
@@ -49,8 +77,13 @@ function createClaudeCodeProvider(options) {
   function ensureTracked(filePath) {
     let entry = tracked.get(filePath);
     if (!entry) {
-      const mungedDir = path.basename(path.dirname(filePath));
-      const sessionId = path.basename(filePath, '.jsonl');
+      const isAg = path.basename(filePath) === 'transcript.jsonl';
+      const mungedDir = isAg
+        ? 'antigravity'
+        : path.basename(path.dirname(filePath));
+      const sessionId = isAg
+        ? path.basename(path.resolve(filePath, '..', '..', '..'))
+        : path.basename(filePath, '.jsonl');
       entry = {
         offset: 0,
         buffer: '',
@@ -130,6 +163,16 @@ function createClaudeCodeProvider(options) {
     } catch {
       watcher = null; // recursive watch unavailable; the rescan covers it
     }
+    if (antigravityDir && fs.existsSync(antigravityDir)) {
+      try {
+        agWatcher = fs.watch(antigravityDir, { recursive: true }, (eventType, filename) => {
+          if (typeof filename !== 'string' || !filename.endsWith('transcript.jsonl')) return;
+          scheduleRead(path.join(antigravityDir, filename), false);
+        });
+      } catch {
+        agWatcher = null;
+      }
+    }
     rescanTimer = setInterval(() => {
       for (const file of listSessionFiles()) {
         if (tracked.has(file)) scheduleRead(file, false);
@@ -143,6 +186,8 @@ function createClaudeCodeProvider(options) {
     running = false;
     if (watcher) watcher.close();
     watcher = null;
+    if (agWatcher) agWatcher.close();
+    agWatcher = null;
     if (rescanTimer) clearInterval(rescanTimer);
     rescanTimer = null;
     timers.clear();
@@ -171,12 +216,29 @@ function createClaudeCodeProvider(options) {
     return count;
   }
 
+  function findSession(sessionId) {
+    if (!sessionId || typeof sessionId !== 'string') return null;
+    for (const entry of tracked.values()) {
+      if (entry.tracker.sessionId === sessionId) {
+        return {
+          sessionId: entry.tracker.sessionId,
+          projectName: parser.projectNameOf(entry.tracker),
+          cwd: entry.tracker.cwd || null,
+          state: entry.tracker.state,
+          pendingDecision: Boolean(entry.tracker.pendingDecision),
+        };
+      }
+    }
+    return null;
+  }
+
   return {
     start: start,
     stop: stop,
     activeSessionCount: activeSessionCount,
     pendingDecisionCount: pendingDecisionCount,
     listSessionFiles: listSessionFiles,
+    findSession: findSession,
   };
 }
 

@@ -27,4 +27,6 @@ contextBridge.exposeInMainWorld('aemeath', {
   onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),
   onActivityRemark: (fn) => ipcRenderer.on('activity:remark', (_e, remark) => fn(remark)),
   onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
+  openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
+  onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
 });

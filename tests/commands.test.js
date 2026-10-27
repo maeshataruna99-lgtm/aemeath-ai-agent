@@ -266,3 +266,28 @@ test('missing targets and OS failures get a friendly message', async () => {
   const failed = handler(COMMANDS, { result: { ok: false, code: 'failed', error: 'Access is denied' } });
   assert.match((await failed.handle('/invoice')).text, /gagal dibuka: Access is denied/);
 });
+
+test('workflow commands validate multiple targets and open all of them without a shell', async () => {
+  const valid = normalizeCommands([
+    { name: 'kerja', type: 'workflow', targets: [FOLDER, URL_TARGET], description: 'paket kerja' },
+  ]);
+  assert.deepEqual(valid.errors, []);
+  assert.equal(valid.commands.length, 1);
+  assert.equal(valid.commands[0].type, 'workflow');
+  assert.deepEqual(valid.commands[0].targets, [FOLDER, URL_TARGET]);
+
+  // Rejects fewer than 2 targets or relative/unsafe targets inside a workflow
+  assert.equal(normalizeCommands([{ name: 'satu', type: 'workflow', targets: [FOLDER] }]).commands.length, 0);
+  assert.equal(normalizeCommands([{ name: 'rel', type: 'workflow', targets: [FOLDER, 'notepad.exe'] }]).commands.length, 0);
+
+  const r = runner();
+  assert.deepEqual(await r.run(valid.commands[0]), { ok: true });
+  assert.deepEqual(r.opened, [FOLDER]);
+  assert.deepEqual(r.external, [URL_TARGET]);
+
+  // If any local target is missing, nothing is opened
+  const rMissing = runner({ exists: () => false });
+  assert.deepEqual(await rMissing.run(valid.commands[0]), { ok: false, code: 'missing' });
+  assert.deepEqual(rMissing.opened, []);
+  assert.deepEqual(rMissing.external, []);
+});

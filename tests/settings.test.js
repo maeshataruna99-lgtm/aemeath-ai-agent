@@ -87,3 +87,13 @@ test('staying still is off by default and only accepts a boolean', () => {
   assert.equal(store.save({ stayStill: true }).stayStill, true);
   assert.equal(store.save({ stayStill: 'yes' }).stayStill, false);
 });
+
+test('chatShortcut defaults to Alt+Space, accepts valid presets or empty string, and rejects arbitrary strings', () => {
+  const dir = tempDir('shortcut');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().chatShortcut, 'Alt+Space');
+  assert.equal(store.save({ chatShortcut: 'CommandOrControl+Shift+A' }).chatShortcut, 'CommandOrControl+Shift+A');
+  assert.equal(store.save({ chatShortcut: '' }).chatShortcut, '', 'empty string disables the shortcut');
+  assert.equal(createSettingsStore(dir).load().chatShortcut, '');
+  assert.equal(store.save({ chatShortcut: 'Ctrl+Alt+Delete' }).chatShortcut, 'Alt+Space', 'unknown shortcut falls back to default');
+});

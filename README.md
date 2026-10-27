@@ -16,7 +16,9 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   skala 0,5x sampai 3x. Posisi, skala, dan kecepatan gerak diingat setelah restart.
 - **Bisa diam di tempat.** Kalau Aemeath tidak perlu berkeliling, nyalakan "Aemeath diam di tempat" di Pengaturan
   (tab *Umum*) atau menu tray. Dia tetap bisa diseret, berbicara, dan bereaksi.
-- **Klik untuk ngobrol, klik kanan untuk menu.** Bagian di bawah merinci keduanya.
+- **Klik untuk ngobrol, klik kanan untuk menu, atau tekan pintasan keyboard.** Pintasan bawaan
+  `Alt+Space` (bisa diganti atau dimatikan di Pengaturan, tab *Umum*) membuka atau menutup kotak
+  chat dari aplikasi mana saja.
 - **Jalan otomatis saat Windows menyala.** Aktif secara bawaan, jadi Aemeath muncul sendiri setiap kali kamu
   menyalakan komputer. Bisa dimatikan di Pengaturan, tab *Umum*, yang juga menampilkan apakah Windows
   benar-benar akan menjalankannya (misalnya bila dinonaktifkan di Pengelola Tugas).
@@ -27,12 +29,13 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
 
 - **Musik.** Mengikuti media session Windows: saat ada lagu diputar, judulnya muncul di
   lencana kecil dan Aemeath melambai.
-- **Sesi AI Claude Code.** Membaca transkrip di `~/.claude/projects`, hanya aktivitas baru
-  sejak aplikasi dibuka. Sesi berjalan membuatnya memakai animasi kerja; saat selesai muncul
-  gelembung ringkasan hasil; saat gagal, animasi `failed` dengan pesan error.
+- **Sesi AI (Claude Code & Antigravity).** Membaca transkrip di `~/.claude/projects` dan
+  `~/.gemini/antigravity/brain`, hanya aktivitas baru sejak aplikasi dibuka. Sesi berjalan
+  membuatnya memakai animasi kerja; saat selesai muncul gelembung ringkasan hasil; saat gagal,
+  animasi `failed` dengan pesan error. Mengklik gelembung sesi membuka folder proyek terkait.
 - **Sesi yang menunggu keputusanmu.** Kalau sesi AI mengajukan pertanyaan atau meminta
-  persetujuan rencana (`AskUserQuestion`, `ExitPlanMode`), Aemeath berhenti terbang, memasang
-  wajah bingung, dan menampilkan pertanyaannya. Izin tool biasa tidak tercatat di transkrip,
+  persetujuan rencana (`AskUserQuestion`, `ExitPlanMode`, `ask_question`), Aemeath berhenti terbang,
+  memasang wajah bingung, dan menampilkan pertanyaannya. Izin tool biasa tidak tercatat di transkrip,
   jadi tidak terdeteksi.
 
 ### Mode interaktif
@@ -57,7 +60,8 @@ Medium baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilak
   folder instalasi Steam dan Epic, atau judul jendela), dan setelah 90 menit bermain dia mengingatkan
   untuk peregangan, lalu tiap sejam.
 - **Transparan.** Menu tray dan Pengaturan menampilkan apa yang sedang dia lihat, misalnya
-  "bermain Roblox" atau "media sosial (Instagram)", tanpa judul jendelanya.
+  "bermain Roblox" atau "media sosial (Instagram)", beserta rekap durasi per kategori selama sesi
+  Medium berjalan, tanpa judul jendelanya.
 
 Pengelompokannya memakai kata kunci pada judul halaman, jadi sesekali bisa meleset (misalnya situs yang
 tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alamat situs, layar, atau ketikanmu.
@@ -87,13 +91,22 @@ tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alama
   lorebook. Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
 - **Penyedia chat bisa ditambah.** Cukup satu berkas di `src/chat/providers/`.
 
-### Perintah kustom
+### Perintah kustom dan produktivitas
 
-Ketik `/nama` di kotak chat untuk membuka program, folder, berkas, atau tautan yang kamu atur,
-atau untuk menjalankan perintah PowerShell, misalnya `/invoice` untuk folder invoice, `/wuwa` untuk
-launcher game, atau `/matikan` untuk mematikan komputer. Ketik `/` untuk melihat daftar, Tab
-melengkapi nama, `/help` menampilkan daftar perintah. Perintah dijalankan di komputer ini dan tidak
+Ketik `/nama` di kotak chat untuk membuka program, folder, berkas, tautan, paket kerja (beberapa
+tujuan sekaligus), atau menjalankan perintah PowerShell, misalnya `/invoice` untuk folder invoice,
+`/wuwa` untuk launcher game, atau `/matikan` untuk mematikan komputer. Ketik `/` untuk melihat daftar,
+Tab melengkapi nama, `/help` menampilkan daftar perintah. Perintah dijalankan di komputer ini dan tidak
 dikirim ke chatbot. Program `.exe` bisa diberi argumen.
+
+**Perintah bawaan produktivitas**:
+- `/timer` — pasang timer fokus atau Pomodoro (mis. `/timer 25m Fokus`, `/timer pomodoro`, `/timer status`, `/timer batal`). Saat selesai Aemeath melompat dan mengingatkanmu lewat gelembung bicara.
+- `/todo` — kelola daftar tugas cepat lokal (`/todo`, `/todo tambah <tugas>`, `/todo selesai <nomor>`, `/todo hapus <nomor>`, `/todo bersih`).
+- `/note` — simpan dan lihat catatan cepat satu baris (`/note`, `/note <teks>`, `/note hapus <nomor>`, `/note bersih`).
+- `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium menyala), sisa timer aktif, dan jumlah tugas serta catatan.
+- `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
+
+Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
 
 **Perintah PowerShell** (misalnya mematikan atau me-restart komputer dengan aman) diatur di Pengaturan,
 tab *Perintah*, pilih jenis "Jalankan perintah PowerShell" atau mulai dari contoh siap pakai:
@@ -102,9 +115,6 @@ lima proses terberat. Perintahnya satu baris, berjalan sebagai kamu (bukan admin
 30 detik, dan keluarannya tampil di kotak chat. Aemeath selalu bertanya "ya" dulu (batas 30 detik) untuk
 perintah yang bisa mematikan, menghapus, memformat, atau mengunduh lalu menjalankan sesuatu. Pertanyaan
 itu tidak bisa dimatikan untuk perintah berisiko, dan untuk perintah lain tersedia kotak "Tanya dulu".
-
-`/change-mode` adalah perintah bawaan: namanya dicadangkan, jadi perintah kustom dengan nama
-yang sama ditolak.
 
 ### Mode terminal
 

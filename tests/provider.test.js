@@ -75,6 +75,13 @@ test('provider reports live turns and stays silent about history', async () => {
     assert.equal(finished.projectName, 'demo');
     assert.match(finished.summary, /Fitur selesai dibuat/);
     assert.equal(provider.activeSessionCount(), 0);
+    assert.deepEqual(provider.findSession('session'), {
+      sessionId: 'session',
+      projectName: 'demo',
+      cwd: 'C:\\work\\demo',
+      state: 'finished',
+      pendingDecision: false,
+    });
   } finally {
     provider.stop();
     fs.rmSync(root, { recursive: true, force: true });

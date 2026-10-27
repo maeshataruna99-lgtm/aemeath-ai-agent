@@ -19,11 +19,14 @@ const DEFAULTS = {
   terminalEnabled: true,
   startAtLogin: true,
   stayStill: false,
+  chatShortcut: 'Alt+Space',
   interactiveMode: 'low',
   doomscrollLimitMin: 20,
   x: null,
   y: null,
 };
+
+const CHAT_SHORTCUTS = ['', 'Alt+Space', 'CommandOrControl+Shift+A', 'CommandOrControl+Shift+Space', 'Alt+A'];
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
@@ -62,6 +65,7 @@ function keepStrings(data) {
   for (const key of ['chatProvider', 'chatModel']) {
     if (typeof data[key] !== 'string' || data[key] === '') data[key] = DEFAULTS[key];
   }
+  if (!CHAT_SHORTCUTS.includes(data.chatShortcut)) data.chatShortcut = DEFAULTS.chatShortcut;
 }
 
 function clampScale(value) {
@@ -143,4 +147,5 @@ module.exports = {
   MIN_DOOMSCROLL_LIMIT,
   MAX_DOOMSCROLL_LIMIT,
   INTERACTIVE_MODES,
+  CHAT_SHORTCUTS,
 };
