@@ -10,6 +10,40 @@ const path = require('node:path');
 
 const RESTART_MS = 10000;
 
+const LINUX_WATCH_SCRIPT = [
+  'while true; do',
+  '  wid=""',
+  '  if command -v xdotool >/dev/null 2>&1; then wid=$(xdotool getactivewindow 2>/dev/null); fi',
+  '  if [ -z "$wid" ] && command -v xprop >/dev/null 2>&1; then',
+  '    wid=$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | awk \'{print $NF}\')',
+  '    [ "$wid" = "0x0" ] && wid=""',
+  '  fi',
+  '  if [ -n "$wid" ]; then',
+  '    pid=""',
+  '    title=""',
+  '    if command -v xdotool >/dev/null 2>&1; then',
+  '      pid=$(xdotool getwindowpid "$wid" 2>/dev/null)',
+  '      title=$(xdotool getwindowname "$wid" 2>/dev/null)',
+  '    fi',
+  '    if [ -z "$pid" ] && command -v xprop >/dev/null 2>&1; then',
+  '      pid=$(xprop -id "$wid" _NET_WM_PID 2>/dev/null | awk -F" = " \'{print $2}\')',
+  '    fi',
+  '    if [ -z "$title" ] && command -v xprop >/dev/null 2>&1; then',
+  '      title=$(xprop -id "$wid" _NET_WM_NAME 2>/dev/null | sed -n \'s/^.*= "\\(.*\\)"$/\\1/p\')',
+  '    fi',
+  '    proc=""',
+  '    exe=""',
+  '    if [ -n "$pid" ] && [ -r "/proc/$pid/comm" ]; then',
+  '      IFS= read -r proc < "/proc/$pid/comm"',
+  '      exe=$(readlink -f "/proc/$pid/exe" 2>/dev/null || true)',
+  '    fi',
+  '    esc() { printf "%s" "$1" | sed \'s/\\\\/\\\\\\\\/g; s/"/\\\\"/g\' | tr -d \'\\r\\n\'; }',
+  '    printf \'{"process":"%s","path":"%s","title":"%s"}\\n\' "$(esc "$proc")" "$(esc "$exe")" "$(esc "$title")"',
+  '  fi',
+  '  sleep 3 || exit 0',
+  'done',
+].join('\n');
+
 function parseSample(line) {
   if (!line.trim()) return null;
   let data;
@@ -31,6 +65,8 @@ function createActivityWatcher(options) {
   const scriptPath = opts.scriptPath || path.join(__dirname, '..', '..', 'scripts', 'activity-watcher.ps1');
   const onSample = opts.onSample || function () {};
   const spawnImpl = opts.spawn || spawn;
+  const platform = opts.platform || process.platform;
+  const isLinux = platform === 'linux';
 
   let child = null;
   let buffer = '';
@@ -48,10 +84,17 @@ function createActivityWatcher(options) {
   function launch() {
     if (stopped || child) return;
     try {
-      child = spawnImpl('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'ignore'],
-      });
+      if (isLinux) {
+        child = spawnImpl('bash', ['--noprofile', '--norc', '-c', LINUX_WATCH_SCRIPT], {
+          windowsHide: true,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+      } else {
+        child = spawnImpl('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
+          windowsHide: true,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+      }
     } catch {
       child = null;
       scheduleRestart();

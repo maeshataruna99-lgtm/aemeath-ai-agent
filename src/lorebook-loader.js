@@ -9,7 +9,7 @@ const { validateLorebook } = require('./lorebook');
 
 const SOURCES_FILE = 'sources.json';
 
-function loadLorebook(dir) {
+function loadLorebook(dir, overlayFile) {
   const sources = JSON.parse(fs.readFileSync(path.join(dir, SOURCES_FILE), 'utf8'));
   const entries = [];
   const files = fs
@@ -20,6 +20,25 @@ function loadLorebook(dir) {
     const list = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
     if (!Array.isArray(list)) throw new Error('lorebook: ' + name + ' must contain an array');
     entries.push(...list);
+  }
+  if (overlayFile && fs.existsSync(overlayFile)) {
+    try {
+      const overlay = JSON.parse(fs.readFileSync(overlayFile, 'utf8'));
+      if (overlay && overlay.sources && typeof overlay.sources === 'object') {
+        Object.assign(sources, overlay.sources);
+      }
+      if (overlay && Array.isArray(overlay.entries)) {
+        const existingIds = new Set(entries.map((e) => e && e.id));
+        for (const item of overlay.entries) {
+          if (item && item.id && !existingIds.has(item.id) && sources[item.source]) {
+            entries.push(item);
+            existingIds.add(item.id);
+          }
+        }
+      }
+    } catch {
+      // ignore corrupted overlay and keep shipped lorebook
+    }
   }
   const data = { sources: sources, entries: entries };
   const problems = validateLorebook(data);

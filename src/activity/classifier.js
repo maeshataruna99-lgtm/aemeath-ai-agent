@@ -7,15 +7,23 @@
 // Private browser windows, password managers and the lock screen are not read.
 
 const BROWSERS = {
-  chrome: 'Chrome', msedge: 'Edge', firefox: 'Firefox', brave: 'Brave', opera: 'Opera', opera_gx: 'Opera GX',
-  vivaldi: 'Vivaldi', arc: 'Arc', chromium: 'Chromium', librewolf: 'LibreWolf', waterfox: 'Waterfox', iexplore: 'Internet Explorer',
+  chrome: 'Chrome', 'google-chrome': 'Chrome', 'google-chrome-stable': 'Chrome',
+  msedge: 'Edge', 'microsoft-edge': 'Edge',
+  firefox: 'Firefox', 'firefox-esr': 'Firefox', 'firefox-bin': 'Firefox',
+  brave: 'Brave', 'brave-browser': 'Brave',
+  opera: 'Opera', opera_gx: 'Opera GX',
+  vivaldi: 'Vivaldi', 'vivaldi-stable': 'Vivaldi',
+  arc: 'Arc', chromium: 'Chromium', 'chromium-browser': 'Chromium',
+  librewolf: 'LibreWolf', waterfox: 'Waterfox', iexplore: 'Internet Explorer',
 };
 
 const IGNORED_PROCESSES = new Set([
   // password managers and authenticators
   'keepass', 'keepassxc', 'bitwarden', '1password', 'lastpass', 'dashlane', 'nordpass', 'authy', 'enpass',
-  // the lock screen and the UAC prompt
+  // the lock screen, Polkit/sudo prompts, and the UAC prompt
   'lockapp', 'logonui', 'consent', 'credentialuibroker',
+  'cinnamon-screensaver', 'gnome-screensaver', 'xscreensaver', 'i3lock', 'swaylock',
+  'polkit-gnome-authentication-agent-1', 'lxpolkit', 'pkexec', 'gcr-prompter', 'ssh-askpass',
   // this app itself
   'electron', 'aemeath',
 ]);
@@ -23,33 +31,45 @@ const IGNORED_PROCESSES = new Set([
 const PRIVATE_WINDOW = /\b(inprivate|incognito|private browsing|private window|penjelajahan pribadi|jendela pribadi|mode penyamaran)\b/i;
 
 const CODING = {
-  code: 'VS Code', 'code - insiders': 'VS Code', cursor: 'Cursor', windsurf: 'Windsurf', zed: 'Zed',
-  idea64: 'IntelliJ IDEA', pycharm64: 'PyCharm', webstorm64: 'WebStorm', phpstorm64: 'PhpStorm',
+  code: 'VS Code', 'code - insiders': 'VS Code', codium: 'VSCodium', cursor: 'Cursor', windsurf: 'Windsurf', zed: 'Zed',
+  idea64: 'IntelliJ IDEA', idea: 'IntelliJ IDEA', pycharm64: 'PyCharm', pycharm: 'PyCharm',
+  webstorm64: 'WebStorm', webstorm: 'WebStorm', phpstorm64: 'PhpStorm', phpstorm: 'PhpStorm',
   rider64: 'Rider', clion64: 'CLion', goland64: 'GoLand', datagrip64: 'DataGrip', studio64: 'Android Studio',
   devenv: 'Visual Studio', sublime_text: 'Sublime Text', 'notepad++': 'Notepad++', atom: 'Atom',
   windowsterminal: 'Terminal', wt: 'Terminal', powershell: 'PowerShell', pwsh: 'PowerShell', cmd: 'Command Prompt',
+  'gnome-terminal': 'Terminal', 'gnome-terminal-server': 'Terminal', 'xfce4-terminal': 'Terminal',
+  'mate-terminal': 'Terminal', konsole: 'Terminal', kitty: 'Terminal', alacritty: 'Terminal',
+  'wezterm-gui': 'Terminal', tilix: 'Terminal', terminator: 'Terminal', bash: 'Bash', zsh: 'Zsh', fish: 'Fish',
   nvim: 'Neovim', vim: 'Vim', githubdesktop: 'GitHub Desktop',
 };
 
 const WORK = {
   winword: 'Word', excel: 'Excel', powerpnt: 'PowerPoint', onenote: 'OneNote', outlook: 'Outlook',
-  acrord32: 'Acrobat', acrobat: 'Acrobat', soffice: 'LibreOffice', notion: 'Notion', obsidian: 'Obsidian', figma: 'Figma',
+  acrord32: 'Acrobat', acrobat: 'Acrobat', soffice: 'LibreOffice', 'soffice.bin': 'LibreOffice', libreoffice: 'LibreOffice',
+  xed: 'Text Editor', gedit: 'Text Editor', xreader: 'Document Viewer', evince: 'Document Viewer',
+  gimp: 'GIMP', inkscape: 'Inkscape', thunderbird: 'Thunderbird',
+  notion: 'Notion', obsidian: 'Obsidian', figma: 'Figma',
 };
 
 const CHAT_APPS = {
-  discord: 'Discord', telegram: 'Telegram', whatsapp: 'WhatsApp', slack: 'Slack', teams: 'Teams', 'ms-teams': 'Teams',
-  zoom: 'Zoom', skype: 'Skype', signal: 'Signal', line: 'LINE',
+  discord: 'Discord', telegram: 'Telegram', 'telegram-desktop': 'Telegram', whatsapp: 'WhatsApp',
+  slack: 'Slack', teams: 'Teams', 'ms-teams': 'Teams',
+  zoom: 'Zoom', skype: 'Skype', signal: 'Signal', 'signal-desktop': 'Signal', line: 'LINE',
 };
 
 const SOCIAL_APPS = {
   tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook', twitter: 'X', threads: 'Threads', reddit: 'Reddit',
 };
 
-const MEDIA_APPS = { spotify: 'Spotify', vlc: 'VLC', wmplayer: 'Media Player', musicbee: 'MusicBee', applemusic: 'Apple Music' };
+const MEDIA_APPS = {
+  spotify: 'Spotify', vlc: 'VLC', wmplayer: 'Media Player', musicbee: 'MusicBee', applemusic: 'Apple Music',
+  rhythmbox: 'Rhythmbox', celluloid: 'Celluloid', mpv: 'mpv', audacious: 'Audacious', elisa: 'Elisa', clementine: 'Clementine',
+};
 
 const LAUNCHERS = {
   steam: 'Steam', steamwebhelper: 'Steam', epicgameslauncher: 'Epic Games', 'battle.net': 'Battle.net',
   ubisoftconnect: 'Ubisoft Connect', upc: 'Ubisoft Connect', riotclientservices: 'Riot Client', galaxyclient: 'GOG Galaxy',
+  lutris: 'Lutris', heroic: 'Heroic Games', bottles: 'Bottles',
 };
 
 // Game processes that name themselves. Unreal games share a process name, so
@@ -70,11 +90,11 @@ const GAME_TITLES = [
 
 // Install folders: [pattern, fixed name or null to use the first capture].
 const GAME_PATHS = [
-  [/\\wuthering waves[^\\]*\\/i, 'Wuthering Waves'],
-  [/\\steamapps\\common\\([^\\]+)\\/i, null],
-  [/\\epic games\\([^\\]+)\\/i, null],
-  [/\\gog galaxy\\games\\([^\\]+)\\/i, null],
-  [/\\riot games\\([^\\]+)\\/i, null],
+  [/[\\/]wuthering waves[^\\/]*[\\/]/i, 'Wuthering Waves'],
+  [/[\\/]steamapps[\\/]common[\\/]([^\\/]+)[\\/]/i, null],
+  [/[\\/]epic games[\\/]([^\\/]+)[\\/]/i, null],
+  [/[\\/]gog galaxy[\\/]games[\\/]([^\\/]+)[\\/]/i, null],
+  [/[\\/]riot games[\\/]([^\\/]+)[\\/]/i, null],
 ];
 const NOT_A_GAME = /^(steamworks|steam controller|steamvr|wallpaper_engine|launcher|epic online services|directx|common redist)/i;
 

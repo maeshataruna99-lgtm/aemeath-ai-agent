@@ -9,6 +9,7 @@
 <body>
   <main>
     <h1>Pengaturan Aemeath</h1>
+    <p id="os-badge" class="hint tight">Lingkungan sistem: mendeteksi...</p>
 
     <div class="tabs" role="tablist" aria-label="Bagian pengaturan">
       <button type="button" role="tab" id="tab-general" class="tab" aria-controls="panel-general" aria-selected="true">Umum</button>
@@ -79,7 +80,7 @@
         <h2>Startup</h2>
         <label class="field check" for="startup-toggle">
           <input type="checkbox" id="startup-toggle">
-          <span>Jalankan Aemeath otomatis saat Windows menyala</span>
+          <span id="startup-label-text">Jalankan Aemeath otomatis saat Windows menyala</span>
         </label>
         <p class="hint tight">
           Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer.
@@ -153,6 +154,22 @@
         <div class="scale"><span>sering</span><span>jarang</span></div>
         <p id="range" class="hint"></p>
       </section>
+
+      <hr>
+
+      <section class="row" id="lorebook-section">
+        <h2>Data Lorebook &amp; Wiki Wuthering Waves</h2>
+        <p class="hint tight">
+          Aemeath selalu mengobrolkan fakta acak Wuthering Waves dari lorebook lokal yang tersedia.
+          Kamu bisa memperbarui data dari Wuthering Waves Wiki kapan saja (kosongkan kolom untuk
+          memperbarui halaman utama seperti Solaris-3, Lore, dan Resonator, atau isi judul/URL halaman tertentu).
+        </p>
+        <div class="key-row">
+          <input id="wiki-page" type="text" placeholder="Contoh: Solaris-3, Lore, Rinascita (opsional)" autocomplete="off" spellcheck="false">
+          <button id="update-wiki" type="button">Perbarui Wiki</button>
+        </div>
+        <p id="lorebook-status" class="status"></p>
+      </section>
     </div>
 
     <div class="panel hidden" role="tabpanel" id="panel-chatbot" aria-labelledby="tab-chatbot">
@@ -214,7 +231,7 @@
         </p>
         <div class="builtin-row">
           <code>/change-mode</code>
-          <span>Ganti kotak chat antara mode obrolan dan terminal PowerShell.</span>
+          <span id="change-mode-desc">Ganti kotak chat antara mode obrolan dan terminal PowerShell.</span>
         </div>
         <div class="builtin-row">
           <code>/timer</code>
@@ -240,7 +257,7 @@
           <input type="checkbox" id="terminal">
           <span>Izinkan mode terminal</span>
         </label>
-        <p class="hint tight">
+        <p id="terminal-hint" class="hint tight">
           Saat <code>/change-mode</code> dipakai, Windows meminta persetujuan admin (UAC) lebih dulu.
           Setelah disetujui, kotak chat menjadi PowerShell yang berjalan sebagai kamu, bukan sebagai admin,
           dan hanya perintah yang kamu ketik sendiri yang dijalankan. Chatbot tidak ikut campur, dan
@@ -252,7 +269,7 @@
 
       <section class="row" id="commands">
         <h2>Perintah kustom</h2>
-        <p class="hint tight0">
+        <p id="commands-intro-hint" class="hint tight0">
           Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan, atau menjalankan perintah PowerShell,
           misalnya <code>/invoice</code> untuk folder invoice, <code>/wuwa</code> untuk launcher game,
           atau <code>/matikan</code> untuk mematikan komputer.
@@ -269,12 +286,12 @@
           <button type="button" id="add-preset">Tambah contoh</button>
         </div>
         <p id="command-status" class="status"></p>
-        <p class="hint">
+        <p id="commands-target-hint" class="hint">
           Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
           <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
           Argumen hanya berlaku untuk program berekstensi .exe.
         </p>
-        <p class="hint">
+        <p id="commands-shell-hint" class="hint">
           <strong>Perintah PowerShell</strong> dijalankan sebagai kamu (bukan admin), satu baris, dan dihentikan
           setelah 30 detik. Aemeath selalu bertanya "ya" dulu untuk perintah yang bisa mematikan, menghapus,
           memformat, atau mengunduh lalu menjalankan sesuatu, dan kamu tidak bisa mematikan pertanyaan itu.

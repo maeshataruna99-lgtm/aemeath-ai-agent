@@ -21,27 +21,36 @@ const CONTROL = new RegExp('[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]');
 const PREAMBLE =
   "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $OutputEncoding = [Text.Encoding]::UTF8; $ProgressPreference = 'SilentlyContinue'";
 
-function defaultKillTree(spawn, pid) {
+function defaultKillTree(spawn, pid, isPosix) {
   try {
-    spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    if (isPosix) {
+      spawn('kill', ['-9', String(pid)], { stdio: 'ignore' });
+    } else {
+      spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    }
   } catch {
     // the process may already be gone
   }
 }
 
-// options: { spawn, cwd, shell?, timeoutMs?, killTree? }
+// options: { spawn, cwd, shell?, platform?, timeoutMs?, killTree? }
 function createTerminalSession(options) {
   const spawn = options.spawn;
-  const shell = options.shell || 'powershell.exe';
+  const platform = options.platform || process.platform;
+  const isPosix = platform === 'linux' || platform === 'darwin' || /(?:^|[\\/])(?:ba)?sh$/i.test(options.shell || '');
+  const shell = options.shell || (isPosix ? 'bash' : 'powershell.exe');
   const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
-  const killTree = options.killTree || ((pid) => defaultKillTree(spawn, pid));
+  const killTree = options.killTree || ((pid) => defaultKillTree(spawn, pid, isPosix));
 
   let child = null;
   let workingDir = options.cwd;
   let waiting = null; // { token, text, resolve, timer }
 
   function launch() {
-    child = spawn(shell, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'], {
+    const args = isPosix
+      ? ['--noprofile', '--norc']
+      : ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'];
+    child = spawn(shell, args, {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -55,7 +64,7 @@ function createTerminalSession(options) {
     mine.on('error', () => finish(mine, { dead: true }));
     mine.on('exit', () => finish(mine, { dead: true }));
     mine.stdin.on('error', () => {});
-    mine.stdin.write(PREAMBLE + '\n');
+    if (!isPosix) mine.stdin.write(PREAMBLE + '\n');
   }
 
   function onData(source, chunk) {
@@ -127,12 +136,17 @@ function createTerminalSession(options) {
       // quote or brace can neither break the line nor swallow the marker that follows.
       // Dot-sourcing keeps variables in this session; `*>&1` merges every stream into the output.
       const encoded = Buffer.from(line, 'utf8').toString('base64');
-      mine.stdin.write(
-        ". ([scriptblock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
-          encoded +
-          "')))) *>&1 | Out-String -Stream\n",
-      );
-      mine.stdin.write('Write-Output ("' + token + '|" + (Get-Location).Path + "|")\n');
+      if (isPosix) {
+        mine.stdin.write("eval \"$(printf '%s' '" + encoded + "' | base64 -d)\" 2>&1\n");
+        mine.stdin.write('printf "' + token + '|%s|\\n" "$PWD"\n');
+      } else {
+        mine.stdin.write(
+          ". ([scriptblock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+            encoded +
+            "')))) *>&1 | Out-String -Stream\n",
+        );
+        mine.stdin.write('Write-Output ("' + token + '|" + (Get-Location).Path + "|")\n');
+      }
     });
   }
 

@@ -11,7 +11,9 @@ ditampilkan di bubble.
 | `sources.json` | Daftar sumber: judul, URL, lisensi, tanggal diakses. |
 | `solaris-3.json` | Trivia tentang planet Solaris-3. |
 | `lore.json` | Trivia tentang istilah dunia (Lament, Resonator, Threnodian, dst). |
+| `resonator.json` | Trivia mendalam tentang Resonator (Forte, Overclocking, umur panjang, Convene, dan daftar Resonator per wilayah). |
 | `aemeath.json` | Trivia tentang Aemeath sendiri. |
+| `backstory.json` | Trivia latar belakang dan masa lalu Aemeath. |
 
 Semua `*.json` selain `sources.json` dimuat otomatis oleh
 `src/lorebook-loader.js`. Menambah file baru tidak butuh perubahan kode.

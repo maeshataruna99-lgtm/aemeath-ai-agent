@@ -41,12 +41,27 @@ function xmlText(block) {
     .replace(/&amp;/g, '&');
 }
 
-// Expands %NAME% from the environment; unknown names are left as they are, so
-// the existence check fails instead of opening something unintended.
+// Expands %NAME%, $NAME, ${NAME}, and leading ~ from the environment; unknown names are left as they are,
+// so the existence check fails instead of opening something unintended.
 function expandEnv(text, env) {
-  return text.replace(/%([A-Za-z0-9_]+)%/g, (whole, name) =>
-    Object.prototype.hasOwnProperty.call(env, name) ? env[name] : whole,
+  const e = env || {};
+  const home = Object.prototype.hasOwnProperty.call(e, 'HOME')
+    ? e.HOME
+    : Object.prototype.hasOwnProperty.call(e, 'USERPROFILE')
+      ? e.USERPROFILE
+      : null;
+  let out = String(text == null ? '' : text);
+  if (home && (out === '~' || out.startsWith('~/' ) || out.startsWith('~\\'))) {
+    out = home + out.slice(1);
+  }
+  out = out.replace(/%([A-Za-z0-9_]+)%/g, (whole, name) =>
+    Object.prototype.hasOwnProperty.call(e, name) ? e[name] : whole,
   );
+  out = out.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g, (whole, braced, plain) => {
+    const name = braced || plain;
+    return Object.prototype.hasOwnProperty.call(e, name) ? e[name] : whole;
+  });
+  return out;
 }
 
 // Splits an argument string on spaces, keeping "quoted parts" together.
@@ -74,9 +89,11 @@ function cleanOutput(text) {
   return out;
 }
 
-// deps: { shell: { openPath, openExternal }, spawn, exists(path) -> boolean, env, timeoutMs? }
+// deps: { shell: { openPath, openExternal }, spawn, exists(path) -> boolean, env, timeoutMs?, platform? }
 function createCommandRunner(deps) {
   const timeoutMs = deps.timeoutMs || POWERSHELL_TIMEOUT_MS;
+  const platform = deps.platform || process.platform;
+  const isPosix = platform === 'linux' || platform === 'darwin';
 
   function startProgram(file, args) {
     return new Promise((resolve) => {
@@ -100,17 +117,25 @@ function createCommandRunner(deps) {
     });
   }
 
-  // Runs a one-off PowerShell as the current user and returns what it printed.
+  // Runs a one-off PowerShell (Windows) or Bash (Linux) as the current user and returns what it printed.
   // Resolves to { ok, output, exitCode?, timedOut?, code?, error? }.
   function runPowerShell(command) {
     return new Promise((resolve) => {
       let child;
       try {
-        child = deps.spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-OutputFormat', 'Text', '-EncodedCommand', encodeScript(command.script)], {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          windowsHide: true,
-          shell: false,
-        });
+        if (isPosix) {
+          child = deps.spawn('bash', ['--noprofile', '--norc', '-c', command.script], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true,
+            shell: false,
+          });
+        } else {
+          child = deps.spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-OutputFormat', 'Text', '-EncodedCommand', encodeScript(command.script)], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true,
+            shell: false,
+          });
+        }
       } catch (error) {
         resolve({ ok: false, code: 'failed', error: error.message, output: '' });
         return;
@@ -124,7 +149,20 @@ function createCommandRunner(deps) {
         resolve(Object.assign({ output: cleanOutput(text) }, result));
       };
       const timer = setTimeout(() => {
-        if (child.pid) {
+        if (isPosix) {
+          try {
+            if (typeof child.kill === 'function') child.kill('SIGKILL');
+          } catch {
+            // already gone
+          }
+          if (child.pid) {
+            try {
+              deps.spawn('kill', ['-9', String(child.pid)], { stdio: 'ignore' });
+            } catch {
+              // already gone
+            }
+          }
+        } else if (child.pid) {
           try {
             deps.spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
           } catch {
@@ -159,7 +197,7 @@ function createCommandRunner(deps) {
 
     const resolved = expandEnv(target, deps.env);
     if (!deps.exists(resolved)) return { ok: false, code: 'missing' };
-    if (args && /\.exe$/i.test(resolved)) return startProgram(resolved, parseArgs(args));
+    if (args && (isPosix || /\.exe$/i.test(resolved))) return startProgram(resolved, parseArgs(args));
 
     const failure = await deps.shell.openPath(resolved);
     return failure ? { ok: false, code: 'failed', error: failure } : { ok: true };

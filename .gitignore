@@ -8,6 +8,7 @@ chat-keys.json
 settings.json
 commands.json
 productivity.json
+lorebook-updates.json
 *.key
 *.pem
 *.p12

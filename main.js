@@ -22,6 +22,7 @@ const { spawn } = require('node:child_process');
 const { createClaudeCodeProvider } = require('./src/claude-code-provider');
 const { createMediaWatcher } = require('./src/media-watcher');
 const { loadLorebook } = require('./src/lorebook-loader');
+const { createLorebookUpdater, OVERLAY_FILE } = require('./src/lorebook-updater');
 const { createKeyStore } = require('./src/chat/key-store');
 const { createProviders } = require('./src/chat/providers');
 const { createChatService } = require('./src/chat/chat-service');
@@ -38,6 +39,7 @@ const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
 const { createWorkReviewer } = require('./src/activity/work-reviewer');
 const { createProductivityHub } = require('./src/productivity/productivity-hub');
+const { detectPlatform, applyLinuxStartup, getLinuxStartupStatus } = require('./src/platform');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -63,6 +65,7 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let productivity = null;
+  let lorebookUpdater = null;
   let activityTrayTimer = null;
   let tray = null;
   let provider = null;
@@ -77,12 +80,17 @@ function main() {
   );
 
   // Trivia is optional: a broken lorebook must not stop the pet from starting.
+  const lorebookDir = path.join(__dirname, 'lorebook');
+  let lorebookOverlayFile = path.join(app.getPath('userData'), OVERLAY_FILE);
   let lorebookData = { sources: {}, entries: [] };
-  try {
-    lorebookData = loadLorebook(path.join(__dirname, 'lorebook'));
-  } catch (error) {
-    console.error('[aemeath] lorebook disabled: ' + error.message);
+  function reloadLorebook() {
+    try {
+      lorebookData = loadLorebook(lorebookDir, isSelfie ? null : lorebookOverlayFile);
+    } catch (error) {
+      console.error('[aemeath] lorebook disabled: ' + error.message);
+    }
   }
+  reloadLorebook();
 
   app.on('second-instance', () => {
     if (win) {
@@ -173,13 +181,20 @@ function main() {
   // and it only ever receives commands the settings window saved. The selfie
   // run records launches instead of making them.
   const selfieLaunches = [];
-  const realCommandRunner = createCommandRunner({ shell, spawn, exists: fs.existsSync, env: process.env });
+  const platformInfo = detectPlatform();
+  const realCommandRunner = createCommandRunner({
+    shell,
+    spawn,
+    exists: fs.existsSync,
+    env: process.env,
+    platform: platformInfo.id,
+  });
   const commandRunner = isSelfie
     ? {
         run: async (command) => {
           // Only harmless echo scripts are really run by the verification run; every other
           // command, shutdown included, is only recorded.
-          if (command.type === 'powershell' && /^Write-Output\b/.test(command.script)) {
+          if (command.type === 'powershell' && /^(?:Write-Output|echo)\b/.test(command.script)) {
             return realCommandRunner.run(command);
           }
           if (command.type === 'workflow') {
@@ -191,11 +206,13 @@ function main() {
         },
       }
     : realCommandRunner;
-  // Terminal mode: /change-mode asks Windows for admin consent (UAC) and then opens a
-  // PowerShell that runs as the normal user. The selfie run skips the real prompt.
+  // Terminal mode: /change-mode asks the OS for admin consent (UAC on Windows, Polkit on Linux)
+  // and then opens a user shell (PowerShell or Bash). The selfie run skips the real prompt.
   const terminal = createTerminalController({
-    gate: isSelfie ? { request: async () => ({ granted: true }) } : createUacGate({ spawn }),
-    createSession: () => createTerminalSession({ spawn, cwd: os.homedir() }),
+    gate: isSelfie
+      ? { request: async () => ({ granted: true }) }
+      : createUacGate({ spawn, platform: platformInfo.id, polkit: platformInfo.isLinux }),
+    createSession: () => createTerminalSession({ spawn, cwd: os.homedir(), platform: platformInfo.id }),
     isEnabled: () => settings.terminalEnabled !== false,
   });
   // Interactive mode "medium": while it is on, Aemeath reads which app is in front, sorts it
@@ -235,7 +252,7 @@ function main() {
 
   const builtins = {
     'change-mode': {
-      description: 'Ganti mode obrolan dan terminal PowerShell',
+      description: 'Ganti mode obrolan dan terminal ' + platformInfo.shellName,
       run: () => terminal.changeMode(),
     },
     review: {
@@ -257,6 +274,9 @@ function main() {
       ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
       : app.getPath('userData');
     commandStore = createCommandStore({ dir: dataDir });
+    lorebookOverlayFile = path.join(dataDir, OVERLAY_FILE);
+    lorebookUpdater = createLorebookUpdater({ dir: dataDir });
+    reloadLorebook();
     productivity = createProductivityHub({
       dir: dataDir,
       getActivitySummary: () => activity.summary(),
@@ -328,7 +348,10 @@ function main() {
     });
 
     // The settings window may only change the keys listed here.
-    ipcMain.handle('settings-window:get', () => settings);
+    ipcMain.handle('settings-window:get', () => Object.assign({}, settings, { platform: platformInfo }));
+    ipcMain.handle('platform:info', (event) =>
+      fromWindow(event, settingsWin) || fromWindow(event, win) ? platformInfo : null,
+    );
     ipcMain.on('settings-window:set', (_event, patch) => {
       const next = {};
       if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
@@ -370,6 +393,31 @@ function main() {
 
     // Whether Windows will really start her at login, for the settings window to show.
     ipcMain.handle('startup:status', (event) => (fromWindow(event, settingsWin) ? startupStatus() : null));
+
+    ipcMain.handle('lorebook:status', (event) => {
+      if (!fromWindow(event, settingsWin)) return null;
+      const overlay = lorebookUpdater ? lorebookUpdater.readOverlay() : { updatedAt: null };
+      return {
+        entryCount: lorebookData.entries.length,
+        sourceCount: Object.keys(lorebookData.sources || {}).length,
+        updatedAt: overlay.updatedAt || null,
+      };
+    });
+
+    ipcMain.handle('lorebook:update', async (event, rawQuery) => {
+      if (!fromWindow(event, settingsWin) || !lorebookUpdater) {
+        return { ok: false, error: 'Pembaru lorebook tidak tersedia.' };
+      }
+      const res = await lorebookUpdater.update(rawQuery);
+      if (res.ok) {
+        reloadLorebook();
+        win?.webContents?.send('lorebook:updated', lorebookData);
+      }
+      return Object.assign({}, res, {
+        entryCount: lorebookData.entries.length,
+        sourceCount: Object.keys(lorebookData.sources || {}).length,
+      });
+    });
 
     // What Aemeath currently sees, as a category and never a window title.
     ipcMain.handle('activity:current', (event) =>
@@ -554,7 +602,16 @@ function main() {
   function applyStartup() {
     if (isSelfie) return;
     try {
-      app.setLoginItemSettings({ openAtLogin: settings.startAtLogin !== false, ...loginItemOptions() });
+      if (platformInfo.isLinux) {
+        applyLinuxStartup({
+          enabled: settings.startAtLogin !== false,
+          execPath: process.execPath,
+          appPath: app.getAppPath(),
+          isPackaged: app.isPackaged,
+        });
+      } else {
+        app.setLoginItemSettings({ openAtLogin: settings.startAtLogin !== false, ...loginItemOptions() });
+      }
     } catch (error) {
       console.error('[aemeath] startup entry failed: ' + error.message);
     }
@@ -563,6 +620,9 @@ function main() {
   function startupStatus() {
     const wanted = settings.startAtLogin !== false;
     try {
+      if (platformInfo.isLinux) {
+        return getLinuxStartupStatus({ wanted: wanted });
+      }
       const item = app.getLoginItemSettings(loginItemOptions());
       return { wanted: wanted, registered: Boolean(item.openAtLogin), willLaunch: item.executableWillLaunchAtLogin !== false };
     } catch {

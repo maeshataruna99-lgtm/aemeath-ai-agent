@@ -12,7 +12,7 @@ const FILE_NAME = 'commands.json';
 const MAX_COMMANDS = 30;
 const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 const URL_PATTERN = /^https?:\/\/\S+$/i;
-const ENV_PREFIX = /^%[A-Za-z0-9_]+%/;
+const ENV_PREFIX = /^(?:%[A-Za-z0-9_]+%|~(?:[\\/]|$)|\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})(?:[\\/]|$))/;
 // Names that belong to Aemeath: the help words and the built-in commands.
 const BUILTIN_NAMES = ['change-mode', 'timer', 'todo', 'note', 'stats', 'review'];
 const RESERVED = new Set(['help', 'bantuan'].concat(BUILTIN_NAMES));
@@ -23,20 +23,27 @@ const MAX_SCRIPT = 500;
 const MAX_WORKFLOW_TARGETS = 6;
 const TYPES = ['open', 'powershell', 'workflow'];
 
-// A PowerShell command always asks first when it can end the session, delete or
+// A PowerShell or Bash command always asks first when it can end the session, delete or
 // format things, change accounts or boot settings, or download and run code.
 const RISKY = new RegExp(
-  '\\b(shutdown|restart-computer|stop-computer|logoff|format(?![-\\w])|format-volume|diskpart|clear-disk|remove-item|' +
+  '\\b(shutdown|restart-computer|stop-computer|logoff|reboot|poweroff|halt|format(?![-\\w])|format-volume|' +
+    'diskpart|clear-disk|mkfs(?:\\.[a-z0-9]+)?|fdisk|parted|wipefs|dd|shred|unlink|remove-item|' +
     'rm|del|erase|rd|rmdir|cipher|bcdedit|reg\\s+delete|remove-itemproperty|net\\s+user|net1|set-executionpolicy|' +
     'invoke-expression|iex|downloadstring|downloadfile|invoke-webrequest|iwr|curl|wget|start-bitstransfer|' +
-    'taskkill|stop-process|kill|sc\\s+(stop|delete)|stop-service|set-service|disable-|uninstall-|msiexec)\\b',
+    'taskkill|stop-process|kill|pkill|killall|sc\\s+(stop|delete)|stop-service|set-service|systemctl\\s+(stop|disable|mask|poweroff|reboot)|' +
+    'ufw|iptables|chmod|chown|apt|apt-get|dpkg|disable-|uninstall-|msiexec)\\b',
   'i',
 );
 // The terminal never runs elevated, so a command may not ask for it either.
-const ELEVATION = /\brunas\b|\bsudo\b|-verb\b/i;
+const ELEVATION = /\brunas\b|\bsudo\b|\bgksudo\b|\bpkexec\b|\bdoas\b|\bsu\s+-|-verb\b/i;
 
 function isUrl(target) {
   return URL_PATTERN.test(target);
+}
+
+function isAbsoluteTarget(target) {
+  if (/^[A-Za-z]{2,}[A-Za-z0-9+.-]*:/.test(target)) return false;
+  return path.isAbsolute(target) || path.win32.isAbsolute(target) || path.posix.isAbsolute(target);
 }
 
 function isRisky(script) {
@@ -102,8 +109,8 @@ function normalizeCommands(list) {
       }
       for (const t of targets) {
         if (t.length > MAX_TARGET) return fail('Jalur terlalu panjang.');
-        if (!isUrl(t) && !ENV_PREFIX.test(t) && !path.isAbsolute(t)) {
-          return fail('Tulis jalur lengkap (mis. C:\\Program Files\\...) atau tautan http/https.');
+        if (!isUrl(t) && !ENV_PREFIX.test(t) && !isAbsoluteTarget(t)) {
+          return fail('Tulis jalur lengkap (mis. C:\\Program Files\\... atau /usr/bin/...) atau tautan http/https.');
         }
         if (/[\u0000-\u001f]/.test(t)) return fail('Ada karakter yang tidak diizinkan.');
       }
@@ -123,8 +130,8 @@ function normalizeCommands(list) {
 
     if (!target) return fail('Isi program, folder, atau tautan yang mau dibuka.');
     if (target.length > MAX_TARGET) return fail('Jalur terlalu panjang.');
-    if (!isUrl(target) && !ENV_PREFIX.test(target) && !path.isAbsolute(target)) {
-      return fail('Tulis jalur lengkap (mis. C:\\Program Files\\...) atau tautan http/https.');
+    if (!isUrl(target) && !ENV_PREFIX.test(target) && !isAbsoluteTarget(target)) {
+      return fail('Tulis jalur lengkap (mis. C:\\Program Files\\... atau /usr/bin/...) atau tautan http/https.');
     }
     if (/[\u0000-\u001f]/.test(target + args)) return fail('Ada karakter yang tidak diizinkan.');
     if (args.length > MAX_ARGS) return fail('Argumen terlalu panjang.');

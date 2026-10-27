@@ -1,8 +1,8 @@
 # aemeath-ai-agent
 
-Desktop pet **Aemeath** untuk Windows: hantu digital yang terbang di atas desktopmu, menemani
+Desktop pet **Aemeath** untuk **Windows** dan **Linux Mint / Linux**: hantu digital yang terbang di atas desktopmu, menemani
 saat kamu bekerja bersama sesi AI, bisa diajak ngobrol, dan bisa membukakan program lewat
-perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial (lihat
+perintah `/nama`. Aemeath otomatis mendeteksi sistem operasi yang dipakai (Windows maupun Linux Mint / Cinnamon) dan menyesuaikan pengaturan, contoh perintah kustom, shell terminal (`PowerShell` vs `Bash`), pemantau jendela aktif (`xdotool`/`xprop`), musik (`playerctl` MPRIS), serta autostart (`~/.config/autostart/aemeath.desktop`). Karya penggemar Wuthering Waves, tidak resmi dan non-komersial (lihat
 [Lisensi](#lisensi) dan [Kredit](#kredit)).
 
 ## Fitur
@@ -84,8 +84,11 @@ tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alama
   kepribadiannya: ada baris khusus saat sesi AI berjalan, musik diputar, pagi hari, atau lewat
   tengah malam, dan saat ada keputusan yang menunggu. Jedanya diatur dengan slider di
   Pengaturan (rata-rata 1 sampai 15 menit, bawaan 3,5), dan bisa dimatikan.
-- **Trivia berkredit.** Sebagian celetukan berupa trivia lore Wuthering Waves dari `lorebook/`
-  (42 entri parafrasa, 13 sumber) dengan baris "Sumber: ..." di bawahnya.
+- **Trivia Wuthering Waves berkredit & bisa diperbarui.** Saat mengobrol sendiri, Aemeath selalu menceritakan
+  trivia lore acak Wuthering Waves dari `lorebook/` (74 entri parafrasa bawaan tentang Solaris-3, Lore,
+  Resonator, dan Aemeath, dari 13 sumber) dengan baris "Sumber: ..." di bawahnya. Di Pengaturan (tab *Umum*),
+  tersedia tombol **Perbarui Wiki** untuk mengambil dan menyinkronkan data terbaru dari Wuthering Waves Wiki
+  kapan saja.
 - **Kotak chat di samping Aemeath.** Klik Aemeath (atau pilih "Fleet Snowfluff GPT..." di
   tray), ketik, tekan Enter. Esc menutup, tombol ↺ memulai percakapan baru. Tidak ada jendela
   terpisah. Kotaknya muncul di atas, di bawah, atau di samping Aemeath, mana yang paling lega, supaya
@@ -121,19 +124,18 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 
 Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
 
-**Perintah PowerShell** (misalnya mematikan atau me-restart komputer dengan aman) diatur di Pengaturan,
-tab *Perintah*, pilih jenis "Jalankan perintah PowerShell" atau mulai dari contoh siap pakai:
-matikan atau restart dengan hitung mundur 60 detik, `/batal` untuk membatalkannya, kunci layar, dan
-lima proses terberat. Perintahnya satu baris, berjalan sebagai kamu (bukan admin), dihentikan setelah
+**Perintah Shell (PowerShell di Windows / Bash di Linux Mint)** diatur di Pengaturan,
+tab *Perintah*, pilih jenis "Jalankan perintah PowerShell" (atau "Jalankan perintah Shell (Bash)" saat berjalan di Linux Mint) atau mulai dari contoh siap pakai yang menyesuaikan OS:
+matikan atau restart dengan hitung mundur 60 detik, `/batal` untuk membatalkannya, kunci layar (`LockWorkStation` di Windows atau `cinnamon-screensaver-command` / `xdg-screensaver` di Linux Mint), lima proses terberat, dan cek pembaruan paket APT di Linux Mint. Jalur tujuan juga mendukung variabel lingkungan Windows (`%USERPROFILE%`) maupun Linux (`~/...`, `$HOME/...`). Perintahnya satu baris, berjalan sebagai kamu (bukan admin/root), dihentikan setelah
 30 detik, dan keluarannya tampil di kotak chat. Aemeath selalu bertanya "ya" dulu (batas 30 detik) untuk
 perintah yang bisa mematikan, menghapus, memformat, atau mengunduh lalu menjalankan sesuatu. Pertanyaan
 itu tidak bisa dimatikan untuk perintah berisiko, dan untuk perintah lain tersedia kotak "Tanya dulu".
 
 ### Mode terminal
 
-Ketik `/change-mode` dan kotak chat berubah menjadi PowerShell. Windows lebih dulu meminta
-persetujuan admin (UAC); setelah kamu menyetujuinya, terminal terbuka dan berjalan sebagai
-**kamu, bukan sebagai admin**. Direktori dan variabel bertahan antar-perintah, keluarannya tampil
+Ketik `/change-mode` dan kotak chat berubah menjadi terminal (`PowerShell` di Windows, `Bash` di Linux Mint). Sistem operasi lebih dulu meminta
+persetujuan admin (UAC di Windows, Polkit `pkexec` di Linux Mint); setelah kamu menyetujuinya, terminal terbuka dan berjalan sebagai
+**kamu, bukan sebagai admin/root**. Direktori dan variabel bertahan antar-perintah, keluarannya tampil
 di kotak chat (batas 30 detik per perintah dan 20 ribu karakter keluaran). `exit` atau
 `/change-mode` lagi kembali ke obrolan. Chatbot tidak ikut campur sama sekali di mode ini.
 

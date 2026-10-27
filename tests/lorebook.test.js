@@ -2,12 +2,16 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const { createLorebook, validateLorebook, MAX_TEXT } = require('../src/lorebook');
 const { loadLorebook } = require('../src/lorebook-loader');
+const { createLorebookUpdater, parsePageQuery, extractChunks } = require('../src/lorebook-updater');
 
-const data = loadLorebook(path.join(__dirname, '..', 'lorebook'));
+const loreDir = path.join(__dirname, '..', 'lorebook');
+const data = loadLorebook(loreDir);
 
 function seededRng(seed) {
   let s = seed;
@@ -19,7 +23,11 @@ function seededRng(seed) {
 
 test('the shipped lorebook is well formed and credits every entry', () => {
   assert.deepEqual(validateLorebook(data), []);
-  assert.ok(data.entries.length >= 20);
+  assert.ok(data.entries.length >= 74);
+  assert.ok(data.entries.some((e) => e.id === 'resonator-overclocking'));
+  assert.ok(data.entries.some((e) => e.id === 'resonator-roster-rinascita'));
+  assert.ok(data.entries.some((e) => e.id === 'solaris-3-nations-huanglong'));
+  assert.ok(data.entries.some((e) => e.id === 'lore-black-shores-terms'));
   for (const entry of data.entries) {
     assert.ok(entry.text.length <= MAX_TEXT, entry.id);
     assert.match(data.sources[entry.source].url, /^https:\/\/wutheringwaves\.fandom\.com\/wiki\//);
@@ -64,4 +72,48 @@ test('every entry is told once before any repeats, and carries its credit', () =
 test('an empty lorebook yields no trivia instead of throwing', () => {
   assert.equal(createLorebook({ sources: {}, entries: [] }).next(), null);
   assert.equal(createLorebook(undefined).next(), null);
+});
+
+test('lorebook updater parses wiki URLs, extracts <= 260 char chunks, and merges into loadLorebook', async () => {
+  assert.deepEqual(parsePageQuery('https://wutheringwaves.fandom.com/wiki/Solaris-3, Rinascita'), [
+    'Solaris-3',
+    'Rinascita',
+  ]);
+  const sampleChunks = extractChunks(
+    'Rinascita is a maritime nation of city-states in Solaris-3. It is guided by the Sentinel Imperator and celebrates the Carnevale.',
+    'Rinascita',
+  );
+  assert.ok(sampleChunks.length >= 1);
+  assert.ok(sampleChunks[0].length <= MAX_TEXT);
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeath-lore-test-'));
+  const updater = createLorebookUpdater({
+    dir,
+    now: () => new Date('2026-10-27T12:00:00Z'),
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        query: {
+          pages: {
+            101: {
+              title: 'Rinascita',
+              extract:
+                'Rinascita is a nation of city-states across the archipelago of Solaris-3. Its people revere the Sentinel Imperator and live side by side with Common Echoes.',
+            },
+          },
+        },
+      }),
+    }),
+  });
+
+  const res = await updater.update('https://wutheringwaves.fandom.com/wiki/Rinascita');
+  assert.equal(res.ok, true);
+  assert.equal(res.updatedPages, 1);
+  assert.ok(res.addedEntries >= 1);
+
+  const merged = loadLorebook(loreDir, updater.overlayPath);
+  assert.deepEqual(validateLorebook(merged), []);
+  assert.ok(merged.entries.length > data.entries.length);
+  assert.ok(merged.sources['wiki-sync-rinascita']);
 });

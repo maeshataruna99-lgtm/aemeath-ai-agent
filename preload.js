@@ -29,4 +29,5 @@ contextBridge.exposeInMainWorld('aemeath', {
   onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
   openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
   onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
+  onLorebookUpdated: (fn) => ipcRenderer.on('lorebook:updated', (_e, data) => fn(data)),
 });

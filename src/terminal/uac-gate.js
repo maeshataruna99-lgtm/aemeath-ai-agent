@@ -16,15 +16,19 @@ const SCRIPT =
   "-ArgumentList '-NoProfile','-NonInteractive','-Command','exit 0' -Wait -ErrorAction Stop; exit 0 } " +
   'catch { exit 1 }';
 
-// options: { spawn, platform?, timeoutMs? }
+// options: { spawn, platform?, timeoutMs?, polkit? }
 function createUacGate(options) {
   const spawn = options.spawn;
   const platform = options.platform || process.platform;
   const timeoutMs = options.timeoutMs || TIMEOUT_MS;
+  const polkit = options.polkit === true;
 
   // Resolves to { granted: true } or { granted: false, reason }, never rejects.
   function request() {
-    if (platform !== 'win32') return Promise.resolve({ granted: false, reason: 'unsupported' });
+    const usePolkit = platform === 'linux' && polkit;
+    if (platform !== 'win32' && !usePolkit) {
+      return Promise.resolve({ granted: false, reason: 'unsupported' });
+    }
     return new Promise((resolve) => {
       let settled = false;
       let child;
@@ -44,18 +48,30 @@ function createUacGate(options) {
       }, timeoutMs);
 
       try {
-        child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', SCRIPT], {
-          stdio: 'ignore',
-          windowsHide: true,
-          shell: false,
-        });
+        if (usePolkit) {
+          child = spawn('pkexec', ['/bin/true'], {
+            stdio: 'ignore',
+            windowsHide: true,
+            shell: false,
+          });
+        } else {
+          child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', SCRIPT], {
+            stdio: 'ignore',
+            windowsHide: true,
+            shell: false,
+          });
+        }
       } catch {
         settle({ granted: false, reason: 'error' });
         return;
       }
       child.once('error', () => settle({ granted: false, reason: 'error' }));
       child.once('exit', (code) =>
-        settle(code === 0 ? { granted: true } : { granted: false, reason: code === 1 ? 'declined' : 'error' }),
+        settle(
+          code === 0
+            ? { granted: true }
+            : { granted: false, reason: code === 1 || code === 126 ? 'declined' : 'error' },
+        ),
       );
     });
   }

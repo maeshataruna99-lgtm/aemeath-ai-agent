@@ -22,6 +22,75 @@
   ];
 
   let status = null;
+  let currentPlatform = {
+    id: 'win32',
+    isWindows: true,
+    isLinux: false,
+    isLinuxMint: false,
+    osLabel: 'Windows',
+    shellName: 'PowerShell',
+  };
+
+  function applyPlatformUI(plat) {
+    if (!plat || typeof plat !== 'object') return;
+    currentPlatform = plat;
+    const osBadge = document.getElementById('os-badge');
+    const startupLabel = document.getElementById('startup-label-text');
+    const changeModeDesc = document.getElementById('change-mode-desc');
+    const terminalHint = document.getElementById('terminal-hint');
+    const commandsIntro = document.getElementById('commands-intro-hint');
+    const commandsTarget = document.getElementById('commands-target-hint');
+    const commandsShell = document.getElementById('commands-shell-hint');
+
+    const osName = plat.osLabel || (plat.isLinuxMint ? 'Linux Mint' : plat.isLinux ? 'Linux' : 'Windows');
+    const shellName = plat.shellName || (plat.isLinux ? 'Bash' : 'PowerShell');
+    if (osBadge) {
+      osBadge.textContent =
+        'Lingkungan sistem terdeteksi: ' +
+        osName +
+        (plat.desktop ? ' (' + plat.desktop + ', shell: ' + shellName + ')' : ' (shell: ' + shellName + ')');
+    }
+    if (startupLabel) {
+      startupLabel.textContent = 'Jalankan Aemeath otomatis saat ' + osName + ' menyala';
+    }
+    if (changeModeDesc) {
+      changeModeDesc.textContent = 'Ganti kotak chat antara mode obrolan dan terminal ' + shellName + '.';
+    }
+    if (plat.isLinux) {
+      if (terminalHint) {
+        terminalHint.innerHTML =
+          'Saat <code>/change-mode</code> dipakai, ' +
+          osName +
+          ' meminta persetujuan admin (Polkit / <code>pkexec</code>) lebih dulu. ' +
+          'Setelah disetujui, kotak chat menjadi terminal <strong>Bash</strong> yang berjalan sebagai kamu, bukan root, ' +
+          'dan hanya perintah yang kamu ketik sendiri yang dijalankan. Chatbot tidak ikut campur, dan ' +
+          'sesi berakhir saat kotak ditutup, saat kamu mengetik <code>exit</code>, atau setelah 15 menit diam.';
+      }
+      if (commandsIntro) {
+        commandsIntro.innerHTML =
+          'Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan, atau menjalankan perintah Shell (Bash) di ' +
+          osName +
+          ', misalnya <code>/invoice</code> untuk folder kerja, <code>/gimp</code> untuk aplikasi, ' +
+          'atau <code>/matikan</code> untuk mematikan komputer. ' +
+          'Ketik <code>/</code> saja untuk melihat daftarnya. Perintah dijalankan di komputer ini saja: ' +
+          'tidak dikirim ke chatbot, dan hanya teks yang kamu ketik sendiri yang bisa memicunya.';
+      }
+      if (commandsTarget) {
+        commandsTarget.innerHTML =
+          'Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (mis. <code>/usr/bin/...</code>, ' +
+          '<code>~/Documents</code>, atau <code>$HOME/...</code>), atau tautan <code>http://</code> / <code>https://</code>. ' +
+          'Argumen berlaku untuk program eksekusi.';
+      }
+      if (commandsShell) {
+        commandsShell.innerHTML =
+          '<strong>Perintah Shell (Bash)</strong> dijalankan sebagai kamu (bukan root), satu baris, dan dihentikan ' +
+          'setelah 30 detik. Aemeath selalu bertanya "ya" dulu untuk perintah yang bisa mematikan, menghapus, ' +
+          'memformat, atau mengunduh sesuatu, dan kamu tidak bisa mematikan pertanyaan itu. ' +
+          'Contoh <code>/matikan</code> memakai hitung mundur 60 detik yang bisa dibatalkan dengan <code>/batal</code>.';
+      }
+    }
+    renderPresets();
+  }
 
   function format(minutes) {
     return String(Math.round(minutes * 10) / 10).replace('.', ',');
@@ -80,6 +149,13 @@
 
   async function boot() {
     const settings = await window.aemeathSettings.get();
+    if (settings && settings.platform) {
+      applyPlatformUI(settings.platform);
+    } else if (typeof window.aemeathSettings.getPlatform === 'function') {
+      applyPlatformUI(await window.aemeathSettings.getPlatform());
+    } else {
+      renderPresets();
+    }
     chatter.checked = settings.chatterEnabled !== false;
     terminal.checked = settings.terminalEnabled !== false;
     startupToggle.checked = settings.startAtLogin !== false;
@@ -100,6 +176,8 @@
     );
     interval.value = settings.chatterIntervalMin;
     render();
+    refreshLorebook();
+    await loadCommands();
     renderChat(await window.aemeathSettings.chatStatus());
   }
 
@@ -165,18 +243,23 @@
 
   async function refreshStartup() {
     const state = await window.aemeathSettings.getStartup();
+    const osName = currentPlatform.osLabel || (currentPlatform.isLinux ? 'Linux' : 'Windows');
     let text = '';
     let kind = '';
     if (!state) text = '';
     else if (!state.wanted) text = 'Tidak dijalankan otomatis.';
     else if (state.registered && state.willLaunch) {
-      text = 'Terdaftar di startup Windows.';
+      text = currentPlatform.isLinux
+        ? 'Terdaftar di startup ' + osName + ' (~/.config/autostart/aemeath.desktop).'
+        : 'Terdaftar di startup Windows.';
       kind = 'ok';
     } else if (state.registered) {
-      text = 'Terdaftar, tetapi Windows menonaktifkannya. Aktifkan lagi di Pengelola Tugas, tab Startup.';
+      text = currentPlatform.isLinux
+        ? 'Terdaftar, tetapi entri autostart dinonaktifkan di Pengaturan Aplikasi Awal Mula ' + osName + '.'
+        : 'Terdaftar, tetapi Windows menonaktifkannya. Aktifkan lagi di Pengelola Tugas, tab Startup.';
       kind = 'error';
     } else {
-      text = 'Belum terdaftar di Windows. Entri dibuat saat Aemeath dijalankan.';
+      text = 'Belum terdaftar di ' + osName + '. Entri dibuat saat Aemeath dijalankan.';
     }
     startupStatus.textContent = text;
     startupStatus.className = 'status' + (kind ? ' ' + kind : '');
@@ -218,6 +301,58 @@
     window.aemeathSettings.set({ chatShortcut: shortcutSelect.value });
   });
 
+  // ---- Lorebook & Wiki updater -----------------------------------------------
+  const wikiPageInput = document.getElementById('wiki-page');
+  const updateWikiBtn = document.getElementById('update-wiki');
+  const lorebookStatus = document.getElementById('lorebook-status');
+
+  function renderLorebookInfo(info, extraMsg, kind) {
+    if (!info) return;
+    const updatedNote = info.updatedAt ? ' (sinkron terakhir: ' + info.updatedAt + ')' : '';
+    const base =
+      'Tersedia ' +
+      info.entryCount +
+      ' entri trivia dari ' +
+      info.sourceCount +
+      ' sumber Wuthering Waves Wiki' +
+      updatedNote +
+      '.';
+    lorebookStatus.textContent = extraMsg ? extraMsg + ' ' + base : base;
+    lorebookStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  async function refreshLorebook() {
+    if (typeof window.aemeathSettings.getLorebookStatus !== 'function') return;
+    const info = await window.aemeathSettings.getLorebookStatus();
+    renderLorebookInfo(info, '', '');
+  }
+
+  updateWikiBtn.addEventListener('click', async () => {
+    if (typeof window.aemeathSettings.updateLorebook !== 'function') return;
+    updateWikiBtn.disabled = true;
+    lorebookStatus.textContent = 'Mengambil data terbaru dari Wuthering Waves Wiki...';
+    lorebookStatus.className = 'status';
+    try {
+      const res = await window.aemeathSettings.updateLorebook(wikiPageInput.value);
+      if (res && res.ok) {
+        wikiPageInput.value = '';
+        renderLorebookInfo(
+          res,
+          'Berhasil memperbarui ' + res.updatedPages + ' halaman wiki (+' + res.addedEntries + ' entri)!',
+          'ok',
+        );
+      } else {
+        lorebookStatus.textContent = (res && res.error) || 'Gagal memperbarui data wiki.';
+        lorebookStatus.className = 'status error';
+      }
+    } catch {
+      lorebookStatus.textContent = 'Gagal memperbarui data wiki.';
+      lorebookStatus.className = 'status error';
+    } finally {
+      updateWikiBtn.disabled = false;
+    }
+  });
+
   // ---- Custom slash commands -------------------------------------------------
   const commandList = document.getElementById('command-list');
   const addCommand = document.getElementById('add-command');
@@ -226,8 +361,9 @@
   const addPreset = document.getElementById('add-preset');
   let saveTimer = null;
 
-  // Ready-made PowerShell commands. Whatever can shut the computer down asks first.
-  const PRESETS = [
+  // Ready-made PowerShell (Windows) and Bash (Linux Mint / Linux) commands.
+  // Whatever can shut the computer down asks first.
+  const WINDOWS_PRESETS = [
     {
       label: 'Matikan komputer (60 detik, bisa dibatalkan)',
       entry: {
@@ -264,6 +400,68 @@
       },
     },
   ];
+
+  const LINUX_PRESETS = [
+    {
+      label: 'Matikan komputer (60 detik, bisa dibatalkan)',
+      entry: {
+        name: 'matikan',
+        description: 'matikan komputer dalam 60 detik',
+        script: 'shutdown -h +1 "Aemeath: komputer akan mati dalam 60 detik. Ketik /batal untuk membatalkan."',
+        confirm: true,
+      },
+    },
+    {
+      label: 'Restart komputer (60 detik, bisa dibatalkan)',
+      entry: {
+        name: 'restart',
+        description: 'restart komputer dalam 60 detik',
+        script: 'shutdown -r +1 "Aemeath: komputer akan restart dalam 60 detik. Ketik /batal untuk membatalkan."',
+        confirm: true,
+      },
+    },
+    {
+      label: 'Batalkan matikan atau restart',
+      entry: { name: 'batal', description: 'batalkan matikan atau restart', script: 'shutdown -c', confirm: false },
+    },
+    {
+      label: 'Kunci layar (Linux Mint Cinnamon / XDG)',
+      entry: {
+        name: 'kunci',
+        description: 'kunci layar',
+        script: 'cinnamon-screensaver-command -l || xdg-screensaver lock || loginctl lock-session',
+        confirm: false,
+      },
+    },
+    {
+      label: 'Lima proses terberat (CPU & RAM)',
+      entry: {
+        name: 'proses',
+        description: 'lima proses terberat',
+        script: 'ps -eo comm,%cpu,%mem --sort=-%cpu | head -n 6',
+        confirm: false,
+      },
+    },
+    {
+      label: 'Cek pembaruan paket APT (Linux Mint)',
+      entry: {
+        name: 'cek-update',
+        description: 'cek paket yang bisa diperbarui',
+        script: 'apt list --upgradable 2>/dev/null | head -n 15',
+        confirm: false,
+      },
+    },
+  ];
+
+  function activePresets() {
+    return currentPlatform.isLinux ? LINUX_PRESETS : WINDOWS_PRESETS;
+  }
+
+  function renderPresets() {
+    presetSelect.textContent = '';
+    presetSelect.appendChild(new Option('Pilih contoh...', ''));
+    activePresets().forEach((preset, index) => presetSelect.appendChild(new Option(preset.label, String(index))));
+  }
 
   function line(...children) {
     const element = document.createElement('div');
@@ -315,12 +513,14 @@
     const description = field('grow desc', 'Keterangan (opsional)', command && command.description, 60);
     const remove = button('\u2715', 'Hapus perintah');
 
+    const isLinux = Boolean(currentPlatform.isLinux);
+    const shellTypeLabel = isLinux ? 'Jalankan perintah Shell (Bash)' : 'Jalankan perintah PowerShell';
     const type = document.createElement('select');
     type.className = 'type';
     for (const [value, label] of [
       ['open', 'Buka program, folder, atau tautan'],
       ['workflow', 'Buka paket kerja (beberapa tujuan sekaligus)'],
-      ['powershell', 'Jalankan perintah PowerShell'],
+      ['powershell', shellTypeLabel],
     ]) {
       const option = document.createElement('option');
       option.value = value;
@@ -332,10 +532,20 @@
         ? command.type
         : 'open';
 
-    const target = field('grow target', 'C:\\... atau https://...', command && command.target, 500);
+    const targetPlaceholder = isLinux
+      ? '/usr/bin/... atau ~/... atau https://...'
+      : 'C:\\... atau https://...';
+    const argsPlaceholder = isLinux
+      ? 'Argumen (opsional, khusus program eksekusi)'
+      : 'Argumen (opsional, khusus program .exe)';
+    const scriptPlaceholder = isLinux
+      ? 'Perintah Bash, satu baris (mis. free -h atau shutdown -h +1)'
+      : 'Perintah PowerShell, satu baris (mis. shutdown /s /t 60)';
+
+    const target = field('grow target', targetPlaceholder, command && command.target, 500);
     const pickFile = button('Berkas...');
     const pickFolder = button('Folder...');
-    const args = field('grow args', 'Argumen (opsional, khusus program .exe)', command && command.args, 300);
+    const args = field('grow args', argsPlaceholder, command && command.args, 300);
     const workflowTargets = document.createElement('textarea');
     workflowTargets.className = 'grow workflow-targets';
     workflowTargets.rows = 3;
@@ -344,7 +554,7 @@
       command && Array.isArray(command.targets) ? command.targets.join('\n') : '';
     const pickWfFile = button('+ Berkas...');
     const pickWfFolder = button('+ Folder...');
-    const script = field('grow script', 'Perintah PowerShell, satu baris (mis. shutdown /s /t 60)', command && command.script, 500);
+    const script = field('grow script', scriptPlaceholder, command && command.script, 500);
     const confirm = checkLine('confirm', 'Tanya dulu sebelum menjalankan', command ? command.confirm !== false : true);
 
     const note = document.createElement('p');
@@ -473,17 +683,19 @@
   }
 
   async function loadCommands() {
+    commandList.textContent = '';
     for (const command of await window.aemeathSettings.getCommands()) addRow(command);
     commandStatus.textContent = commandList.children.length ? '' : 'Belum ada perintah.';
   }
 
   addCommand.addEventListener('click', () => addRow().querySelector('.name').focus());
 
-  presetSelect.appendChild(new Option('Pilih contoh...', ''));
-  PRESETS.forEach((preset, index) => presetSelect.appendChild(new Option(preset.label, String(index))));
   addPreset.addEventListener('click', () => {
     if (presetSelect.value === '') return;
-    const entry = Object.assign({ type: 'powershell' }, PRESETS[Number(presetSelect.value)].entry);
+    const presets = activePresets();
+    const chosen = presets[Number(presetSelect.value)];
+    if (!chosen) return;
+    const entry = Object.assign({ type: 'powershell' }, chosen.entry);
     const taken = usedNames();
     const base = entry.name;
     for (let n = 2; taken.includes(entry.name); n += 1) entry.name = base + n;
@@ -597,5 +809,4 @@
   }
 
   boot();
-  loadCommands();
 })();

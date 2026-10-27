@@ -16,7 +16,9 @@
   const BOB_PX = 4;
   const BOB_PERIOD_MS = 2400;
   const CHAT_FIRST_MS = 40000;
-  const TRIVIA_CHANCE = 0.3;
+  // Aemeath always speaks random Wuthering Waves trivia from the available lorebook
+  // during her spontaneous chatter (unless a pending decision needs Rover's attention).
+  const TRIVIA_CHANCE = 1;
   const BUBBLE_MAX_MS = 16000;
 
   let atlas = null;
@@ -552,6 +554,12 @@
         if (!payload || !payload.text) return;
         setTransient('jumping', 2400);
         showBubble(payload.text);
+      });
+    }
+    if (typeof window.aemeath.onLorebookUpdated === 'function') {
+      window.aemeath.onLorebookUpdated((nextData) => {
+        if (!nextData) return;
+        lorebook = AemeathLorebook.createLorebook(nextData);
       });
     }
     window.aemeath.onMediaStatus((status) => {
