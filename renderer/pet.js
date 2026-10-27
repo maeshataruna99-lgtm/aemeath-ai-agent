@@ -29,6 +29,7 @@
     chatterEnabled: true,
     chatterIntervalMin: 3.5,
     interactiveMode: 'low',
+    stayStill: false,
     x: null,
     y: null,
   };
@@ -205,7 +206,15 @@
     lastTick = now;
 
     if (!demoState && !dragState) {
-      if (now < transientUntil || sessionRunning() || decisionPending() || chatThinking || chatOpen()) {
+      // She stays put while something else is going on, or when Rover asked her to stay still.
+      if (
+        settings.stayStill === true ||
+        now < transientUntil ||
+        sessionRunning() ||
+        decisionPending() ||
+        chatThinking ||
+        chatOpen()
+      ) {
         haltWalker();
       } else {
         AemeathWalker.stepWalker(walker, now, dt, flightBounds());

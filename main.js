@@ -305,7 +305,7 @@ function main() {
     ipcMain.on('settings-window:set', (_event, patch) => {
       const next = {};
       if (patch && typeof patch.chatterEnabled === 'boolean') next.chatterEnabled = patch.chatterEnabled;
-      for (const flag of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin']) {
+      for (const flag of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin', 'stayStill']) {
         if (patch && typeof patch[flag] === 'boolean') next[flag] = patch[flag];
       }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
@@ -592,6 +592,10 @@ function main() {
       { type: 'separator' },
       { label: 'Skala: perbesar', click: () => adjustScale(0.1) },
       { label: 'Skala: perkecil', click: () => adjustScale(-0.1) },
+      {
+        label: 'Diam di tempat: ' + (settings.stayStill ? 'aktif' : 'nonaktif'),
+        click: () => toggleFeature('stayStill'),
+      },
       {
         label: 'Kecepatan jalan',
         submenu: [

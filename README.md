@@ -14,6 +14,8 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   (kiri atau kanan), dan saat diam dia sedikit bergoyang naik-turun seperti melayang.
 - **Bisa digeser dan diubah ukurannya.** Seret ke mana saja, Ctrl+scroll atau menu tray untuk
   skala 0,5x sampai 3x. Posisi, skala, dan kecepatan gerak diingat setelah restart.
+- **Bisa diam di tempat.** Kalau Aemeath tidak perlu berkeliling, nyalakan "Aemeath diam di tempat" di Pengaturan
+  (tab *Umum*) atau menu tray. Dia tetap bisa diseret, berbicara, dan bereaksi.
 - **Klik untuk ngobrol, klik kanan untuk menu.** Bagian di bawah merinci keduanya.
 - **Jalan otomatis saat Windows menyala.** Aktif secara bawaan, jadi Aemeath muncul sendiri setiap kali kamu
   menyalakan komputer. Bisa dimatikan di Pengaturan, tab *Umum*, yang juga menampilkan apakah Windows

@@ -84,6 +84,7 @@
     terminal.checked = settings.terminalEnabled !== false;
     startupToggle.checked = settings.startAtLogin !== false;
     refreshStartup();
+    stillToggle.checked = settings.stayStill === true;
     doom.value = settings.doomscrollLimitMin || 20;
     doomValue.textContent = 'setelah ' + doom.value + ' menit';
     renderMode(settings.interactiveMode === 'medium' ? 'medium' : 'low');
@@ -174,6 +175,11 @@
   startupToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ startAtLogin: startupToggle.checked });
     setTimeout(refreshStartup, 500);
+  });
+
+  const stillToggle = document.getElementById('still-toggle');
+  stillToggle.addEventListener('change', () => {
+    window.aemeathSettings.set({ stayStill: stillToggle.checked });
   });
 
   // ---- Custom slash commands -------------------------------------------------

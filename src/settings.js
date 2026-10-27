@@ -18,6 +18,7 @@ const DEFAULTS = {
   chatOfflineFallback: true,
   terminalEnabled: true,
   startAtLogin: true,
+  stayStill: false,
   interactiveMode: 'low',
   doomscrollLimitMin: 20,
   x: null,
@@ -51,7 +52,7 @@ function keepActivity(data) {
 }
 
 function keepFlags(data) {
-  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin']) {
+  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin', 'stayStill']) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
 }

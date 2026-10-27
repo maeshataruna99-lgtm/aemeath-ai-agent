@@ -80,3 +80,10 @@ test('the doomscroll limit is a whole number of minutes between 5 and 120', () =
   assert.equal(store.save({ doomscrollLimitMin: 'x' }).doomscrollLimitMin, 20);
   assert.equal(store.save({ doomscrollLimitMin: NaN }).doomscrollLimitMin, 20);
 });
+
+test('staying still is off by default and only accepts a boolean', () => {
+  const store = createSettingsStore(tempDir('still'));
+  assert.equal(store.load().stayStill, false);
+  assert.equal(store.save({ stayStill: true }).stayStill, true);
+  assert.equal(store.save({ stayStill: 'yes' }).stayStill, false);
+});
