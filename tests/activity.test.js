@@ -8,7 +8,6 @@ const { classify, describe, pageTitleOf, workContextOf } = require('../src/activ
 const { createActivityTracker } = require('../src/activity/activity-tracker');
 const { createActivityWatcher, parseSample } = require('../src/activity/activity-watcher');
 const { createActivityMonitor } = require('../src/activity/activity-monitor');
-const { analyzeFrame, describeScreen, createScreenSampler } = require('../src/activity/screen-analyzer');
 const {
   analyzeGitOutput,
   formatLocalEvaluation,
@@ -405,7 +404,7 @@ test('tracker and monitor report an in-memory category summary and forget it whe
   assert.equal(monitor.summary(), null, 'stopping forgets the summary');
 });
 
-// ---- full mode & lightweight screen capture -----------------------------------
+// ---- full mode (program & social/coding detection without screen capture) -----
 
 test('workContextOf extracts coarse coding language and test flag without keeping filenames or titles', () => {
   const ctx = workContextOf({ process: 'Code', title: 'secret-algorithm.test.js - MyProject - Visual Studio Code' });
@@ -417,40 +416,7 @@ test('workContextOf extracts coarse coding language and test flag without keepin
   });
 });
 
-test('analyzeFrame and createScreenSampler compute brightness and motion in memory and skip when disallowed', async () => {
-  const darkBuf = Buffer.alloc(32 * 18 * 4, 20);
-  const brightBuf = Buffer.alloc(32 * 18 * 4, 230);
-
-  const first = analyzeFrame({ data: darkBuf, width: 32, height: 18 }, null);
-  assert.equal(first.tone, 'dark');
-  assert.equal(first.motion, 'active');
-
-  const second = analyzeFrame({ data: darkBuf, width: 32, height: 18 }, first.signature);
-  assert.equal(second.motion, 'static');
-  assert.equal(second.motionScore, 0);
-  assert.equal(describeScreen(second), 'tampilan gelap, layar diam');
-
-  const third = analyzeFrame({ data: brightBuf, width: 32, height: 18 }, second.signature);
-  assert.equal(third.tone, 'bright');
-  assert.equal(third.motion, 'dynamic');
-
-  let calls = 0;
-  const sampler = createScreenSampler({
-    captureFrame: async () => {
-      calls += 1;
-      return { data: darkBuf, width: 32, height: 18 };
-    },
-  });
-  assert.equal(await sampler.sample(false), null, 'disallowed capture does not call captureFrame');
-  assert.equal(calls, 0);
-  const sampled = await sampler.sample(true);
-  assert.equal(calls, 1);
-  assert.equal(sampled.tone, 'dark');
-  sampler.reset();
-  assert.equal(sampler.latest, null);
-});
-
-test('Full mode remarks on coding start, test files, deep focus, screen stuck, bright night screen, and tab-hopping', () => {
+test('Full mode remarks on coding start, test files, deep focus, and tab-hopping', () => {
   const tracker = createActivityTracker({
     getLimitMin: () => 20,
     getMode: () => 'full',
@@ -477,32 +443,14 @@ test('Full mode remarks on coding start, test files, deep focus, screen stuck, b
   assert.equal(testSwitch.length, 1);
   assert.equal(testSwitch[0].kind, 'coding-test');
 
-  // 3. Static screen for 10+ minutes while coding triggers screen-stuck
-  const stuck = step(CODE, 11, {
+  // 3. 45 minutes of coding triggers coding-focus
+  const focus = step(CODE, 45, {
     language: 'JavaScript',
     testing: true,
-    screen: { tone: 'dark', motion: 'static' },
-  });
-  assert.ok(stuck.some((r) => r.kind === 'screen-stuck'));
-
-  // 4. Bright screen late at night triggers screen-bright
-  const nightBright = step(CODE, 2, {
-    language: 'JavaScript',
-    testing: true,
-    screen: { tone: 'bright', motion: 'active' },
-    hour: 23,
-  });
-  assert.ok(nightBright.some((r) => r.kind === 'screen-bright'));
-
-  // 5. 45 minutes of coding triggers coding-focus
-  const focus = step(CODE, 35, {
-    language: 'JavaScript',
-    testing: true,
-    screen: { tone: 'dark', motion: 'active' },
   });
   assert.ok(focus.some((r) => r.kind === 'coding-focus'));
 
-  // 6. Rapid category switching triggers context-switch
+  // 4. Rapid category switching triggers context-switch
   const hopped = [];
   for (let i = 0; i < 4; i++) {
     t += 15000;

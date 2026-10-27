@@ -30,6 +30,8 @@
     chatterIntervalMin: 3.5,
     interactiveMode: 'low',
     stayStill: false,
+    transparentMode: false,
+    opacity: 0.6,
     x: null,
     y: null,
   };
@@ -88,6 +90,7 @@
     AemeathAtlas.validateAtlas(atlas);
     lorebook = AemeathLorebook.createLorebook(init.lorebook);
     applyScale();
+    applyTransparency();
 
     const bounds = flightBounds();
     const savedX = typeof settings.x === 'number' ? settings.x : workArea.width / 2;
@@ -270,6 +273,24 @@
   function applyScale() {
     canvas.style.width = petWidth() + 'px';
     canvas.style.height = petHeight() + 'px';
+  }
+
+  function applyTransparency() {
+    const isTransparent = settings.transparentMode === true;
+    const alpha = isTransparent
+      ? clamp(typeof settings.opacity === 'number' ? settings.opacity : 0.6, 0.15, 1)
+      : 1;
+    canvas.style.opacity = String(alpha);
+    canvas.classList.toggle('click-through', isTransparent);
+    bubble.classList.toggle('click-through', isTransparent);
+    musicBadge.classList.toggle('click-through', isTransparent);
+    if (isTransparent) {
+      if (dragState) {
+        canvas.classList.remove('dragging');
+        dragState = null;
+      }
+      if (!chatOpen()) setHover(false);
+    }
   }
 
   // Ghost hover: a slow vertical sway so a resting pet still floats.
@@ -457,19 +478,19 @@
 
   function wireEvents() {
     // The window is click-through except over the pet and its bubbles.
+    // In transparent mode, the mouse passes right through the sprite and bubbles.
     document.addEventListener('mousemove', (e) => {
       if (dragState) return;
       const target = e.target;
-      const hovering =
-        target === canvas ||
-        bubble.contains(target) ||
-        musicBadge.contains(target) ||
-        chatPanel.contains(target);
+      const petInteractive =
+        settings.transparentMode !== true &&
+        (target === canvas || bubble.contains(target) || musicBadge.contains(target));
+      const hovering = petInteractive || chatPanel.contains(target);
       setHover(hovering);
     });
 
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || settings.transparentMode === true) return;
       dragState = {
         startX: e.screenX,
         startY: e.screenY,
@@ -504,7 +525,7 @@
     canvas.addEventListener(
       'wheel',
       (e) => {
-        if (!e.ctrlKey) return;
+        if (!e.ctrlKey || settings.transparentMode === true) return;
         e.preventDefault();
         adjustScale(e.deltaY < 0 ? 0.1 : -0.1);
       },
@@ -512,6 +533,7 @@
     );
 
     canvas.addEventListener('contextmenu', (e) => {
+      if (settings.transparentMode === true) return;
       e.preventDefault();
       window.aemeath.openContextMenu();
     });
@@ -545,6 +567,7 @@
       settings = Object.assign({}, settings, next);
       if (walker) walker.speed = settings.speed;
       if (scaleChanged) applyScale();
+      applyTransparency();
       if (intervalChanged) scheduleChat(performance.now());
     });
     window.aemeath.onChatState((state) => {

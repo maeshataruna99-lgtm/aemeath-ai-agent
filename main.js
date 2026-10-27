@@ -8,7 +8,6 @@ const {
   ipcMain,
   nativeImage,
   dialog,
-  desktopCapturer,
   globalShortcut,
   powerMonitor,
   safeStorage,
@@ -37,7 +36,6 @@ const { createTerminalController } = require('./src/terminal/terminal-controller
 const { createActivityMonitor } = require('./src/activity/activity-monitor');
 const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
-const { createScreenSampler } = require('./src/activity/screen-analyzer');
 const { createWorkReviewer } = require('./src/activity/work-reviewer');
 const { createProductivityHub } = require('./src/productivity/productivity-hub');
 const {
@@ -207,28 +205,6 @@ function main() {
   let selfieNow = 1000000;
   let selfieSample = null;
   const selfieRemarks = [];
-  const screenSampler = createScreenSampler({
-    captureFrame: isSelfie
-      ? async () => ({
-          data: Buffer.alloc(16 * 9 * 4, 40),
-          width: 16,
-          height: 9,
-        })
-      : async () => {
-          const sources = await desktopCapturer.getSources({
-            types: ['screen'],
-            thumbnailSize: { width: 320, height: 180 },
-          });
-          const first = sources && sources[0];
-          if (!first || !first.thumbnail || first.thumbnail.isEmpty()) return null;
-          const size = first.thumbnail.getSize();
-          return {
-            data: first.thumbnail.toBitmap(),
-            width: size.width,
-            height: size.height,
-          };
-        },
-  });
   const activity = createActivityMonitor({
     createWatcher: (onSample) => {
       if (!isSelfie) return createActivityWatcher({ onSample });
@@ -244,9 +220,6 @@ function main() {
       getLimitMin: () => settings.doomscrollLimitMin,
       getMode: () => settings.interactiveMode,
     }),
-    screenSampler: screenSampler,
-    shouldCaptureScreen: () =>
-      settings.interactiveMode === 'full' && settings.fullScreenCapture !== false,
     getIdleSeconds: () => (isSelfie ? 0 : powerMonitor.getSystemIdleTime()),
     onRemark: (remark) => {
       if (isSelfie) selfieRemarks.push(remark.kind);
@@ -365,11 +338,13 @@ function main() {
         'terminalEnabled',
         'startAtLogin',
         'stayStill',
+        'transparentMode',
         'fullConsent',
-        'fullScreenCapture',
-        'fullAiReview',
       ]) {
         if (patch && typeof patch[flag] === 'boolean') next[flag] = patch[flag];
+      }
+      if (patch && typeof patch.opacity === 'number') {
+        next.opacity = patch.opacity;
       }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
         next.chatterIntervalMin = patch.chatterIntervalMin;
@@ -385,6 +360,7 @@ function main() {
       if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
       if (patch && typeof patch.chatShortcut === 'string') next.chatShortcut = patch.chatShortcut;
       Object.assign(settings, settingsStore.save(next));
+      if (settings.transparentMode) win?.setIgnoreMouseEvents(true, { forward: true });
       win?.webContents?.send('settings:updated', settings);
       applyActivityMode();
       applyStartup();
@@ -672,6 +648,9 @@ function main() {
 
   function toggleFeature(key) {
     Object.assign(settings, settingsStore.save({ [key]: !settings[key] }));
+    if (key === 'transparentMode' && settings.transparentMode) {
+      win?.setIgnoreMouseEvents(true, { forward: true });
+    }
     applyFeatureFlags();
     win?.webContents?.send('settings:updated', settings);
     updateTray();
@@ -700,6 +679,10 @@ function main() {
       {
         label: 'Diam di tempat: ' + (settings.stayStill ? 'aktif' : 'nonaktif'),
         click: () => toggleFeature('stayStill'),
+      },
+      {
+        label: 'Mode transparan (tembus klik): ' + (settings.transparentMode ? 'aktif' : 'nonaktif'),
+        click: () => toggleFeature('transparentMode'),
       },
       {
         label: 'Kecepatan jalan',

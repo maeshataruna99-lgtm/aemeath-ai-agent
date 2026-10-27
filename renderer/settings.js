@@ -85,8 +85,10 @@
     startupToggle.checked = settings.startAtLogin !== false;
     refreshStartup();
     stillToggle.checked = settings.stayStill === true;
+    transparentToggle.checked = settings.transparentMode === true;
+    opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
+    renderTransparency();
     shortcutSelect.value = typeof settings.chatShortcut === 'string' ? settings.chatShortcut : 'Alt+Space';
-    fullScreenToggle.checked = settings.fullScreenCapture !== false;
     doom.value = settings.doomscrollLimitMin || 20;
     doomValue.textContent = 'setelah ' + doom.value + ' menit';
     renderMode(
@@ -188,6 +190,27 @@
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });
+  });
+
+  const transparentToggle = document.getElementById('transparent-toggle');
+  const opacityInput = document.getElementById('opacity');
+  const opacityValue = document.getElementById('opacity-value');
+  const opacityRow = document.getElementById('opacity-row');
+
+  function renderTransparency() {
+    const on = transparentToggle.checked;
+    opacityValue.textContent = opacityInput.value + '%';
+    opacityRow.classList.toggle('dim', !on);
+    opacityInput.disabled = !on;
+  }
+
+  transparentToggle.addEventListener('change', () => {
+    renderTransparency();
+    window.aemeathSettings.set({ transparentMode: transparentToggle.checked });
+  });
+  opacityInput.addEventListener('input', renderTransparency);
+  opacityInput.addEventListener('change', () => {
+    window.aemeathSettings.set({ opacity: Number(opacityInput.value) / 100 });
   });
 
   const shortcutSelect = document.getElementById('shortcut');
@@ -480,8 +503,6 @@
   const acceptFull = document.getElementById('full-accept');
   const cancelFull = document.getElementById('full-cancel');
   const mediumOptions = document.getElementById('medium-options');
-  const fullOptions = document.getElementById('full-options');
-  const fullScreenToggle = document.getElementById('full-screen-toggle');
   const doom = document.getElementById('doom');
   const doomValue = document.getElementById('doom-value');
   const activityNow = document.getElementById('activity-now');
@@ -507,7 +528,6 @@
     fullConsent.classList.add('hidden');
     const watching = activeMode === 'medium' || activeMode === 'full';
     mediumOptions.classList.toggle('hidden', !watching);
-    fullOptions.classList.toggle('hidden', activeMode !== 'full');
     clearInterval(activityTimer);
     activityTimer = null;
     if (watching) {
@@ -518,7 +538,7 @@
 
   modeLow.addEventListener('change', () => {
     renderMode('low');
-    window.aemeathSettings.set({ interactiveMode: 'low', fullConsent: false, fullAiReview: false });
+    window.aemeathSettings.set({ interactiveMode: 'low', fullConsent: false });
   });
 
   // Medium reads the window in front, so it only turns on after an explicit yes.
@@ -528,7 +548,7 @@
   });
   acceptMedium.addEventListener('click', () => {
     renderMode('medium');
-    window.aemeathSettings.set({ interactiveMode: 'medium', fullConsent: false, fullAiReview: false });
+    window.aemeathSettings.set({ interactiveMode: 'medium', fullConsent: false });
   });
   cancelMedium.addEventListener('click', () => consent.classList.add('hidden'));
 
@@ -542,14 +562,9 @@
     window.aemeathSettings.set({
       interactiveMode: 'full',
       fullConsent: true,
-      fullScreenCapture: fullScreenToggle.checked,
     });
   });
   cancelFull.addEventListener('click', () => fullConsent.classList.add('hidden'));
-
-  fullScreenToggle.addEventListener('change', () => {
-    window.aemeathSettings.set({ fullScreenCapture: fullScreenToggle.checked });
-  });
 
   doom.addEventListener('input', () => {
     doomValue.textContent = 'setelah ' + doom.value + ' menit';

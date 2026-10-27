@@ -77,11 +77,10 @@ test('full mode is accepted only when fullConsent is explicitly true, and resets
   assert.equal(store.save({ interactiveMode: 'full', fullConsent: true }).interactiveMode, 'full');
   assert.equal(createSettingsStore(dir).load().interactiveMode, 'full');
 
-  // Leaving full mode clears fullConsent and fullAiReview so re-entering requires fresh consent
-  store.save({ interactiveMode: 'medium', fullAiReview: true });
+  // Leaving full mode clears fullConsent so re-entering requires fresh consent
+  store.save({ interactiveMode: 'medium' });
   assert.equal(store.data.interactiveMode, 'medium');
   assert.equal(store.data.fullConsent, false);
-  assert.equal(store.data.fullAiReview, false);
   assert.equal(store.save({ interactiveMode: 'full' }).interactiveMode, 'low');
 });
 
@@ -110,4 +109,21 @@ test('chatShortcut defaults to Alt+Space, accepts valid presets or empty string,
   assert.equal(store.save({ chatShortcut: '' }).chatShortcut, '', 'empty string disables the shortcut');
   assert.equal(createSettingsStore(dir).load().chatShortcut, '');
   assert.equal(store.save({ chatShortcut: 'Ctrl+Alt+Delete' }).chatShortcut, 'Alt+Space', 'unknown shortcut falls back to default');
+});
+
+test('transparentMode defaults to false and opacity is clamped between 0.15 and 1.0', () => {
+  const dir = tempDir('transparent');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().transparentMode, false);
+  assert.equal(store.load().opacity, 0.6);
+
+  assert.equal(store.save({ transparentMode: true, opacity: 0.45 }).transparentMode, true);
+  assert.equal(store.data.opacity, 0.45);
+  assert.equal(createSettingsStore(dir).load().transparentMode, true);
+  assert.equal(createSettingsStore(dir).load().opacity, 0.45);
+
+  assert.equal(store.save({ opacity: 0.01 }).opacity, 0.15);
+  assert.equal(store.save({ opacity: 5 }).opacity, 1);
+  assert.equal(store.save({ transparentMode: 'yes', opacity: 'x' }).transparentMode, false);
+  assert.equal(store.data.opacity, 0.6);
 });

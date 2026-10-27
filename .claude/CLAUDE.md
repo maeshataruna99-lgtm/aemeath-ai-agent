@@ -195,22 +195,21 @@ yang boleh naik ke repositori git atau dikirim ke internet.**
 
 - Mode bawaan selalu Low. Medium hanya boleh menyala setelah pemilik menyetujui penjelasannya di
   Pengaturan, dan Full tidak boleh bisa dipilih sebelum ada persetujuan terpisah (`fullConsent`).
-- Yang boleh dibaca di Medium hanya proses, jalur program, dan judul jendela yang aktif. Dilarang
-  menambah keylogger, papan klip, isi berkas, isi halaman web, atau alamat URL.
-- Di mode Full, cuplikan layar ringan (`320×180`) hanya boleh dihitung kecerahan dan gerakannya di
-  memori (RAM) lalu byte gambarnya langsung dibuang. Dilarang menulis gambar ke disk atau mengirimnya
-  ke proses luar, model AI, maupun internet.
+- Yang boleh dibaca di Medium dan Full hanya proses, jalur program, dan judul jendela yang aktif
+  (untuk mendeteksi aplikasi yang dibuka, media sosial, game, atau bahasa pemrograman di judul editor).
+  Dilarang menambah tangkapan layar (`desktopCapturer`), keylogger, papan klip, isi berkas, isi halaman
+  web, atau alamat URL.
 - Judul jendela, nama berkas, dan jalur program dibuang segera setelah dikelompokkan. Jangan
   menyimpannya, mencatatnya ke log, menulisnya ke disk, atau menampilkannya, termasuk di menu tray
   dan keluaran selfie.
-- Hasil pembacaan aktivitas, cuplikan layar, evaluasi pekerjaan (`/review`), dan fitur produktivitas
-  (`/timer`, `/todo`, `/note`, `/stats`) wajib **100% lokal** dan **dilarang keras dikirim ke chatbot,
-  pencarian web, penyedia model AI, telemetri, atau jaringan internet mana pun**.
+- Hasil pembacaan aktivitas, evaluasi pekerjaan (`/review`), dan fitur produktivitas (`/timer`,
+  `/todo`, `/note`, `/stats`) wajib **100% lokal** dan **dilarang keras dikirim ke chatbot, pencarian
+  web, penyedia model AI, telemetri, atau jaringan internet mana pun**.
 - Setiap teks yang berpotensi berisi kunci rahasia (`sk-...`, `Bearer ...`, `API_KEY=...`, `.env`,
   `PRIVATE KEY`) wajib disensor secara lokal (`redact` / `containsSecret`) dan ditolak dari penyimpanan
   plaintext maupun pengiriman keluar.
-- Jendela pribadi, pengelola kata sandi, layar kunci, dan prompt UAC tidak boleh dibaca atau diambil
-  cuplikan layarnya. Menu tray harus selalu menampilkan apa yang sedang terbaca selama Medium/Full menyala.
+- Jendela pribadi, pengelola kata sandi, layar kunci, dan prompt UAC tidak boleh dibaca. Menu tray
+  harus selalu menampilkan apa yang sedang terbaca selama Medium/Full menyala.
 
 ## 9. Startup otomatis
 

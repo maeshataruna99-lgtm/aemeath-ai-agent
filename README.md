@@ -16,6 +16,9 @@ perintah `/nama`. Karya penggemar Wuthering Waves, tidak resmi dan non-komersial
   skala 0,5x sampai 3x. Posisi, skala, dan kecepatan gerak diingat setelah restart.
 - **Bisa diam di tempat.** Kalau Aemeath tidak perlu berkeliling, nyalakan "Aemeath diam di tempat" di Pengaturan
   (tab *Umum*) atau menu tray. Dia tetap bisa diseret, berbicara, dan bereaksi.
+- **Mode transparan (tembus klik) & slider opacity.** Nyalakan "Mode transparan" di Pengaturan (tab *Umum*)
+  atau menu tray untuk mengaktifkan slider opacity sprite (15% sampai 100%, bawaan 60%) sekaligus membuat
+  mouse menembus sprite dan gelembung bicara Aemeath tanpa menghalangi klik pada aplikasi di bawahnya.
 - **Klik untuk ngobrol, klik kanan untuk menu, atau tekan pintasan keyboard.** Pintasan bawaan
   `Alt+Space` (bisa diganti atau dimatikan di Pengaturan, tab *Umum*) membuka atau menutup kotak
   chat dari aplikasi mana saja.
@@ -46,7 +49,7 @@ Seberapa jauh Aemeath ikut campur diatur di Pengaturan, tab *Umum*:
 |---|---|
 | **Low** (bawaan) | Mengajakmu mengobrol dan berbicara seperti biasa: celetukan, trivia, dan chat. |
 | **Medium** | Selain Low, dia boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, ngoding, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling. |
-| **Full** | Semua dari Medium, ditambah komentar aktif saat ngoding (bahasa & tes), deteksi pindah-pindah aplikasi terlalu cepat, cuplikan layar ringan 320×180 di memori untuk mengenali layar diam/terlalu terang, serta `/review` untuk menilai perubahan git lokal. |
+| **Full** | Semua dari Medium (mendeteksi program yang dibuka & media sosial), ditambah komentar aktif saat ngoding (bahasa & tes), deteksi pindah-pindah aplikasi terlalu cepat, serta `/review` untuk menilai perubahan git lokal (tanpa tangkapan layar). |
 
 Medium dan Full baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilakukan Medium:
 
@@ -65,12 +68,9 @@ Medium dan Full baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Y
 
 Di mode **Full** (memerlukan persetujuan terpisah), Aemeath juga melakukan:
 
-- **Konteks ngoding & kerja.** Mengenali bahasa pemrograman dan berkas tes dari ekstensi di judul editor
-  (tanpa menyimpan nama berkasnya), menyapa saat kamu mulai ngoding, mengomentari tes, mengingatkan fokus
-  tiap 45 menit, dan menegur kalau kamu berpindah aplikasi terlalu cepat.
-- **Cuplikan layar ringan (opsional).** Mengambil thumbnail 320×180 setiap beberapa sampel, menghitung
-  kecerahan dan perubahan gerak (16×9 sel) di memori untuk tahu saat layarmu macet lama saat kerja atau
-  terlalu silau tengah malam, lalu langsung membuang gambarnya.
+- **Konteks ngoding & kerja (tanpa tangkapan layar).** Mengenali bahasa pemrograman dan berkas tes dari ekstensi
+  di judul editor (tanpa menyimpan nama berkasnya), menyapa saat kamu mulai ngoding, mengomentari tes, mengingatkan
+  fokus tiap 45 menit, dan menegur kalau kamu berpindah aplikasi terlalu cepat.
 - **Penilaian pekerjaan (`/review`).** Memeriksa `git status` dan `git diff` 100% secara lokal untuk merangkum berkas
   yang berubah, cakupan tes, sisa `console.log`, `TODO`/`FIXME`, serta memperingatkan bila ada potensi kebocoran API key
   atau berkas `.env`. Tidak ada data diff atau berkas yang dikirim ke internet.
@@ -181,9 +181,7 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
   jendela yang aktif. Judul dan jalur dibuang segera setelah dipakai mengelompokkan; yang diingat hanya
   kategori, nama aplikasi atau game, dan penghitung waktu, di memori saja.
 - Di mode Full, ekstensi berkas di judul editor dipakai untuk mengenali bahasa pemrograman dan apakah itu
-  berkas tes (tanpa menyimpan nama berkas atau judulnya). Cuplikan layar ringan mengambil thumbnail
-  320×180 di memori, menghitung rata-rata kecerahan dan perubahan gerak (16×9 sel), lalu langsung membuang
-  byte gambarnya—tidak pernah ditulis ke disk atau dikirim ke internet.
+  berkas tes (tanpa menyimpan nama berkas atau judulnya). Aemeath tidak pernah menangkap atau merekam layar.
 - Perintah `/review` membaca `git status` dan `git diff` lokal secara langsung tanpa shell, menyensor pola
   kunci rahasia (`sk-...`, `API_KEY=...`, `.env`), dan 100% berjalan lokal tanpa pernah mengirim potongan diff
   atau isi berkas ke penyedia model maupun jaringan internet mana pun.

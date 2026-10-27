@@ -17,7 +17,6 @@ const GAME_FIRST_REMINDER_MS = 90 * 60 * 1000;
 const GAME_NEXT_REMINDER_MS = 60 * 60 * 1000;
 const CODING_REMINDER_MS = 45 * 60 * 1000;
 const VIDEO_REMINDER_MS = 45 * 60 * 1000;
-const SCREEN_STUCK_MS = 10 * 60 * 1000;
 const SWITCH_WINDOW_MS = 3 * 60 * 1000;
 const SWITCH_THRESHOLD = 6;
 const SWITCH_COOLDOWN_MS = 15 * 60 * 1000;
@@ -70,9 +69,6 @@ function createActivityTracker(options) {
   let videoMs = 0;
   let videoAway = 0;
   let nextVideoReminder = VIDEO_REMINDER_MS;
-  let staticScreenMs = 0;
-  let nextStuckReminder = SCREEN_STUCK_MS;
-  let brightWarned = false;
   let lastCategory = null;
   let switchTimes = [];
   let lastSwitchWarnAt = -Infinity;
@@ -104,9 +100,6 @@ function createActivityTracker(options) {
     videoMs = 0;
     videoAway = 0;
     nextVideoReminder = VIDEO_REMINDER_MS;
-    staticScreenMs = 0;
-    nextStuckReminder = SCREEN_STUCK_MS;
-    brightWarned = false;
     lastCategory = null;
     switchTimes = [];
     lastSwitchWarnAt = -Infinity;
@@ -236,13 +229,6 @@ function createActivityTracker(options) {
           nextVideoReminder = VIDEO_REMINDER_MS;
         }
       }
-
-      if ((cat === 'coding' || cat === 'work') && ctx.screen && ctx.screen.motion === 'static') {
-        staticScreenMs += step;
-      } else if (ctx.screen && ctx.screen.motion !== 'static') {
-        staticScreenMs = 0;
-        nextStuckReminder = SCREEN_STUCK_MS;
-      }
     }
 
     const remarks = [];
@@ -295,29 +281,6 @@ function createActivityTracker(options) {
           'Sudah ' +
             minutes(codingMs) +
             ' menit fokus ngoding, Rover! Keren banget, tapi istirahatkan mata 20 detik dan minum air dulu yuk~',
-        );
-      } else if (
-        (info.category === 'coding' || info.category === 'work') &&
-        staticScreenMs >= nextStuckReminder
-      ) {
-        nextStuckReminder += SCREEN_STUCK_MS;
-        emit(
-          'screen-stuck',
-          'Tampilan layarmu diam di bagian yang sama selama ' +
-            minutes(staticScreenMs) +
-            ' menit, Rover. Lagi mentok mikirin logika atau bug yang licin ya? Kalau mau diskusi, panggil aku di chat!~',
-        );
-      } else if (
-        ctx.screen &&
-        ctx.screen.tone === 'bright' &&
-        typeof ctx.hour === 'number' &&
-        (ctx.hour >= 23 || ctx.hour <= 4) &&
-        !brightWarned
-      ) {
-        brightWarned = true;
-        emit(
-          'screen-bright',
-          'Rover, tampilan layarmu terang banget di jam malam begini! Turunkan kecerahan atau nyalakan dark mode yuk biar matamu nggak cepat lelah~',
         );
       } else if (info.category === 'work' && workApp !== info.app) {
         workApp = info.app;

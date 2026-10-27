@@ -30,7 +30,7 @@
           </label>
           <label class="mode-option" for="mode-full">
             <input type="radio" name="mode" id="mode-full" value="full">
-            <span><strong>Full</strong> <em class="soon">Baru</em><br>Lebih intens dari Medium: Aemeath mengomentari apa pun yang kamu lakukan, mengambil sampel layar ringan (di memori) untuk tahu kondisi tampilanmu, serta membaca dan menilai pekerjaanmu (<code>/review</code>).</span>
+            <span><strong>Full</strong> <em class="soon">Baru</em><br>Lebih intens dari Medium: Aemeath mendeteksi program yang kamu buka, media sosial, bahasa pemrograman &amp; berkas test saat ngoding, berpindah-pindah jendela, serta menilai pekerjaanmu (<code>/review</code>) tanpa menangkap layar.</span>
           </label>
         </div>
 
@@ -52,10 +52,10 @@
         <div id="full-consent" class="consent hidden">
           <p><strong>Sebelum menyalakan Full</strong>, ini yang terjadi:</p>
           <ul>
-            <li>Mencakup semua pembacaan Medium, ditambah deteksi bahasa pemrograman dan berkas test saat kamu ngoding, serta pengingat bila kamu terlalu sering berpindah jendela.</li>
-            <li>Mengambil sampel layar kecil (thumbnail 320&times;180 di memori) untuk mengenali kecerahan dan apakah tampilanmu diam lama (misalnya saat mentok di bug). Gambar langsung dibuang dalam milidetik dan tidak pernah disimpan ke disk atau dikirim ke mana pun.</li>
-            <li>Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tetap dilewati dan tidak pernah ditangkap.</li>
-            <li>Perintah <code>/review</code> memeriksa status <code>git diff</code> 100% secara lokal di komputer ini dan mendeteksi bila ada potensi kebocoran API key atau berkas <code>.env</code>. Tidak ada data aktivitas, layar, atau kodingan yang pernah dikirim ke internet.</li>
+            <li>Mencakup semua pembacaan Medium (mendeteksi program yang dibuka dan media sosial), ditambah deteksi bahasa pemrograman dan berkas test saat kamu ngoding, serta pengingat bila kamu terlalu sering berpindah jendela.</li>
+            <li>Tidak pernah menangkap atau merekam layar (ringan di CPU/RAM).</li>
+            <li>Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tetap dilewati dan tidak pernah dibaca.</li>
+            <li>Perintah <code>/review</code> memeriksa status <code>git diff</code> 100% secara lokal di komputer ini dan mendeteksi bila ada potensi kebocoran API key atau berkas <code>.env</code>. Tidak ada data aktivitas atau kodingan yang pernah dikirim ke internet.</li>
           </ul>
           <div class="buttons">
             <button type="button" id="full-accept">Aktifkan Full</button>
@@ -69,12 +69,6 @@
             <output id="doom-value"></output>
           </div>
           <input type="range" id="doom" min="5" max="120" step="5">
-          <div id="full-options" class="hidden">
-            <label class="field check" for="full-screen-toggle">
-              <input type="checkbox" id="full-screen-toggle">
-              <span>Tangkap layar ringan (100% di memori lokal, tidak pernah disimpan atau dikirim ke internet)</span>
-            </label>
-          </div>
           <p id="activity-now" class="status"></p>
         </div>
       </section>
@@ -97,7 +91,7 @@
       <hr>
 
       <section class="row" id="movement">
-        <h2>Gerak</h2>
+        <h2>Gerak &amp; tampilan</h2>
         <label class="field check" for="still-toggle">
           <input type="checkbox" id="still-toggle">
           <span>Aemeath diam di tempat</span>
@@ -106,6 +100,24 @@
           Aemeath berhenti terbang berkeliling dan tetap di posisinya sekarang. Kamu masih bisa menyeretnya ke
           tempat lain, dan dia tetap berbicara dan bereaksi. Bisa juga diganti dari menu tray.
         </p>
+
+        <label class="field check" for="transparent-toggle">
+          <input type="checkbox" id="transparent-toggle">
+          <span>Mode transparan (mouse menembus sprite Aemeath)</span>
+        </label>
+        <p class="hint tight">
+          Saat aktif, kursor dan klik mouse menembus sprite dan balon bicara Aemeath sehingga tidak menghalangi
+          pekerjaanmu. Kamu tetap bisa membuka chat lewat pintasan keyboard atau menu tray.
+        </p>
+
+        <div id="opacity-row" class="row">
+          <div class="head">
+            <label for="opacity">Opacity sprite saat mode transparan</label>
+            <output id="opacity-value"></output>
+          </div>
+          <input type="range" id="opacity" min="15" max="100" step="5">
+          <div class="scale"><span>tipis (15%)</span><span>jelas (100%)</span></div>
+        </div>
       </section>
 
       <hr>

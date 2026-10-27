@@ -19,11 +19,11 @@ const DEFAULTS = {
   terminalEnabled: true,
   startAtLogin: true,
   stayStill: false,
+  transparentMode: false,
+  opacity: 0.6,
   chatShortcut: 'Alt+Space',
   interactiveMode: 'low',
   fullConsent: false,
-  fullScreenCapture: true,
-  fullAiReview: false,
   doomscrollLimitMin: 20,
   x: null,
   y: null,
@@ -33,6 +33,8 @@ const CHAT_SHORTCUTS = ['', 'Alt+Space', 'CommandOrControl+Shift+A', 'CommandOrC
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
+const MIN_OPACITY = 0.15;
+const MAX_OPACITY = 1;
 // Average gap between Aemeath's remarks, in minutes.
 const MIN_CHAT_INTERVAL = 1;
 const MAX_CHAT_INTERVAL = 15;
@@ -54,7 +56,6 @@ function keepActivity(data) {
   }
   if (data.interactiveMode !== 'full') {
     data.fullConsent = false;
-    data.fullAiReview = false;
   }
   const limit = data.doomscrollLimitMin;
   data.doomscrollLimitMin =
@@ -70,9 +71,8 @@ function keepFlags(data) {
     'terminalEnabled',
     'startAtLogin',
     'stayStill',
+    'transparentMode',
     'fullConsent',
-    'fullScreenCapture',
-    'fullAiReview',
   ]) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
@@ -89,6 +89,11 @@ function keepStrings(data) {
 function clampScale(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.scale;
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
+}
+
+function clampOpacity(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.opacity;
+  return Math.round(Math.min(MAX_OPACITY, Math.max(MIN_OPACITY, value)) * 100) / 100;
 }
 
 // The app was renamed Aemeth -> Aemeath, which moved its userData directory.
@@ -118,6 +123,7 @@ function createSettingsStore(userDataPath) {
       data = Object.assign({}, DEFAULTS);
     }
     data.scale = clampScale(data.scale);
+    data.opacity = clampOpacity(data.opacity);
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
@@ -128,6 +134,7 @@ function createSettingsStore(userDataPath) {
   function save(patch) {
     data = Object.assign({}, data, patch || {});
     data.scale = clampScale(data.scale);
+    data.opacity = clampOpacity(data.opacity);
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
@@ -160,6 +167,8 @@ module.exports = {
   DEFAULTS,
   MIN_SCALE,
   MAX_SCALE,
+  MIN_OPACITY,
+  MAX_OPACITY,
   MIN_CHAT_INTERVAL,
   MAX_CHAT_INTERVAL,
   MIN_DOOMSCROLL_LIMIT,
