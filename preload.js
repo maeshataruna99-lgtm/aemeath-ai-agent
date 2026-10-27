@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('aemeath', {
   blurWindow: () => ipcRenderer.send('chat:blur'),
   onChatToggle: (fn) => ipcRenderer.on('chat:toggle', () => fn()),
   onActivityRemark: (fn) => ipcRenderer.on('activity:remark', (_e, remark) => fn(remark)),
+  onPresence: (fn) => ipcRenderer.on('presence:state', (_e, state) => fn(state)),
   onChatState: (fn) => ipcRenderer.on('chat:state', (_e, state) => fn(state)),
   onChatChunk: (fn) => {
     const listener = (_e, chunk) => fn(chunk);
@@ -35,5 +36,10 @@ contextBridge.exposeInMainWorld('aemeath', {
   },
   openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
   onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
+  // Companion memory: she can offer to remember something, and Rover answers on
+  // the bubble. The overlay never reads the memory list.
+  onMemoryOffer: (fn) => ipcRenderer.on('memory:offer', (_e, offer) => fn(offer)),
+  acceptMemory: (offerId) => ipcRenderer.invoke('memory:accept', offerId),
+  dismissMemory: (offerId) => ipcRenderer.invoke('memory:dismiss', offerId),
   onLorebookUpdated: (fn) => ipcRenderer.on('lorebook:updated', (_e, data) => fn(data)),
 });

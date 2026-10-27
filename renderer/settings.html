@@ -15,6 +15,7 @@
       <button type="button" role="tab" id="tab-general" class="tab" aria-controls="panel-general" aria-selected="true">Umum</button>
       <button type="button" role="tab" id="tab-chatbot" class="tab" aria-controls="panel-chatbot" aria-selected="false" tabindex="-1">Chatbot</button>
       <button type="button" role="tab" id="tab-commands" class="tab" aria-controls="panel-commands" aria-selected="false" tabindex="-1">Perintah</button>
+      <button type="button" role="tab" id="tab-memory" class="tab" aria-controls="panel-memory" aria-selected="false" tabindex="-1">Memori</button>
     </div>
 
     <div class="panel" role="tabpanel" id="panel-general" aria-labelledby="tab-general">
@@ -153,6 +154,44 @@
         <input type="range" id="interval" min="1" max="15" step="0.5">
         <div class="scale"><span>sering</span><span>jarang</span></div>
         <p id="range" class="hint"></p>
+      </section>
+
+      <hr>
+
+      <section class="row" id="proactive-section">
+        <h2>Interaksi proaktif</h2>
+        <label class="field check" for="proactive-pause">
+          <input type="checkbox" id="proactive-pause">
+          <span>Jeda semua interaksi proaktif</span>
+        </label>
+        <p class="hint tight">
+          Saat aktif, Aemeath berhenti menyapa dan berkomentar sendiri. Pengingat yang kamu jadwalkan
+          sendiri lewat <code>/timer</code> dan pemberitahuan penting sesi AI tetap muncul. Sakelar yang
+          sama ada di menu tray.
+        </p>
+
+        <div class="head">
+          <label for="proactive-cap">Batas reaksi proaktif per jam</label>
+          <output id="proactive-cap-value"></output>
+        </div>
+        <input type="range" id="proactive-cap" min="1" max="30" step="1">
+        <div class="scale"><span>jarang</span><span>sering</span></div>
+
+        <label class="field" for="proactive-cooldown">Jeda setelah satu jenis reaksi</label>
+        <select id="proactive-cooldown">
+          <option value="0">Tanpa jeda</option>
+          <option value="5">5 menit</option>
+          <option value="10">10 menit (bawaan)</option>
+          <option value="20">20 menit</option>
+          <option value="30">30 menit</option>
+          <option value="60">1 jam</option>
+        </select>
+        <p class="hint">
+          Batas ini berlaku untuk reaksi tentang aktivitasmu, bukan untuk celetukan yang jedanya kamu atur
+          di atas. Yang lebih penting selalu menang: keputusan sesi AI, sesi gagal, permintaanmu, timer
+          selesai, reaksi aktivitas, lalu celetukan. Celetukan ditunda saat kamu mengetik di kotak chat,
+          saat komputer idle, dan saat timer fokus berjalan.
+        </p>
       </section>
 
       <hr>
@@ -313,6 +352,70 @@
           setelah 30 detik. Aemeath selalu bertanya "ya" dulu untuk perintah yang bisa mematikan, menghapus,
           memformat, atau mengunduh lalu menjalankan sesuatu, dan kamu tidak bisa mematikan pertanyaan itu.
           Contoh <code>/matikan</code> memakai hitung mundur 60 detik yang bisa dibatalkan dengan <code>/batal</code>.
+        </p>
+      </section>
+    </div>
+
+    <div class="panel hidden" role="tabpanel" id="panel-memory" aria-labelledby="tab-memory">
+      <section class="row" id="memory">
+        <h2>Memori companion</h2>
+        <p class="hint tight0">
+          Hal-hal yang kamu izinkan untuk Aemeath ingat: proyek yang sedang kamu kerjakan, tugas yang belum
+          selesai, keputusan desain, dan cara kamu suka diajak bicara. Memori ini terpisah dari lorebook:
+          fakta Wuthering Waves tetap berasal dari wiki, dan memori tidak pernah mengubah canon.
+        </p>
+
+        <label class="field check" for="memory-enabled">
+          <input type="checkbox" id="memory-enabled">
+          <span>Izinkan Aemeath menyimpan memori</span>
+        </label>
+        <p class="hint tight">
+          Saat dimatikan, tidak ada yang disimpan dan tidak ada memori yang ikut dikirim ke model. Memori yang
+          sudah ada tetap bisa kamu lihat dan hapus di bawah.
+        </p>
+
+        <label class="field" for="memory-retention">Ringkasan dari AI dibersihkan setelah</label>
+        <select id="memory-retention">
+          <option value="30">30 hari</option>
+          <option value="90">90 hari (bawaan)</option>
+          <option value="180">180 hari</option>
+          <option value="365">1 tahun</option>
+          <option value="0">Tidak pernah otomatis</option>
+        </select>
+        <p class="hint tight">
+          Hanya ringkasan yang Aemeath buat sendiri yang mengikuti aturan ini. Memori yang kamu tulis sendiri
+          tidak pernah dibersihkan otomatis.
+        </p>
+
+        <p id="memory-status" class="status"></p>
+        <div id="memory-list"></div>
+
+        <div id="memory-new" class="mem hidden">
+          <textarea id="memory-new-text" rows="2" maxlength="280" placeholder="Misalnya: di aemeath-ai-agent aku sedang menggarap memori companion sebelum Focus Companion 2.0."></textarea>
+          <div class="mem-line">
+            <select id="memory-new-kind">
+              <option value="project">Proyek</option>
+              <option value="task">Tugas</option>
+              <option value="decision">Keputusan</option>
+              <option value="preference">Preferensi</option>
+              <option value="next-step">Langkah berikutnya</option>
+              <option value="context">Konteks</option>
+            </select>
+            <button type="button" id="memory-new-save">Simpan</button>
+            <button type="button" id="memory-new-cancel">Batal</button>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button type="button" id="add-memory">Tambah memori</button>
+          <button type="button" id="clear-memory">Hapus semua</button>
+        </div>
+        <p id="memory-note" class="status"></p>
+
+        <p class="hint">
+          Saat kamu mengirim pesan, hanya potongan memori yang berhubungan dengan pesan itu — paling banyak empat
+          baris — yang ikut ke model, bukan seluruh daftar. Semuanya tersimpan di <code>memory.json</code> di
+          folder data aplikasi; berkas itu boleh kamu hapus sendiri kapan saja.
         </p>
       </section>
     </div>

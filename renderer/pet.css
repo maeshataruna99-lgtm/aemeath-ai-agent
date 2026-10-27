@@ -72,6 +72,33 @@ body {
   color: #6b7280;
 }
 
+#bubble .bubble-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#bubble .bubble-actions button {
+  padding: 4px 12px;
+  border: 1px solid #f472b6;
+  border-radius: 999px;
+  background: #f472b6;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#bubble .bubble-actions button.ghost {
+  background: #fff;
+  color: #9d174d;
+}
+
+#bubble .bubble-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 #bubble.below::after {
   bottom: auto;
   top: -9px;

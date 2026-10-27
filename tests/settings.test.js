@@ -101,6 +101,34 @@ test('the doomscroll limit is a whole number of minutes between 5 and 120', () =
   assert.equal(store.save({ doomscrollLimitMin: NaN }).doomscrollLimitMin, 20);
 });
 
+test('the proactive pause switch defaults to off and stays boolean', () => {
+  const dir = tempDir('proactive-pause');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().proactivePaused, false);
+  assert.equal(store.save({ proactivePaused: true }).proactivePaused, true);
+  assert.equal(createSettingsStore(dir).load().proactivePaused, true);
+  assert.equal(store.save({ proactivePaused: 'yes' }).proactivePaused, false);
+});
+
+test('the hourly remark cap is a whole number between 1 and 30', () => {
+  const store = createSettingsStore(tempDir('proactive-cap'));
+  assert.equal(store.load().proactiveMaxPerHour, 6);
+  assert.equal(store.save({ proactiveMaxPerHour: 0 }).proactiveMaxPerHour, 1);
+  assert.equal(store.save({ proactiveMaxPerHour: 99 }).proactiveMaxPerHour, 30);
+  assert.equal(store.save({ proactiveMaxPerHour: 4.6 }).proactiveMaxPerHour, 5);
+  assert.equal(store.save({ proactiveMaxPerHour: 'x' }).proactiveMaxPerHour, 6);
+  assert.equal(store.save({ proactiveMaxPerHour: NaN }).proactiveMaxPerHour, 6);
+});
+
+test('the remark cooldown is a whole number of minutes between 0 and 60', () => {
+  const store = createSettingsStore(tempDir('proactive-cooldown'));
+  assert.equal(store.load().proactiveCooldownMin, 10);
+  assert.equal(store.save({ proactiveCooldownMin: 0 }).proactiveCooldownMin, 0, 'zero turns the cooldown off');
+  assert.equal(store.save({ proactiveCooldownMin: -5 }).proactiveCooldownMin, 0);
+  assert.equal(store.save({ proactiveCooldownMin: 120 }).proactiveCooldownMin, 60);
+  assert.equal(store.save({ proactiveCooldownMin: 'x' }).proactiveCooldownMin, 10);
+});
+
 test('staying still is off by default and only accepts a boolean', () => {
   const store = createSettingsStore(tempDir('still'));
   assert.equal(store.load().stayStill, false);

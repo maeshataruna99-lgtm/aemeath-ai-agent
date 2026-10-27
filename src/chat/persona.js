@@ -37,20 +37,38 @@ const CLOSING_RULES = [
 const PERSONA = IDENTITY.concat(WIKI_RULES, CLOSING_RULES).join('\n');
 const COMPANION_PERSONA = IDENTITY.concat(COMPANION_RULES, CLOSING_RULES).join('\n');
 
+// Companion memory rides along as its own section, never mixed into the lore
+// notes above it. A memory is Rover's own context, so it can never outrank a
+// canon fact, and she may not claim to remember anything that is not listed.
+const MEMORY_HEADER =
+  'Memori companion (catatan yang Rover izinkan untuk kamu ingat; ini pengalamanmu berdua, bukan canon Wuthering Waves):';
+
+const MEMORY_RULES = [
+  'Cara memakai memori: pakai hanya kalau berhubungan dengan yang sedang dibicarakan, dan bicara seolah kamu memang mengingatnya, bukan seolah membaca daftar.',
+  'Jangan pernah mengaku mengingat hal yang tidak ada di catatan itu. Kalau Rover bertanya soal sesuatu yang tidak tercatat, katakan terus terang kamu belum menyimpannya.',
+  'Kalau catatan memori bertentangan dengan canon di catatan pengetahuan, canon yang benar. Jangan menyalin seluruh memori ke jawaban, dan jangan menyebut kata "memori", "database", atau "sistem" kepada Rover.',
+];
+
 // knowledge: array of { topic, text } from the lorebook. The notes are written
 // in Aemeath's own voice, so they read naturally as her memories.
 // options.companion switches to the all-topic companion rules.
+// options.memory is the short block from the companion memory store (may be empty).
 function buildSystemPrompt(knowledge, options) {
   const base = options && options.companion ? COMPANION_PERSONA : PERSONA;
+  const parts = [base];
   const notes = Array.isArray(knowledge) ? knowledge : [];
-  if (notes.length === 0) return base;
-  const lines = notes.map((note) => '- [' + note.topic + '] ' + note.text);
-  return [
-    base,
-    '',
-    'Catatan pengetahuan (ingatanmu sendiri tentang dunia Wuthering Waves dan dirimu):',
-    lines.join('\n'),
-  ].join('\n');
+  if (notes.length > 0) {
+    parts.push(
+      '',
+      'Catatan pengetahuan (ingatanmu sendiri tentang dunia Wuthering Waves dan dirimu):',
+      notes.map((note) => '- [' + note.topic + '] ' + note.text).join('\n'),
+    );
+  }
+  const memory = options && typeof options.memory === 'string' ? options.memory.trim() : '';
+  if (memory) {
+    parts.push('', MEMORY_HEADER, memory, '', MEMORY_RULES.join('\n'));
+  }
+  return parts.join('\n');
 }
 
 module.exports = { buildSystemPrompt };

@@ -132,7 +132,23 @@
       log.scrollTop = log.scrollHeight;
     }
 
-    function add(kind, text, sources) {
+    // Says out loud when a stored note rode along with the request, so Rover never
+    // has to guess what part of his memory the provider saw.
+    function appendNote(container, text) {
+      if (!text) return;
+      const hint = document.createElement('div');
+      hint.className = 'credit';
+      hint.textContent = text;
+      container.appendChild(hint);
+    }
+
+    function memoryNote(result) {
+      const count = result && result.memoryUsed;
+      if (!count) return '';
+      return count + ' catatan memori ikut kupakai untuk jawaban ini';
+    }
+
+    function add(kind, text, sources, note) {
       const message = document.createElement('div');
       message.className = 'msg ' + kind;
       const body = document.createElement('div');
@@ -141,6 +157,7 @@
 
       updateMessageContent(message, text, kind.startsWith('bot') && !kind.includes('pending'));
       appendSources(message, sources);
+      appendNote(message, note);
 
       log.appendChild(message);
       while (log.children.length > MAX_MESSAGES) log.removeChild(log.firstChild);
@@ -407,9 +424,10 @@
             // Finalize with full text and clickable sources
             updateMessageContent(pending, result.text, true);
             appendSources(pending, result.sources);
+            appendNote(pending, memoryNote(result));
           } else {
             pending.remove();
-            add('bot', result.text, result.sources);
+            add('bot', result.text, result.sources, memoryNote(result));
           }
         } else {
           pending.remove();

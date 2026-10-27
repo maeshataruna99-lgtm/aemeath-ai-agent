@@ -40,6 +40,7 @@ const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
 const { createWorkReviewer } = require('./src/activity/work-reviewer');
 const { createProductivityHub } = require('./src/productivity/productivity-hub');
+const { createMemoryStore } = require('./src/memory/memory-store');
 const { detectPlatform, applyLinuxStartup, getLinuxStartupStatus } = require('./src/platform');
 const {
   createSettingsStore,
@@ -57,6 +58,8 @@ if (!gotLock) {
 
 function main() {
   const isSelfie = process.argv.includes('--selfie');
+  // No input for this long means Rover is away; routine lines wait until he is back.
+  const IDLE_PRESENCE_SECONDS = 120;
   app.setAppUserModelId('aemeath.ai.agent');
 
   const ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
@@ -66,12 +69,16 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let productivity = null;
+  let memoryStore = null;
   let lorebookUpdater = null;
   let activityTrayTimer = null;
   let tray = null;
   let provider = null;
   let media = null;
   let aggregateTimer = null;
+  let continuationTimer = null;
+  let presenceTimer = null;
+  let lastPresence = null;
 
   migrateLegacySettings(app.getPath('userData'), path.join(app.getPath('appData'), 'Aemeth'));
   const settingsStore = createSettingsStore(app.getPath('userData'));
@@ -169,6 +176,14 @@ function main() {
     }),
     search: isSelfie ? selfieSearch : createWebSearch(),
     localResponder: createLocalResponder({ getEntries: loreEntries }),
+    // Companion memory: the store only ever hands over the few entries that match
+    // this message, and the chat service reports how many it attached.
+    memory: {
+      context: (text) => (memoryStore ? memoryStore.context(text) : { entries: [], block: '' }),
+      used: (ids) => {
+        if (memoryStore) memoryStore.used(ids);
+      },
+    },
   });
 
   // Never includes a key: only whether one exists.
@@ -326,6 +341,9 @@ function main() {
       },
     });
     Object.assign(builtins, productivity.asBuiltins());
+    // Memory lives next to settings.json in the app data folder. The selfie run
+    // gets a throwaway folder, so visual checks never touch real memories.
+    memoryStore = createMemoryStore({ dir: dataDir });
 
     // The selfie run keeps keys in memory so it can never touch a real saved key.
     keyStore = createKeyStore({
@@ -366,7 +384,13 @@ function main() {
       win.show();
       console.log('[aemeath] pet window ready ' + workArea.width + 'x' + workArea.height);
       startWatchers();
-      if (isSelfie) runSelfie();
+      if (isSelfie) {
+        // A failed step must still close the app, or the verification run hangs.
+        runSelfie().catch((error) => {
+          console.error('[aemeath] selfie failed: ' + (error && error.message));
+          app.quit();
+        });
+      }
     });
 
     ipcMain.handle('init', () => ({
@@ -413,6 +437,13 @@ function main() {
       }
       if (patch && typeof patch.chatterIntervalMin === 'number') {
         next.chatterIntervalMin = patch.chatterIntervalMin;
+      }
+      if (patch && typeof patch.proactivePaused === 'boolean') next.proactivePaused = patch.proactivePaused;
+      if (patch && typeof patch.proactiveMaxPerHour === 'number') {
+        next.proactiveMaxPerHour = patch.proactiveMaxPerHour;
+      }
+      if (patch && typeof patch.proactiveCooldownMin === 'number') {
+        next.proactiveCooldownMin = patch.proactiveCooldownMin;
       }
       if (
         patch &&
@@ -595,6 +626,50 @@ function main() {
       return picked.canceled ? null : picked.filePaths[0];
     });
 
+    // Companion memory. The settings window owns the list; the overlay may only
+    // answer an offer she already made, and never reads or rewrites anything else.
+    const memoryStatus = () => (memoryStore ? memoryStore.status() : null);
+    ipcMain.handle('memory:status', (event) =>
+      fromWindow(event, settingsWin) || fromWindow(event, win) ? memoryStatus() : null,
+    );
+    ipcMain.handle('memory:list', (event) =>
+      fromWindow(event, settingsWin) && memoryStore ? memoryStore.list() : [],
+    );
+    ipcMain.on('memory:set', (event, patch) => {
+      if (!fromWindow(event, settingsWin) || !memoryStore || !patch) return;
+      if (typeof patch.disabled === 'boolean') memoryStore.setDisabled(patch.disabled);
+      if (typeof patch.retentionDays === 'number') memoryStore.setRetention(patch.retentionDays);
+      settingsWin?.webContents?.send('memory:updated', memoryStatus());
+    });
+    ipcMain.handle('memory:save', (event, payload) => {
+      if (!fromWindow(event, settingsWin) || !memoryStore) return { ok: false, error: 'Tidak diizinkan.' };
+      // Whatever the renderer sends, a memory typed in the manager is Rover's own.
+      return memoryStore.remember(Object.assign({}, payload, { source: 'user' }));
+    });
+    ipcMain.handle('memory:update', (event, payload) => {
+      if (!fromWindow(event, settingsWin) || !memoryStore) return { ok: false, error: 'Tidak diizinkan.' };
+      const patch = payload || {};
+      return memoryStore.update(patch.id, patch);
+    });
+    ipcMain.handle('memory:delete', (event, id) => {
+      if (!fromWindow(event, settingsWin) || !memoryStore) return false;
+      return memoryStore.forget(id);
+    });
+    ipcMain.handle('memory:clear', (event) => {
+      if (!fromWindow(event, settingsWin) || !memoryStore) return 0;
+      return memoryStore.clear();
+    });
+    ipcMain.handle('memory:accept', (event, offerId) => {
+      if (!fromWindow(event, win) || !memoryStore) return { ok: false, error: 'Tidak diizinkan.' };
+      const result = memoryStore.acceptOffer(offerId);
+      settingsWin?.webContents?.send('memory:updated', memoryStatus());
+      return result;
+    });
+    ipcMain.handle('memory:dismiss', (event, offerId) => {
+      if (!fromWindow(event, win) || !memoryStore) return false;
+      return memoryStore.dismissOffer(offerId);
+    });
+
     ipcMain.on('app:quit', () => app.quit());
     ipcMain.on('pet:contextmenu', () => {
       if (tray) tray.popUpContextMenu(Menu.buildFromTemplate(menuTemplate()));
@@ -614,9 +689,11 @@ function main() {
     terminal.stop();
     activity.stop();
     if (activityTrayTimer) clearInterval(activityTrayTimer);
+    if (presenceTimer) clearInterval(presenceTimer);
     if (provider) provider.stop();
     if (media) media.stop();
     if (aggregateTimer) clearInterval(aggregateTimer);
+    if (continuationTimer) clearTimeout(continuationTimer);
   });
 
   // Chat lives in a box next to the pet; the tray only asks the overlay to toggle it.
@@ -725,6 +802,7 @@ function main() {
         win?.webContents?.send('session:event', event);
         pushAggregate();
         updateTray();
+        maybeProposeMemory(event);
       },
     });
     media = createMediaWatcher({
@@ -739,6 +817,23 @@ function main() {
 
     aggregateTimer = setInterval(pushAggregate, 5000);
     pushAggregate();
+
+    // Whether Rover is at the desk and whether a focus timer is running: the
+    // behavior director uses both to hold back routine lines. Only a change is
+    // sent, so this costs nothing while nothing happens.
+    presenceTimer = setInterval(pushPresence, 10000);
+    pushPresence();
+
+    // Let the greeting land before memory speaks. Low mode never gets here.
+    continuationTimer = setTimeout(offerContinuation, 24000);
+  }
+
+  function pushPresence() {
+    const idle = isSelfie ? false : powerMonitor.getSystemIdleTime() >= IDLE_PRESENCE_SECONDS;
+    const focus = Boolean(productivity && productivity.timerActive);
+    if (lastPresence && lastPresence.idle === idle && lastPresence.focus === focus) return;
+    lastPresence = { idle: idle, focus: focus };
+    win?.webContents?.send('presence:state', lastPresence);
   }
 
   function applyFeatureFlags() {
@@ -754,6 +849,29 @@ function main() {
       running: provider ? provider.activeSessionCount() : 0,
       awaitingDecision: provider ? provider.pendingDecisionCount() : 0,
     });
+  }
+
+  // Full mode: a finished coding session is the one moment a summary is worth
+  // keeping, so she offers it. Nothing is stored until Rover says yes.
+  function maybeProposeMemory(event) {
+    if (!memoryStore || !event) return;
+    if (event.type !== 'turn-finished' || settings.interactiveMode !== 'full') return;
+    const offer = memoryStore.proposeSession({
+      project: event.projectName,
+      summary: event.summary,
+      sessionId: event.sessionId,
+    });
+    if (offer) win?.webContents?.send('memory:offer', offer);
+  }
+
+  // Medium and Full: one offer to continue what he was doing, at most once per
+  // working day. Low mode and a switched-off store stay quiet.
+  function offerContinuation() {
+    if (!memoryStore || !win) return;
+    const offer = memoryStore.continuation(settings.interactiveMode);
+    if (offer) {
+      win.webContents.send('memory:offer', { text: offer.text, actionable: false });
+    }
   }
 
   function adjustScale(delta) {
@@ -827,6 +945,10 @@ function main() {
       {
         label: 'Aemeath bicara: ' + (settings.chatterEnabled ? 'aktif' : 'nonaktif'),
         click: () => toggleFeature('chatterEnabled'),
+      },
+      {
+        label: 'Jeda interaksi proaktif: ' + (settings.proactivePaused ? 'aktif' : 'nonaktif'),
+        click: () => toggleFeature('proactivePaused'),
       },
       { label: 'Pengaturan...', click: () => openSettingsWindow() },
       { label: 'Atur ulang posisi', click: () => win?.webContents?.send('pet:reset') },
@@ -921,6 +1043,75 @@ function main() {
     fs.writeFileSync(path.join(dir, 'settings-window.png'), shot.toPNG());
     console.log('[aemeath] selfie saved: settings-window');
     Object.assign(settings, settingsStore.save({ chatterIntervalMin: before }));
+
+    // Companion memory, end to end: add one entry through the manager, then answer
+    // a real offer on the bubble. Both are IPC round trips, not canned replies.
+    await settingsWin.webContents.executeJavaScript(
+      `(() => {
+        document.getElementById('tab-memory').click();
+        document.getElementById('add-memory').click();
+        document.getElementById('memory-new-text').value =
+          'Proyek aemeath-ai-agent: modul memori companion selesai dan tesnya hijau.';
+        document.getElementById('memory-new-kind').value = 'project';
+        document.getElementById('memory-new-save').click();
+      })()`,
+    );
+    await sleep(900);
+    console.log(
+      '[aemeath] memory manager ' +
+        (await settingsWin.webContents.executeJavaScript(
+          `JSON.stringify({
+            status: document.getElementById('memory-status').textContent,
+            cards: document.querySelectorAll('#memory-list .mem').length,
+            texts: [...document.querySelectorAll('#memory-list textarea')].map((t) => t.value),
+            enabled: document.getElementById('memory-enabled').checked,
+          })`,
+        )),
+    );
+    fs.writeFileSync(path.join(dir, 'settings-memory.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    console.log('[aemeath] selfie saved: settings-memory');
+
+    // A memory offer only appears in Medium or Full, so switch for this check.
+    const modeBefore = settings.interactiveMode;
+    Object.assign(settings, settingsStore.save({ interactiveMode: 'medium' }));
+    win.webContents.send('settings:updated', settings);
+    await sleep(400);
+    const selfieOffer = memoryStore.proposeSession({
+      project: 'aemeath-ai-agent',
+      summary: 'Verifikasi visual: ringkasan sesi dan tombol memori di balon bicara.',
+    });
+    if (selfieOffer) {
+      win.webContents.send('memory:offer', selfieOffer);
+      await sleep(900);
+      console.log(
+        '[aemeath] memory offer ' +
+          (await win.webContents.executeJavaScript(
+            `JSON.stringify({
+              visible: !document.getElementById('bubble').classList.contains('hidden'),
+              buttons: [...document.querySelectorAll('#bubble .bubble-actions button')].map((b) => b.textContent),
+              text: document.getElementById('bubble').textContent,
+            })`,
+          )),
+      );
+      fs.writeFileSync(path.join(dir, 'memory-offer.png'), (await win.webContents.capturePage()).toPNG());
+      console.log('[aemeath] selfie saved: memory-offer');
+      const clicked = await win.webContents.executeJavaScript(
+        `(() => {
+          const button = document.querySelector('#bubble .bubble-actions button');
+          if (!button) return false;
+          button.click();
+          return true;
+        })()`,
+      );
+      await sleep(900);
+      console.log(
+        '[aemeath] memory after click (' + clicked + ') ' +
+          JSON.stringify(memoryStore.list().map((m) => m.source + ':' + m.kind)),
+      );
+    }
+    Object.assign(settings, settingsStore.save({ interactiveMode: modeBefore }));
+    win.webContents.send('settings:updated', settings);
+    await sleep(300);
 
     // Chatbot without a key: the lorebook answers, and the model is never called.
     const ask = async (text) => {

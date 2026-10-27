@@ -28,6 +28,11 @@ const DEFAULTS = {
   chatShortcut: 'Alt+Space',
   interactiveMode: 'low',
   fullConsent: false,
+  // Behavior director: the pause switch, the hourly cap on event-driven remarks,
+  // and how long one remark category stays quiet.
+  proactivePaused: false,
+  proactiveMaxPerHour: 6,
+  proactiveCooldownMin: 10,
   doomscrollLimitMin: 20,
   x: null,
   y: null,
@@ -47,6 +52,12 @@ const MIN_DOOMSCROLL_LIMIT = 5;
 const MAX_DOOMSCROLL_LIMIT = 120;
 // Interactive modes. `full` requires explicit `fullConsent: true` or it falls back to `low`.
 const INTERACTIVE_MODES = ['low', 'medium', 'full'];
+// Event-driven remarks Aemeath may make per hour in Medium or Full.
+const MIN_PROACTIVE_PER_HOUR = 1;
+const MAX_PROACTIVE_PER_HOUR = 30;
+// Minutes one remark category stays quiet after it spoke (0 turns the cooldown off).
+const MIN_PROACTIVE_COOLDOWN = 0;
+const MAX_PROACTIVE_COOLDOWN = 60;
 
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
@@ -79,6 +90,7 @@ function keepFlags(data) {
     'stayStill',
     'transparentMode',
     'fullConsent',
+    'proactivePaused',
   ]) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
@@ -100,6 +112,28 @@ function clampScale(value) {
 function clampOpacity(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.opacity;
   return Math.round(Math.min(MAX_OPACITY, Math.max(MIN_OPACITY, value)) * 100) / 100;
+}
+
+function clampWhole(value, fallback, min, max) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+// The behavior director's limits: how often she may interrupt, and how long a
+// category stays quiet after it spoke.
+function keepProactive(data) {
+  data.proactiveMaxPerHour = clampWhole(
+    data.proactiveMaxPerHour,
+    DEFAULTS.proactiveMaxPerHour,
+    MIN_PROACTIVE_PER_HOUR,
+    MAX_PROACTIVE_PER_HOUR,
+  );
+  data.proactiveCooldownMin = clampWhole(
+    data.proactiveCooldownMin,
+    DEFAULTS.proactiveCooldownMin,
+    MIN_PROACTIVE_COOLDOWN,
+    MAX_PROACTIVE_COOLDOWN,
+  );
 }
 
 // The app was renamed Aemeth -> Aemeath, which moved its userData directory.
@@ -133,6 +167,7 @@ function createSettingsStore(userDataPath) {
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
+    keepProactive(data);
     keepActivity(data);
     return data;
   }
@@ -144,6 +179,7 @@ function createSettingsStore(userDataPath) {
     data.chatterIntervalMin = clampInterval(data.chatterIntervalMin);
     keepStrings(data);
     keepFlags(data);
+    keepProactive(data);
     keepActivity(data);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
@@ -179,6 +215,10 @@ module.exports = {
   MAX_CHAT_INTERVAL,
   MIN_DOOMSCROLL_LIMIT,
   MAX_DOOMSCROLL_LIMIT,
+  MIN_PROACTIVE_PER_HOUR,
+  MAX_PROACTIVE_PER_HOUR,
+  MIN_PROACTIVE_COOLDOWN,
+  MAX_PROACTIVE_COOLDOWN,
   INTERACTIVE_MODES,
   CHAT_SHORTCUTS,
 };

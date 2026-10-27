@@ -6,6 +6,10 @@
   const value = document.getElementById('value');
   const range = document.getElementById('range');
   const intervalRow = interval.closest('.row');
+  const proactivePause = document.getElementById('proactive-pause');
+  const proactiveCap = document.getElementById('proactive-cap');
+  const proactiveCapValue = document.getElementById('proactive-cap-value');
+  const proactiveCooldown = document.getElementById('proactive-cooldown');
 
   const provider = document.getElementById('provider');
   const model = document.getElementById('model');
@@ -107,6 +111,10 @@
     interval.disabled = !chatter.checked;
   }
 
+  function renderProactive() {
+    proactiveCapValue.textContent = proactiveCap.value + ' kali per jam';
+  }
+
   function fillOptions(select, options, selected) {
     select.textContent = '';
     for (const option of options) {
@@ -178,8 +186,16 @@
     );
     interval.value = settings.chatterIntervalMin;
     render();
+    proactivePause.checked = settings.proactivePaused === true;
+    proactiveCap.value = settings.proactiveMaxPerHour || 6;
+    proactiveCooldown.value = String(
+      typeof settings.proactiveCooldownMin === 'number' ? settings.proactiveCooldownMin : 10,
+    );
+    if (!proactiveCooldown.value) proactiveCooldown.value = '10';
+    renderProactive();
     refreshLorebook();
     await loadCommands();
+    await refreshMemory();
     renderChat(await window.aemeathSettings.chatStatus());
   }
 
@@ -192,6 +208,19 @@
   // Persist when the slider is released, not on every pixel of movement.
   interval.addEventListener('change', () => {
     window.aemeathSettings.set({ chatterIntervalMin: Number(interval.value) });
+  });
+
+  proactivePause.addEventListener('change', () => {
+    window.aemeathSettings.set({ proactivePaused: proactivePause.checked });
+  });
+
+  proactiveCap.addEventListener('input', renderProactive);
+  proactiveCap.addEventListener('change', () => {
+    window.aemeathSettings.set({ proactiveMaxPerHour: Number(proactiveCap.value) });
+  });
+
+  proactiveCooldown.addEventListener('change', () => {
+    window.aemeathSettings.set({ proactiveCooldownMin: Number(proactiveCooldown.value) });
   });
 
   terminal.addEventListener('change', () => {
@@ -792,6 +821,214 @@
   doom.addEventListener('change', () => {
     window.aemeathSettings.set({ doomscrollLimitMin: Number(doom.value) });
   });
+
+  // ---- Companion memory ------------------------------------------------------
+  // The manager reads and edits the same small JSON file the chat uses. Lore is
+  // not shown here on purpose: canon lives in the lorebook, not in memory.
+  const memoryEnabled = document.getElementById('memory-enabled');
+  const memoryRetention = document.getElementById('memory-retention');
+  const memoryStatusLine = document.getElementById('memory-status');
+  const memoryList = document.getElementById('memory-list');
+  const memoryNew = document.getElementById('memory-new');
+  const memoryNewText = document.getElementById('memory-new-text');
+  const memoryNewKind = document.getElementById('memory-new-kind');
+  const memoryNewSave = document.getElementById('memory-new-save');
+  const memoryNewCancel = document.getElementById('memory-new-cancel');
+  const memoryNote = document.getElementById('memory-note');
+  const addMemory = document.getElementById('add-memory');
+  const clearMemory = document.getElementById('clear-memory');
+
+  const RETENTION_CHOICES = ['30', '90', '180', '365', '0'];
+  const MEMORY_KINDS = [
+    ['project', 'Proyek'],
+    ['task', 'Tugas'],
+    ['decision', 'Keputusan'],
+    ['preference', 'Preferensi'],
+    ['next-step', 'Langkah berikutnya'],
+    ['context', 'Konteks'],
+  ];
+  let memoryState = null;
+
+  function memoryDate(ms) {
+    if (typeof ms !== 'number' || !ms) return 'waktu tidak tercatat';
+    try {
+      return new Date(ms).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return new Date(ms).toLocaleString();
+    }
+  }
+
+  function setMemoryNote(text, kind) {
+    memoryNote.textContent = text || '';
+    memoryNote.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function renderMemoryStatus() {
+    const state = memoryState;
+    if (!state) {
+      memoryStatusLine.textContent = 'Memori belum bisa dibaca.';
+      return;
+    }
+    memoryEnabled.checked = state.disabled !== true;
+    const retention = String(state.retentionDays);
+    memoryRetention.value = RETENTION_CHOICES.includes(retention) ? retention : '90';
+    memoryRetention.disabled = state.disabled === true;
+
+    const parts = [state.count + ' dari ' + state.maxEntries + ' tempat terpakai'];
+    if (state.bySource && state.bySource.user) parts.push(state.bySource.user + ' kamu tulis sendiri');
+    if (state.bySource && state.bySource.assistant) {
+      parts.push(state.bySource.assistant + ' ringkasan dari AI');
+    }
+    if (state.prunedAtLoad > 0) {
+      parts.push(state.prunedAtLoad + ' ringkasan lama dibersihkan sesuai retensi');
+    }
+    memoryStatusLine.textContent = parts.join(' · ');
+    memoryStatusLine.className = 'status' + (state.disabled || state.readOnly ? ' error' : '');
+    if (state.notice) setMemoryNote(state.notice, 'error');
+  }
+
+  function memoryCard(record) {
+    const card = document.createElement('div');
+    card.className = 'mem';
+
+    const head = document.createElement('div');
+    head.className = 'mem-head';
+    const badge = document.createElement('span');
+    badge.className = 'mem-kind';
+    badge.textContent = record.kindLabel || 'konteks';
+    const meta = document.createElement('span');
+    meta.className = 'mem-meta';
+    meta.textContent =
+      (record.sourceLabel || record.source) +
+      ' · dibuat ' +
+      memoryDate(record.createdAt) +
+      (record.usedAt ? ' · terakhir dipakai ' + memoryDate(record.usedAt) : '') +
+      (record.project ? ' · ' + record.project : '');
+    head.append(badge, meta);
+
+    const text = document.createElement('textarea');
+    text.rows = 2;
+    text.maxLength = 280;
+    text.value = record.text;
+    text.addEventListener('change', async () => {
+      const result = await window.aemeathSettings.updateMemory({ id: record.id, text: text.value });
+      if (!result || !result.ok) {
+        setMemoryNote((result && result.error) || 'Perubahan tidak tersimpan.', 'error');
+        text.value = record.text;
+        return;
+      }
+      setMemoryNote('Perubahan tersimpan.', 'ok');
+      await refreshMemory();
+    });
+
+    const kind = document.createElement('select');
+    for (const option of MEMORY_KINDS) {
+      const element = document.createElement('option');
+      element.value = option[0];
+      element.textContent = option[1];
+      kind.appendChild(element);
+    }
+    kind.value = record.kind;
+    kind.addEventListener('change', async () => {
+      const result = await window.aemeathSettings.updateMemory({ id: record.id, kind: kind.value });
+      if (!result || !result.ok) {
+        setMemoryNote((result && result.error) || 'Jenis memori tidak bisa diubah.', 'error');
+        return;
+      }
+      await refreshMemory();
+    });
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'mem-delete';
+    remove.textContent = 'Hapus';
+    remove.addEventListener('click', async () => {
+      const ok = await window.aemeathSettings.deleteMemory(record.id);
+      setMemoryNote(ok ? 'Memori dihapus.' : 'Memori itu sudah tidak ada.', ok ? 'ok' : 'error');
+      await refreshMemory();
+    });
+
+    const line = document.createElement('div');
+    line.className = 'mem-line';
+    line.append(kind, remove);
+    card.append(head, text, line);
+    return card;
+  }
+
+  function renderMemoryList(records) {
+    memoryList.textContent = '';
+    if (!records || records.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'hint tight';
+      empty.textContent =
+        'Belum ada memori. Aemeath menawarkan menyimpan ringkasan setelah sesi coding di mode Full, atau kamu bisa menambahkannya sendiri.';
+      memoryList.appendChild(empty);
+      return;
+    }
+    for (const record of records) memoryList.appendChild(memoryCard(record));
+  }
+
+  async function refreshMemory() {
+    const [state, records] = await Promise.all([
+      window.aemeathSettings.memoryStatus(),
+      window.aemeathSettings.listMemory(),
+    ]);
+    memoryState = state;
+    renderMemoryStatus();
+    renderMemoryList(records);
+  }
+
+  addMemory.addEventListener('click', () => {
+    memoryNew.classList.remove('hidden');
+    memoryNewText.value = '';
+    memoryNewKind.value = 'context';
+    memoryNewText.focus();
+  });
+
+  memoryNewCancel.addEventListener('click', () => memoryNew.classList.add('hidden'));
+
+  memoryNewSave.addEventListener('click', async () => {
+    const text = memoryNewText.value.trim();
+    if (!text) {
+      setMemoryNote('Tulis isi memorinya dulu.', 'error');
+      return;
+    }
+    const result = await window.aemeathSettings.saveMemory({ text: text, kind: memoryNewKind.value });
+    if (!result || !result.ok) {
+      setMemoryNote((result && result.error) || 'Memori tidak bisa disimpan.', 'error');
+      return;
+    }
+    memoryNew.classList.add('hidden');
+    setMemoryNote('Memori tersimpan.', 'ok');
+    await refreshMemory();
+  });
+
+  memoryEnabled.addEventListener('change', () => {
+    window.aemeathSettings.setMemoryPolicy({ disabled: !memoryEnabled.checked });
+    memoryRetention.disabled = !memoryEnabled.checked;
+    setMemoryNote(
+      memoryEnabled.checked
+        ? 'Memori aktif lagi.'
+        : 'Penyimpanan memori dimatikan. Tidak ada yang disimpan atau dikirim ke model.',
+      'ok',
+    );
+  });
+
+  memoryRetention.addEventListener('change', () => {
+    window.aemeathSettings.setMemoryPolicy({ retentionDays: Number(memoryRetention.value) });
+    setMemoryNote('Aturan retensi diperbarui.', 'ok');
+  });
+
+  clearMemory.addEventListener('click', async () => {
+    if (!window.confirm('Hapus semua memori companion? Tindakan ini tidak bisa dibatalkan.')) return;
+    const removed = await window.aemeathSettings.clearMemory();
+    setMemoryNote(removed > 0 ? removed + ' memori dihapus.' : 'Tidak ada memori untuk dihapus.', 'ok');
+    await refreshMemory();
+  });
+
+  if (typeof window.aemeathSettings.onMemoryUpdated === 'function') {
+    window.aemeathSettings.onMemoryUpdated(() => refreshMemory());
+  }
 
   // ---- Tabs ------------------------------------------------------------------
   const tabs = Array.from(document.querySelectorAll('.tab'));

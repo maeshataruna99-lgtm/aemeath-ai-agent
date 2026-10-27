@@ -1,7 +1,8 @@
 'use strict';
 
 (function () {
-  const { AemeathAtlas, AemeathWalker, AemeathDialogue, AemeathLorebook, AemeathChatPanel } = window;
+  const { AemeathAtlas, AemeathWalker, AemeathDialogue, AemeathLorebook, AemeathChatPanel, AemeathBehavior } =
+    window;
   const canvas = document.getElementById('pet');
   const bubble = document.getElementById('bubble');
   const musicBadge = document.getElementById('music');
@@ -54,8 +55,10 @@
   let chatThinking = false;
   let chatPanel = null;
   let nextChatAt = 0;
+  // Every line for the bubble passes through this one controller: it knows the
+  // priority order, the frequency limits and when to stay quiet.
+  let director = null;
 
-  const bubbleQueue = [];
   let bubbleUntil = 0;
   let currentBubbleSessionId = null;
 
@@ -91,6 +94,8 @@
     workArea = init.workArea;
     AemeathAtlas.validateAtlas(atlas);
     lorebook = AemeathLorebook.createLorebook(init.lorebook);
+    director = createDirector();
+    applyDirectorSettings();
     applyScale();
     applyTransparency();
 
@@ -124,10 +129,28 @@
     sprite.src = init.spriteUrl;
 
     setTransient('waving', 2200);
-    showBubble('Aemeath hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.');
+    say({ kind: 'greeting', text: 'Aemeath hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.' });
 
     nextChatAt = performance.now() + CHAT_FIRST_MS;
     wireEvents();
+  }
+
+  function createDirector() {
+    return AemeathBehavior.createBehaviorDirector({
+      mode: settings.interactiveMode,
+      chatterEnabled: settings.chatterEnabled !== false,
+    });
+  }
+
+  // Keeps the controller in step with the settings window and the tray menu.
+  function applyDirectorSettings() {
+    if (!director) return;
+    director.setMode(settings.interactiveMode);
+    director.setChatterEnabled(settings.chatterEnabled !== false);
+    director.setPaused(settings.proactivePaused === true);
+    const cooldownMin = typeof settings.proactiveCooldownMin === 'number' ? settings.proactiveCooldownMin : 10;
+    const maxPerHour = typeof settings.proactiveMaxPerHour === 'number' ? settings.proactiveMaxPerHour : 6;
+    director.setLimits({ maxPerHour: maxPerHour, cooldownMs: Math.max(0, cooldownMin) * 60000 });
   }
 
   function musicEnabled() {
@@ -188,23 +211,22 @@
     };
   }
 
-  function bubbleIdle() {
-    return bubbleUntil === 0 && bubbleQueue.length === 0;
-  }
-
   function scheduleChat(from) {
     const range = AemeathDialogue.chatIntervalRange(settings.chatterIntervalMin || 3.5);
     nextChatAt = from + range.minMs + Math.random() * (range.maxMs - range.minMs);
   }
 
   // Aemeath occasionally says something to Rover when nothing else is on screen.
+  // The director decides whether this attempt is allowed to be said at all.
   function maybeChat(now) {
     if (now < nextChatAt || settings.chatterEnabled === false) return;
-    if (demoState || dragState || chatOpen() || now < transientUntil || !bubbleIdle()) return;
+    if (demoState || dragState || chatOpen() || now < transientUntil) return;
+    // A line already waiting gets said first; she does not talk over herself.
+    if (director.busy) return;
     const context = chatContext();
     const trivia = !context.decisionPending && Math.random() < TRIVIA_CHANCE ? lorebook.next() : null;
-    if (trivia) showBubble(trivia.text, trivia.credit);
-    else showBubble(dialogue.next(context));
+    if (trivia) say({ kind: 'trivia', text: trivia.text, credit: trivia.credit }, now);
+    else say({ kind: 'chatter', text: dialogue.next(context) }, now);
     scheduleChat(now);
   }
 
@@ -332,8 +354,35 @@
     musicBadge.style.top = Math.max(8, walker.y + petHeight() - 40) + 'px';
   }
 
-  function showBubble(text, credit, sessionId) {
-    bubbleQueue.push({ text: text, credit: credit || null, sessionId: sessionId || null });
+  // Queues one line and shows it right away if it is the most important thing to
+  // say. `event` uses the behavior director's shape: kind, text, category, anim.
+  function say(event, nowArg) {
+    if (!director) return null;
+    const now = typeof nowArg === 'number' ? nowArg : performance.now();
+    const decision = director.submit(event, now);
+    if (decision.action === 'show' || decision.action === 'preempt') {
+      if (bubbleUntil) hideBubble();
+      present(decision.item, now);
+    }
+    return decision;
+  }
+
+  // Renders one director item into the bubble.
+  function present(item, now) {
+    renderBubble(item);
+    bubble.classList.remove('hidden');
+    positionBubble();
+    // An offer with buttons needs time to be read and answered.
+    bubbleUntil = now + bubbleDuration(item.text) + (item.action ? 6000 : 0);
+    if (item.anim) setTransient(item.anim, item.animMs || TRANSIENT_MS);
+  }
+
+  // Used by the sprite error and the visual verification poses, which must be
+  // seen even when the director is quiet.
+  function showBubble(text, credit, sessionId, nowArg) {
+    const now = typeof nowArg === 'number' ? nowArg : performance.now();
+    if (bubbleUntil) hideBubble();
+    present({ text: text, credit: credit || null, sessionId: sessionId || null }, now);
   }
 
   function renderBubble(item) {
@@ -348,6 +397,61 @@
       credit.textContent = 'Sumber: ' + item.credit.title + ' (' + item.credit.license + ')';
       bubble.appendChild(credit);
     }
+    if (item.action) bubble.appendChild(bubbleActions(item.action));
+  }
+
+  // Only memory offers get buttons so far: nothing is ever stored without this
+  // explicit yes, and "Nanti" throws the offer away instead of saving it later.
+  function bubbleActions(action) {
+    const actions = document.createElement('div');
+    actions.className = 'bubble-actions';
+    const accept = document.createElement('button');
+    accept.type = 'button';
+    accept.textContent = action.label || 'Simpan';
+    accept.addEventListener('click', (event) => {
+      event.stopPropagation();
+      answerMemoryOffer(action, true);
+    });
+    const later = document.createElement('button');
+    later.type = 'button';
+    later.className = 'ghost';
+    later.textContent = 'Nanti';
+    later.addEventListener('click', (event) => {
+      event.stopPropagation();
+      answerMemoryOffer(action, false);
+    });
+    actions.append(accept, later);
+    return actions;
+  }
+
+  function answerMemoryOffer(action, accepted) {
+    for (const button of bubble.querySelectorAll('.bubble-actions button')) button.disabled = true;
+    const clear = () => {
+      hideBubble();
+      if (director) director.clearActive();
+    };
+    if (!accepted) {
+      if (typeof window.aemeath.dismissMemory === 'function') window.aemeath.dismissMemory(action.id);
+      clear();
+      return;
+    }
+    window.aemeath
+      .acceptMemory(action.id)
+      .then((result) => {
+        clear();
+        if (result && result.ok) {
+          say({ kind: 'memory-saved', text: result.text, anim: 'waving', animMs: 1800 });
+        } else {
+          say({
+            kind: 'memory-refused',
+            text: (result && result.error) || 'Memori itu tidak bisa Kusimpan, Rover.',
+          });
+        }
+      })
+      .catch(() => {
+        clear();
+        say({ kind: 'memory-refused', text: 'Memori itu tidak bisa Kusimpan, Rover.' });
+      });
   }
 
   // Longer remarks stay up longer so they can be read.
@@ -362,18 +466,24 @@
   }
 
   function updateBubble(now) {
-    // The chat box takes the bubble's place; queued remarks wait until it closes.
+    // The chat box takes the bubble's place; a waiting line keeps its place until
+    // the box closes, or until it is too old to be worth saying.
     if (chatOpen()) {
-      if (bubbleUntil) hideBubble();
+      if (bubbleUntil) {
+        hideBubble();
+        director.clearActive();
+      }
       return;
     }
-    if (bubbleUntil && now > bubbleUntil) hideBubble();
-    if (bubbleUntil === 0 && bubbleQueue.length > 0) {
-      const item = bubbleQueue.shift();
-      renderBubble(item);
-      bubble.classList.remove('hidden');
-      positionBubble();
-      bubbleUntil = now + bubbleDuration(item.text);
+    if (bubbleUntil && now > bubbleUntil) {
+      hideBubble();
+      const next = director.finish(now);
+      if (next && next.item) present(next.item, now);
+      return;
+    }
+    if (bubbleUntil === 0) {
+      const next = director.tick(now);
+      if (next && next.item) present(next.item, now);
     }
   }
 
@@ -409,28 +519,33 @@
     if (settings.watcherEnabled === false) return;
     if (event.type === 'turn-started') return; // the aggregate drives the animation
     if (event.type === 'decision-resolved') return;
+    // The director puts a pending decision ahead of everything else.
     if (event.type === 'decision-requested') {
-      showBubble(
-        '[' + event.projectName + ']\nSesi AI butuh keputusanmu:\n' + (event.summary || '(tanpa detail)'),
-        null,
-        event.sessionId,
-      );
+      say({
+        kind: 'decision-request',
+        text:
+          '[' + event.projectName + ']\nSesi AI butuh keputusanmu:\n' + (event.summary || '(tanpa detail)'),
+        sessionId: event.sessionId,
+      });
       return;
     }
     if (event.type === 'turn-finished') {
-      setTransient('review', TRANSIENT_MS);
-      showBubble(
-        '[' + event.projectName + ']\nSesi AI selesai.\n' + (event.summary || '(tanpa ringkasan teks)'),
-        null,
-        event.sessionId,
-      );
+      say({
+        kind: 'session-finished',
+        text:
+          '[' + event.projectName + ']\nSesi AI selesai.\n' + (event.summary || '(tanpa ringkasan teks)'),
+        sessionId: event.sessionId,
+        anim: 'review',
+        animMs: TRANSIENT_MS,
+      });
     } else if (event.type === 'turn-failed') {
-      setTransient('failed', TRANSIENT_MS);
-      showBubble(
-        '[' + event.projectName + ']\nSesi AI gagal: ' + (event.summary || 'error tidak diketahui'),
-        null,
-        event.sessionId,
-      );
+      say({
+        kind: 'session-failed',
+        text: '[' + event.projectName + ']\nSesi AI gagal: ' + (event.summary || 'error tidak diketahui'),
+        sessionId: event.sessionId,
+        anim: 'failed',
+        animMs: TRANSIENT_MS,
+      });
     }
   }
 
@@ -552,8 +667,26 @@
     if (typeof window.aemeath.onTimerDone === 'function') {
       window.aemeath.onTimerDone((payload) => {
         if (!payload || !payload.text) return;
-        setTransient('jumping', 2400);
-        showBubble(payload.text);
+        say({ kind: 'timer-done', text: payload.text, anim: 'jumping', animMs: 2400 });
+      });
+    }
+    if (typeof window.aemeath.onPresence === 'function') {
+      window.aemeath.onPresence((state) => {
+        if (!state || !director) return;
+        director.setIdle(state.idle === true);
+        director.setFocus(state.focus === true);
+      });
+    }
+    // Memory offers: she asks first, and the bubble carries the two answers.
+    if (typeof window.aemeath.onMemoryOffer === 'function') {
+      window.aemeath.onMemoryOffer((offer) => {
+        if (!offer || !offer.text) return;
+        say({
+          kind: 'memory-offer',
+          category: offer.actionable ? 'memory:offer' : 'memory:continuation',
+          text: offer.text,
+          action: offer.actionable && offer.id ? { id: offer.id, label: 'Simpan' } : null,
+        });
       });
     }
     if (typeof window.aemeath.onLorebookUpdated === 'function') {
@@ -576,6 +709,7 @@
       if (walker) walker.speed = settings.speed;
       if (scaleChanged) applyScale();
       applyTransparency();
+      applyDirectorSettings();
       if (intervalChanged) scheduleChat(performance.now());
     });
     window.aemeath.onChatState((state) => {
@@ -583,17 +717,17 @@
       if (state && state.replied) setTransient('waving', 1800);
     });
     window.aemeath.onChatToggle(toggleChat);
-    // Medium and Full modes: a remark about what Rover is doing, only while the mode is on.
+    // Medium and Full modes: a remark about what Rover is doing. The director
+    // already knows the mode, the cooldown and the hourly cap.
     window.aemeath.onActivityRemark((remark) => {
-      if (
-        (settings.interactiveMode !== 'medium' && settings.interactiveMode !== 'full') ||
-        !remark ||
-        !remark.text
-      ) {
-        return;
-      }
-      showBubble(remark.text);
-      setTransient('waving', 1800);
+      if (!remark || !remark.text) return;
+      say({
+        kind: 'activity-remark',
+        category: remark.kind,
+        text: remark.text,
+        anim: 'waving',
+        animMs: 1800,
+      });
     });
     window.aemeath.onDemo(setDemoState);
     window.aemeath.onReset(() => {

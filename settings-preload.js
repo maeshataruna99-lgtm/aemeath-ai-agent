@@ -18,4 +18,12 @@ contextBridge.exposeInMainWorld('aemeathSettings', {
   getCommands: () => ipcRenderer.invoke('commands:get'),
   saveCommands: (list) => ipcRenderer.invoke('commands:save', list),
   pickPath: (kind) => ipcRenderer.invoke('commands:pick', kind),
+  memoryStatus: () => ipcRenderer.invoke('memory:status'),
+  listMemory: () => ipcRenderer.invoke('memory:list'),
+  saveMemory: (payload) => ipcRenderer.invoke('memory:save', payload),
+  updateMemory: (payload) => ipcRenderer.invoke('memory:update', payload),
+  deleteMemory: (id) => ipcRenderer.invoke('memory:delete', id),
+  clearMemory: () => ipcRenderer.invoke('memory:clear'),
+  setMemoryPolicy: (patch) => ipcRenderer.send('memory:set', patch),
+  onMemoryUpdated: (fn) => ipcRenderer.on('memory:updated', (_e, status) => fn(status)),
 });

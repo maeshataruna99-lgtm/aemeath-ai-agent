@@ -18,6 +18,9 @@ const OFFLINE_CODES = new Set(['network', 'timeout']);
 // getKey(providerId) -> string | null
 // getConfig() -> { provider, model }
 // getKnowledge() -> [{ topic, text }] (optional)
+// memory: { context(text) -> { entries, block }, used(ids) } (optional) — the
+//   companion memory store. Only the few entries it returns for this message
+//   are attached, never the whole store.
 // getFeatures() -> { webSearch, offlineFallback, companion } (optional, all off by default;
 //   companion = /change-mode-search, answering any topic instead of focusing on the game wiki)
 // search: { search(text, { companion }) -> { results } } (optional)
@@ -29,6 +32,7 @@ function createChatService(options) {
   const getKey = options.getKey;
   const getConfig = options.getConfig;
   const getKnowledge = options.getKnowledge || (() => []);
+  const memory = options.memory || null;
   const getFeatures = options.getFeatures || (() => ({ webSearch: false, offlineFallback: false }));
   const search = options.search || null;
   const localResponder = options.localResponder || null;
@@ -39,9 +43,45 @@ function createChatService(options) {
   let busy = false;
   let turns = 0;
 
-  function localAnswer(text, reason) {
+  function localAnswer(text, reason, picked) {
     const answer = localResponder.respond(text, reason);
+    const entries = (picked && picked.entries) || [];
+    // Without a key or a connection a relevant note still beats "I don't know".
+    if (!answer.matched && entries.length > 0) {
+      const top = entries[0];
+      return {
+        text: answer.text + '\n\nDari catatanku: ' + top.text,
+        mode: 'local',
+        sources: answer.sources || [],
+        memoryUsed: markUsed({ entries: [top] }),
+      };
+    }
     return { text: answer.text, mode: 'local', sources: answer.sources || [] };
+  }
+
+  // A broken memory store must never break the chat, so every call is guarded.
+  function readMemory(text) {
+    if (!memory || typeof memory.context !== 'function') return { entries: [], block: '' };
+    try {
+      const picked = memory.context(text) || {};
+      return {
+        entries: Array.isArray(picked.entries) ? picked.entries : [],
+        block: typeof picked.block === 'string' ? picked.block : '',
+      };
+    } catch {
+      return { entries: [], block: '' };
+    }
+  }
+
+  function markUsed(picked) {
+    const entries = (picked && picked.entries) || [];
+    if (entries.length === 0 || !memory || typeof memory.used !== 'function') return 0;
+    try {
+      memory.used(entries.map((entry) => entry.id));
+    } catch {
+      return 0;
+    }
+    return entries.length;
   }
 
   async function send(rawText, onChunk, callOptions) {
@@ -66,12 +106,14 @@ function createChatService(options) {
 
     const features = getFeatures();
     const canFallBack = Boolean(features.offlineFallback && localResponder);
+    // Read before the key check: the offline answer uses the same notes.
+    const picked = readMemory(text);
     const config = getConfig();
     const provider = providers.get(config.provider);
     if (!provider) throw new ChatError('provider', 'Penyedia chatbot tidak dikenal.');
     const apiKey = getKey(provider.id);
     if (!apiKey) {
-      if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key');
+      if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key', picked);
       throw new ChatError('no-key', 'Belum ada kunci API ' + provider.name + '. Atur dulu di Pengaturan.');
     }
 
@@ -133,11 +175,13 @@ function createChatService(options) {
           searchStatus +
           '. Pencarian web tidak menemukan sumber valid. Jangan menebak atau mengarang fakta, tanggal, atau angka terbaru dari ingatanmu; katakan terus terang kepada Rover bahwa pencarian web belum menemukan sumber yang terverifikasi.]';
       }
-      const messages = [{ role: 'system', content: buildSystemPrompt(getKnowledge(), { companion }) }]
+      const messages = [
+        { role: 'system', content: buildSystemPrompt(getKnowledge(), { companion, memory: picked.block }) },
+      ]
         .concat(history)
         .concat([{ role: 'user', content: content }]);
       const reply = await provider.send({
-        apiKey: apiKey,
+        apiKey,
         model: config.model || provider.defaultModel,
         messages: messages,
         signal: controller.signal,
@@ -149,6 +193,8 @@ function createChatService(options) {
       history.push({ role: 'user', content: safeText }, { role: 'assistant', content: answer });
       if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
       const result = { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
+      const memoryUsed = markUsed(picked);
+      if (memoryUsed > 0) result.memoryUsed = memoryUsed;
       if (searchStatus) result.searchStatus = searchStatus;
       return result;
     } catch (error) {
@@ -156,7 +202,7 @@ function createChatService(options) {
         error instanceof ChatError
           ? error
           : new ChatError('unknown', redact(error && error.message, apiKey) || 'Terjadi kesalahan.');
-      if (OFFLINE_CODES.has(failure.code) && canFallBack) return localAnswer(text, 'offline');
+      if (OFFLINE_CODES.has(failure.code) && canFallBack) return localAnswer(text, 'offline', picked);
       throw failure;
     } finally {
       clearTimeout(timer);
