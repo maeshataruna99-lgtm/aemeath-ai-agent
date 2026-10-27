@@ -4,10 +4,18 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 
-const { classify, describe, pageTitleOf } = require('../src/activity/classifier');
+const { classify, describe, pageTitleOf, workContextOf } = require('../src/activity/classifier');
 const { createActivityTracker } = require('../src/activity/activity-tracker');
 const { createActivityWatcher, parseSample } = require('../src/activity/activity-watcher');
 const { createActivityMonitor } = require('../src/activity/activity-monitor');
+const { analyzeFrame, describeScreen, createScreenSampler } = require('../src/activity/screen-analyzer');
+const {
+  analyzeGitOutput,
+  formatLocalEvaluation,
+  createWorkReviewer,
+  isSensitiveFile,
+  sanitizeDiff,
+} = require('../src/activity/work-reviewer');
 
 const chrome = (title) => classify({ process: 'chrome', title: title + ' - Google Chrome' });
 
@@ -395,4 +403,172 @@ test('tracker and monitor report an in-memory category summary and forget it whe
 
   monitor.stop();
   assert.equal(monitor.summary(), null, 'stopping forgets the summary');
+});
+
+// ---- full mode & lightweight screen capture -----------------------------------
+
+test('workContextOf extracts coarse coding language and test flag without keeping filenames or titles', () => {
+  const ctx = workContextOf({ process: 'Code', title: 'secret-algorithm.test.js - MyProject - Visual Studio Code' });
+  assert.deepEqual(ctx, { language: 'JavaScript', testing: true });
+  assert.ok(!JSON.stringify(ctx).includes('secret-algorithm'));
+  assert.deepEqual(workContextOf({ process: 'chrome', title: 'index.js - Google Chrome' }), {
+    language: '',
+    testing: false,
+  });
+});
+
+test('analyzeFrame and createScreenSampler compute brightness and motion in memory and skip when disallowed', async () => {
+  const darkBuf = Buffer.alloc(32 * 18 * 4, 20);
+  const brightBuf = Buffer.alloc(32 * 18 * 4, 230);
+
+  const first = analyzeFrame({ data: darkBuf, width: 32, height: 18 }, null);
+  assert.equal(first.tone, 'dark');
+  assert.equal(first.motion, 'active');
+
+  const second = analyzeFrame({ data: darkBuf, width: 32, height: 18 }, first.signature);
+  assert.equal(second.motion, 'static');
+  assert.equal(second.motionScore, 0);
+  assert.equal(describeScreen(second), 'tampilan gelap, layar diam');
+
+  const third = analyzeFrame({ data: brightBuf, width: 32, height: 18 }, second.signature);
+  assert.equal(third.tone, 'bright');
+  assert.equal(third.motion, 'dynamic');
+
+  let calls = 0;
+  const sampler = createScreenSampler({
+    captureFrame: async () => {
+      calls += 1;
+      return { data: darkBuf, width: 32, height: 18 };
+    },
+  });
+  assert.equal(await sampler.sample(false), null, 'disallowed capture does not call captureFrame');
+  assert.equal(calls, 0);
+  const sampled = await sampler.sample(true);
+  assert.equal(calls, 1);
+  assert.equal(sampled.tone, 'dark');
+  sampler.reset();
+  assert.equal(sampler.latest, null);
+});
+
+test('Full mode remarks on coding start, test files, deep focus, screen stuck, bright night screen, and tab-hopping', () => {
+  const tracker = createActivityTracker({
+    getLimitMin: () => 20,
+    getMode: () => 'full',
+    rng: () => 0,
+  });
+  let t = 1000000;
+  const step = (info, minutes, ctx) => {
+    const out = [];
+    for (let i = 0; i < (minutes * 60) / 3; i++) {
+      t += 3000;
+      for (const r of tracker.feed(info, t, 0, ctx).remarks) out.push(r);
+    }
+    return out;
+  };
+
+  // 1. Coding start with language
+  const start = step(CODE, 1, { language: 'JavaScript', testing: false });
+  assert.equal(start.length, 1);
+  assert.equal(start[0].kind, 'coding-start');
+  assert.match(start[0].text, /JavaScript/);
+
+  // 2. Switching to a unit test file
+  const testSwitch = step(CODE, 2, { language: 'JavaScript', testing: true });
+  assert.equal(testSwitch.length, 1);
+  assert.equal(testSwitch[0].kind, 'coding-test');
+
+  // 3. Static screen for 10+ minutes while coding triggers screen-stuck
+  const stuck = step(CODE, 11, {
+    language: 'JavaScript',
+    testing: true,
+    screen: { tone: 'dark', motion: 'static' },
+  });
+  assert.ok(stuck.some((r) => r.kind === 'screen-stuck'));
+
+  // 4. Bright screen late at night triggers screen-bright
+  const nightBright = step(CODE, 2, {
+    language: 'JavaScript',
+    testing: true,
+    screen: { tone: 'bright', motion: 'active' },
+    hour: 23,
+  });
+  assert.ok(nightBright.some((r) => r.kind === 'screen-bright'));
+
+  // 5. 45 minutes of coding triggers coding-focus
+  const focus = step(CODE, 35, {
+    language: 'JavaScript',
+    testing: true,
+    screen: { tone: 'dark', motion: 'active' },
+  });
+  assert.ok(focus.some((r) => r.kind === 'coding-focus'));
+
+  // 6. Rapid category switching triggers context-switch
+  const hopped = [];
+  for (let i = 0; i < 4; i++) {
+    t += 15000;
+    for (const r of tracker.feed(NEWS, t, 0, {}).remarks) hopped.push(r);
+    t += 15000;
+    for (const r of tracker.feed(CODE, t, 0, {}).remarks) hopped.push(r);
+  }
+  assert.ok(hopped.some((r) => r.kind === 'context-switch'));
+});
+
+test('analyzeGitOutput and formatLocalEvaluation summarize work 100% locally and strip secrets', async () => {
+  const status = [' M src/main.js', ' M tests/activity.test.js', '?? src/new.js'].join('\n');
+  const diff = ['+const a = 1;', '+console.log(a);', '+// TODO: clean up', '-const old = 2;'].join('\n');
+  const metrics = analyzeGitOutput(status, diff);
+  assert.equal(metrics.totalFiles, 3);
+  assert.equal(metrics.modified, 2);
+  assert.equal(metrics.untracked, 1);
+  assert.equal(metrics.testFiles, 1);
+  assert.equal(metrics.addedLines, 3);
+  assert.equal(metrics.removedLines, 1);
+  assert.equal(metrics.debugLogs, 1);
+  assert.equal(metrics.todoMarkers, 1);
+
+  const local = formatLocalEvaluation(metrics);
+  assert.match(local.summary, /2 diubah, 1 baru/);
+  assert.match(local.summary, /console\.log/);
+
+  const fakeGitSpawn = (_file, args) => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stdout.setEncoding = () => {};
+    setImmediate(() => {
+      child.stdout.emit('data', args[0] === 'status' ? status : diff);
+      child.emit('close', 0);
+    });
+    return child;
+  };
+  const reviewer = createWorkReviewer({
+    spawn: fakeGitSpawn,
+  });
+
+  const r1 = await reviewer.review();
+  assert.equal(r1.ok, true);
+  assert.match(r1.text, /progres kerjamu/);
+  assert.match(r1.output, /2 diubah, 1 baru/);
+
+  // Sensitive files (.env, chat-keys.json, *.key) and API keys (sk-...) are detected
+  // and stripped so they never leave the machine even when AI review is enabled.
+  assert.equal(isSensitiveFile('.env.local'), true);
+  assert.equal(isSensitiveFile('config/chat-keys.json'), true);
+  assert.equal(isSensitiveFile('certs/private.key'), true);
+  assert.equal(isSensitiveFile('src/index.js'), false);
+
+  const leakyStatus = [' M .env', ' M src/config.js'].join('\n');
+  const leakyDiff = [
+    'diff --git a/.env b/.env',
+    '+DEEPSEEK_API_KEY=sk-secret99999999999999',
+    'diff --git a/src/config.js b/src/config.js',
+    '+const key = "sk-deepseeklive1234567890";',
+  ].join('\n');
+  const leakyMetrics = analyzeGitOutput(leakyStatus, leakyDiff);
+  assert.ok(leakyMetrics.secretWarnings >= 2);
+  const leakyEval = formatLocalEvaluation(leakyMetrics);
+  assert.match(leakyEval.summary, /Peringatan keamanan/);
+  const cleaned = sanitizeDiff(leakyDiff);
+  assert.ok(!cleaned.includes('sk-secret99999999999999'), '.env diff block is completely removed');
+  assert.ok(!cleaned.includes('sk-deepseeklive1234567890'), 'inline API key is redacted');
+  assert.ok(cleaned.includes('[kunci disembunyikan]'));
 });

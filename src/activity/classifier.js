@@ -202,4 +202,33 @@ function describe(info) {
   }
 }
 
-module.exports = { classify, describe, pageTitleOf };
+const CODE_LANGUAGES = [
+  [/\.(?:ts|tsx)\b/i, 'TypeScript'],
+  [/\.(?:js|jsx|mjs|cjs)\b/i, 'JavaScript'],
+  [/\.py\b/i, 'Python'],
+  [/\.rs\b/i, 'Rust'],
+  [/\.go\b/i, 'Go'],
+  [/\.(?:java|kt)\b/i, 'Java/Kotlin'],
+  [/\.(?:cs|csproj)\b/i, 'C#'],
+  [/\.(?:cpp|cc|cxx|hpp|c|h)\b/i, 'C/C++'],
+  [/\.(?:html|css|scss|vue|svelte)\b/i, 'antarmuka web'],
+  [/\.ps1\b/i, 'PowerShell'],
+  [/\.sql\b/i, 'SQL'],
+  [/\.md\b/i, 'dokumentasi'],
+  [/\.(?:json|ya?ml|toml)\b/i, 'konfigurasi'],
+];
+
+// Extracts coarse coding context (language and whether a test file is open) for
+// Full mode without retaining any filename, path, or window title.
+function workContextOf(sample) {
+  const info = classify(sample);
+  if (info.category !== 'coding') return { language: '', testing: false };
+  const title = String((sample && sample.title) || '');
+  const testing = /\.(?:test|spec)\.[a-z0-9]+\b/i.test(title);
+  for (const [pattern, label] of CODE_LANGUAGES) {
+    if (pattern.test(title)) return { language: label, testing: testing };
+  }
+  return { language: '', testing: testing };
+}
+
+module.exports = { classify, describe, pageTitleOf, workContextOf };

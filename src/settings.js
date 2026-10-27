@@ -21,6 +21,9 @@ const DEFAULTS = {
   stayStill: false,
   chatShortcut: 'Alt+Space',
   interactiveMode: 'low',
+  fullConsent: false,
+  fullScreenCapture: true,
+  fullAiReview: false,
   doomscrollLimitMin: 20,
   x: null,
   y: null,
@@ -36,9 +39,8 @@ const MAX_CHAT_INTERVAL = 15;
 // Minutes of continuous social media before Aemeath says something (medium mode).
 const MIN_DOOMSCROLL_LIMIT = 5;
 const MAX_DOOMSCROLL_LIMIT = 120;
-// Interactive modes that exist today. `full` is announced in the settings but not built yet,
-// so a saved `full` falls back to `low` instead of being honoured.
-const INTERACTIVE_MODES = ['low', 'medium'];
+// Interactive modes. `full` requires explicit `fullConsent: true` or it falls back to `low`.
+const INTERACTIVE_MODES = ['low', 'medium', 'full'];
 
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
@@ -47,6 +49,13 @@ function clampInterval(value) {
 
 function keepActivity(data) {
   if (!INTERACTIVE_MODES.includes(data.interactiveMode)) data.interactiveMode = DEFAULTS.interactiveMode;
+  if (data.interactiveMode === 'full' && data.fullConsent !== true) {
+    data.interactiveMode = DEFAULTS.interactiveMode;
+  }
+  if (data.interactiveMode !== 'full') {
+    data.fullConsent = false;
+    data.fullAiReview = false;
+  }
   const limit = data.doomscrollLimitMin;
   data.doomscrollLimitMin =
     typeof limit === 'number' && Number.isFinite(limit)
@@ -55,7 +64,16 @@ function keepActivity(data) {
 }
 
 function keepFlags(data) {
-  for (const key of ['chatWebSearch', 'chatOfflineFallback', 'terminalEnabled', 'startAtLogin', 'stayStill']) {
+  for (const key of [
+    'chatWebSearch',
+    'chatOfflineFallback',
+    'terminalEnabled',
+    'startAtLogin',
+    'stayStill',
+    'fullConsent',
+    'fullScreenCapture',
+    'fullAiReview',
+  ]) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
 }

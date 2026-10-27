@@ -1,8 +1,15 @@
 node_modules/
 .verify/
 
-# Local secrets: never commit
+# Local secrets and user data: never commit
 .env
 .env.*
 chat-keys.json
+settings.json
+commands.json
+productivity.json
 *.key
+*.pem
+*.p12
+*.pfx
+*.kdbx

@@ -4,7 +4,7 @@
 // process: it is the only place that ever sees the API key. History lives in
 // memory only and is dropped on reset or when the app closes.
 
-const { ChatError, redact } = require('./chat-error');
+const { ChatError, redact, containsSecret } = require('./chat-error');
 const { buildSystemPrompt } = require('./persona');
 const { isUnsafe, deflection } = require('./safety');
 const { shouldSearch, formatSearchBlock } = require('./web-search');
@@ -70,11 +70,12 @@ function createChatService(options) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      const safeText = redact(text, apiKey);
       let found = [];
-      if (features.webSearch && search && shouldSearch(text)) {
-        found = (await search.search(text)).results || [];
+      if (features.webSearch && search && !containsSecret(text, apiKey) && shouldSearch(safeText)) {
+        found = (await search.search(safeText)).results || [];
       }
-      const content = found.length > 0 ? text + '\n\n' + formatSearchBlock(found) : text;
+      const content = found.length > 0 ? safeText + '\n\n' + formatSearchBlock(found) : safeText;
       const messages = [{ role: 'system', content: buildSystemPrompt(getKnowledge()) }]
         .concat(history)
         .concat([{ role: 'user', content: content }]);
@@ -84,9 +85,10 @@ function createChatService(options) {
         messages: messages,
         signal: controller.signal,
       });
-      const answer = isUnsafe(reply.text) ? deflection(turns) : reply.text;
-      // History keeps what Rover typed, not the bulky search block.
-      history.push({ role: 'user', content: text }, { role: 'assistant', content: answer });
+      const cleanReply = redact(reply.text, apiKey);
+      const answer = isUnsafe(cleanReply) ? deflection(turns) : cleanReply;
+      // History keeps what Rover typed (with any accidental key redacted), not the bulky search block.
+      history.push({ role: 'user', content: safeText }, { role: 'assistant', content: answer });
       if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
       return { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
     } catch (error) {

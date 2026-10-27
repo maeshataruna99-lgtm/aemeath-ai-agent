@@ -121,6 +121,15 @@ test('/note saves, lists, deletes, and enforces the item limit', () => {
   assert.equal(hub.runNote('kelebihan').ok, false);
   assert.equal(hub.runNote('bersih').ok, true);
   assert.equal(hub.notes.length, 0);
+
+  // Sensitive keys (e.g. DeepSeek API keys) are rejected from plaintext /note and /todo
+  const secretNote = hub.runNote('sk-deepseeksecretkey123456');
+  assert.equal(secretNote.ok, false);
+  assert.match(secretNote.text, /Pengaturan/);
+  const secretTodo = hub.runTodo('tambah DEEPSEEK_API_KEY=sk-1234567890abcdef');
+  assert.equal(secretTodo.ok, false);
+  assert.equal(hub.notes.length, 0);
+  assert.equal(hub.todos.length, 0);
 });
 
 test('/stats and commandHandler integration work end-to-end', async () => {

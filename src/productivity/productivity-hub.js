@@ -7,6 +7,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { containsSecret } = require('../chat/chat-error');
 
 const FILE_NAME = 'productivity.json';
 const MAX_ITEMS = 30;
@@ -76,7 +77,7 @@ function normalizeState(raw) {
         .map((item) => {
           if (!item || typeof item !== 'object') return null;
           const text = cleanText(item.text, MAX_TEXT);
-          if (!text) return null;
+          if (!text || containsSecret(text)) return null;
           return { text: text, done: Boolean(item.done) };
         })
         .filter(Boolean)
@@ -86,7 +87,7 @@ function normalizeState(raw) {
     ? obj.notes
         .map((item) => {
           const text = cleanText(typeof item === 'string' ? item : item && item.text, MAX_TEXT);
-          return text ? { text: text } : null;
+          return text && !containsSecret(text) ? { text: text } : null;
         })
         .filter(Boolean)
         .slice(0, MAX_ITEMS)
@@ -120,7 +121,7 @@ function createProductivityHub(options) {
     if (!file) return;
     try {
       fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, JSON.stringify(state, null, 2));
+      fs.writeFileSync(file, JSON.stringify(state, null, 2), { mode: 0o600 });
     } catch {
       // best effort: keeps working in memory for this session
     }
@@ -284,6 +285,12 @@ function createProductivityHub(options) {
     if (!text) {
       return { ok: false, text: 'Tulis isi tugasnya juga ya, misalnya /todo tambah Perbaiki bug login.' };
     }
+    if (containsSecret(text)) {
+      return {
+        ok: false,
+        text: 'Jangan simpan API key atau kunci rahasia di daftar tugas ya, Rover! Simpan kunci di Pengaturan → Chatbot agar dienkripsi dengan aman.',
+      };
+    }
     if (state.todos.length >= MAX_ITEMS) {
       return {
         ok: false,
@@ -344,6 +351,12 @@ function createProductivityHub(options) {
     const text = cleanText(arg.replace(/^(?:tambah|add|baru)\s+/i, ''), MAX_TEXT);
     if (!text) {
       return { ok: false, text: 'Tulis isi catatannya ya, misalnya /note Cek ulang konfigurasi API.' };
+    }
+    if (containsSecret(text)) {
+      return {
+        ok: false,
+        text: 'Jangan simpan API key atau kunci rahasia di catatan teks biasa ya, Rover! Simpan kunci di Pengaturan → Chatbot agar dienkripsi dengan aman.',
+      };
     }
     if (state.notes.length >= MAX_ITEMS) {
       return {

@@ -46,9 +46,9 @@ Seberapa jauh Aemeath ikut campur diatur di Pengaturan, tab *Umum*:
 |---|---|
 | **Low** (bawaan) | Mengajakmu mengobrol dan berbicara seperti biasa: celetukan, trivia, dan chat. |
 | **Medium** | Selain Low, dia boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, ngoding, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling. |
-| **Full** | *Segera hadir.* Lebih intens: mengomentari apa pun yang kamu lakukan, membaca dan menilai pekerjaanmu, dan lebih sering berkomentar saat ngoding. Pilihannya sudah tampil tetapi belum bisa dipilih. |
+| **Full** | Semua dari Medium, ditambah komentar aktif saat ngoding (bahasa & tes), deteksi pindah-pindah aplikasi terlalu cepat, cuplikan layar ringan 320×180 di memori untuk mengenali layar diam/terlalu terang, serta `/review` untuk menilai perubahan git lokal. |
 
-Medium baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilakukannya:
+Medium dan Full baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilakukan Medium:
 
 - **Membaca** nama aplikasi dan judul jendela yang sedang aktif, setiap beberapa detik, lalu
   mengelompokkannya: media sosial, video, game, ngoding, kerja, obrolan, musik, browser, atau lainnya.
@@ -61,7 +61,19 @@ Medium baru menyala setelah kamu menyetujui penjelasan di Pengaturan. Yang dilak
   untuk peregangan, lalu tiap sejam.
 - **Transparan.** Menu tray dan Pengaturan menampilkan apa yang sedang dia lihat, misalnya
   "bermain Roblox" atau "media sosial (Instagram)", beserta rekap durasi per kategori selama sesi
-  Medium berjalan, tanpa judul jendelanya.
+  berjalan, tanpa judul jendelanya.
+
+Di mode **Full** (memerlukan persetujuan terpisah), Aemeath juga melakukan:
+
+- **Konteks ngoding & kerja.** Mengenali bahasa pemrograman dan berkas tes dari ekstensi di judul editor
+  (tanpa menyimpan nama berkasnya), menyapa saat kamu mulai ngoding, mengomentari tes, mengingatkan fokus
+  tiap 45 menit, dan menegur kalau kamu berpindah aplikasi terlalu cepat.
+- **Cuplikan layar ringan (opsional).** Mengambil thumbnail 320×180 setiap beberapa sampel, menghitung
+  kecerahan dan perubahan gerak (16×9 sel) di memori untuk tahu saat layarmu macet lama saat kerja atau
+  terlalu silau tengah malam, lalu langsung membuang gambarnya.
+- **Penilaian pekerjaan (`/review`).** Memeriksa `git status` dan `git diff` 100% secara lokal untuk merangkum berkas
+  yang berubah, cakupan tes, sisa `console.log`, `TODO`/`FIXME`, serta memperingatkan bila ada potensi kebocoran API key
+  atau berkas `.env`. Tidak ada data diff atau berkas yang dikirim ke internet.
 
 Pengelompokannya memakai kata kunci pada judul halaman, jadi sesekali bisa meleset (misalnya situs yang
 tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alamat situs, layar, atau ketikanmu.
@@ -103,7 +115,8 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/timer` — pasang timer fokus atau Pomodoro (mis. `/timer 25m Fokus`, `/timer pomodoro`, `/timer status`, `/timer batal`). Saat selesai Aemeath melompat dan mengingatkanmu lewat gelembung bicara.
 - `/todo` — kelola daftar tugas cepat lokal (`/todo`, `/todo tambah <tugas>`, `/todo selesai <nomor>`, `/todo hapus <nomor>`, `/todo bersih`).
 - `/note` — simpan dan lihat catatan cepat satu baris (`/note`, `/note <teks>`, `/note hapus <nomor>`, `/note bersih`).
-- `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium menyala), sisa timer aktif, dan jumlah tugas serta catatan.
+- `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium atau Full menyala), sisa timer aktif, dan jumlah tugas serta catatan.
+- `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 
 Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
@@ -160,15 +173,22 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
   admin (`runas`, `-Verb RunAs`, `sudo` ditolak), dan yang berisiko selalu menunggu "ya" yang kamu ketik.
   Mengetik perintah lain saat pertanyaan masih menunggu membatalkan pertanyaan itu.
 
-**Mode interaktif (Medium)**
-- Mati secara bawaan, dan baru menyala setelah kamu menyetujui penjelasannya. Kembali ke Low
-  menghentikan pembacaan seketika dan melupakan semuanya.
-- Yang dibaca hanya nama aplikasi, jalur program (untuk mengenali folder game), dan judul jendela
-  yang aktif. Judul dan jalur dibuang segera setelah dipakai mengelompokkan; yang diingat hanya
+**Mode interaktif (Medium dan Full)**
+- Mati secara bawaan (bawaan selalu **Low**), dan baru menyala setelah kamu menyetujui penjelasannya.
+  Mode Full punya persetujuan terpisah dari Medium. Kembali ke Low menghentikan pembacaan seketika dan
+  melupakan semuanya.
+- Di mode Medium, yang dibaca hanya nama aplikasi, jalur program (untuk mengenali folder game), dan judul
+  jendela yang aktif. Judul dan jalur dibuang segera setelah dipakai mengelompokkan; yang diingat hanya
   kategori, nama aplikasi atau game, dan penghitung waktu, di memori saja.
-- Tidak ada yang ditulis ke disk, dicatat, atau dikirim ke internet. Hasil pembacaan juga tidak
-  pernah dikirim ke chatbot, ke pencarian web, atau ke penyedia model mana pun.
-- Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tidak dibaca.
+- Di mode Full, ekstensi berkas di judul editor dipakai untuk mengenali bahasa pemrograman dan apakah itu
+  berkas tes (tanpa menyimpan nama berkas atau judulnya). Cuplikan layar ringan mengambil thumbnail
+  320×180 di memori, menghitung rata-rata kecerahan dan perubahan gerak (16×9 sel), lalu langsung membuang
+  byte gambarnya—tidak pernah ditulis ke disk atau dikirim ke internet.
+- Perintah `/review` membaca `git status` dan `git diff` lokal secara langsung tanpa shell, menyensor pola
+  kunci rahasia (`sk-...`, `API_KEY=...`, `.env`), dan 100% berjalan lokal tanpa pernah mengirim potongan diff
+  atau isi berkas ke penyedia model maupun jaringan internet mana pun.
+- Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tidak dibaca
+  dan tidak pernah diambil cuplikan layarnya.
 
 **Mode terminal**
 - Masuk hanya lewat `/change-mode`, dan itu selalu melewati prompt UAC dari Windows. Tidak ada

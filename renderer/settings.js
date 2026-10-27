@@ -86,9 +86,16 @@
     refreshStartup();
     stillToggle.checked = settings.stayStill === true;
     shortcutSelect.value = typeof settings.chatShortcut === 'string' ? settings.chatShortcut : 'Alt+Space';
+    fullScreenToggle.checked = settings.fullScreenCapture !== false;
     doom.value = settings.doomscrollLimitMin || 20;
     doomValue.textContent = 'setelah ' + doom.value + ' menit';
-    renderMode(settings.interactiveMode === 'medium' ? 'medium' : 'low');
+    renderMode(
+      settings.interactiveMode === 'full'
+        ? 'full'
+        : settings.interactiveMode === 'medium'
+          ? 'medium'
+          : 'low',
+    );
     interval.value = settings.chatterIntervalMin;
     render();
     renderChat(await window.aemeathSettings.chatStatus());
@@ -465,14 +472,21 @@
   // ---- Interactive mode --------------------------------------------------------
   const modeLow = document.getElementById('mode-low');
   const modeMedium = document.getElementById('mode-medium');
+  const modeFull = document.getElementById('mode-full');
   const consent = document.getElementById('medium-consent');
   const acceptMedium = document.getElementById('medium-accept');
   const cancelMedium = document.getElementById('medium-cancel');
+  const fullConsent = document.getElementById('full-consent');
+  const acceptFull = document.getElementById('full-accept');
+  const cancelFull = document.getElementById('full-cancel');
   const mediumOptions = document.getElementById('medium-options');
+  const fullOptions = document.getElementById('full-options');
+  const fullScreenToggle = document.getElementById('full-screen-toggle');
   const doom = document.getElementById('doom');
   const doomValue = document.getElementById('doom-value');
   const activityNow = document.getElementById('activity-now');
   let activityTimer = null;
+  let activeMode = 'low';
 
   async function refreshActivity() {
     const now = await window.aemeathSettings.getActivity();
@@ -485,13 +499,18 @@
   }
 
   function renderMode(mode) {
-    modeLow.checked = mode !== 'medium';
-    modeMedium.checked = mode === 'medium';
+    activeMode = mode === 'full' ? 'full' : mode === 'medium' ? 'medium' : 'low';
+    modeLow.checked = activeMode === 'low';
+    modeMedium.checked = activeMode === 'medium';
+    modeFull.checked = activeMode === 'full';
     consent.classList.add('hidden');
-    mediumOptions.classList.toggle('hidden', mode !== 'medium');
+    fullConsent.classList.add('hidden');
+    const watching = activeMode === 'medium' || activeMode === 'full';
+    mediumOptions.classList.toggle('hidden', !watching);
+    fullOptions.classList.toggle('hidden', activeMode !== 'full');
     clearInterval(activityTimer);
     activityTimer = null;
-    if (mode === 'medium') {
+    if (watching) {
       refreshActivity();
       activityTimer = setInterval(refreshActivity, 3000);
     }
@@ -499,20 +518,38 @@
 
   modeLow.addEventListener('change', () => {
     renderMode('low');
-    window.aemeathSettings.set({ interactiveMode: 'low' });
+    window.aemeathSettings.set({ interactiveMode: 'low', fullConsent: false, fullAiReview: false });
   });
 
   // Medium reads the window in front, so it only turns on after an explicit yes.
   modeMedium.addEventListener('change', () => {
-    modeLow.checked = true;
-    modeMedium.checked = false;
+    renderMode(activeMode);
     consent.classList.remove('hidden');
   });
   acceptMedium.addEventListener('click', () => {
     renderMode('medium');
-    window.aemeathSettings.set({ interactiveMode: 'medium' });
+    window.aemeathSettings.set({ interactiveMode: 'medium', fullConsent: false, fullAiReview: false });
   });
   cancelMedium.addEventListener('click', () => consent.classList.add('hidden'));
+
+  // Full requires its own separate explicit consent.
+  modeFull.addEventListener('change', () => {
+    renderMode(activeMode);
+    fullConsent.classList.remove('hidden');
+  });
+  acceptFull.addEventListener('click', () => {
+    renderMode('full');
+    window.aemeathSettings.set({
+      interactiveMode: 'full',
+      fullConsent: true,
+      fullScreenCapture: fullScreenToggle.checked,
+    });
+  });
+  cancelFull.addEventListener('click', () => fullConsent.classList.add('hidden'));
+
+  fullScreenToggle.addEventListener('change', () => {
+    window.aemeathSettings.set({ fullScreenCapture: fullScreenToggle.checked });
+  });
 
   doom.addEventListener('input', () => {
     doomValue.textContent = 'setelah ' + doom.value + ' menit';

@@ -186,20 +186,31 @@ Perintah `/nama` membuka program di komputer pemilik, jadi batasnya tidak boleh 
 - Tes tidak boleh menjalankan perintah merusak sungguhan (mis. `shutdown`); gunakan tiruan, dan pada
   selfie hanya skrip `Write-Output` yang boleh benar-benar berjalan.
 
-## 8. Privasi mode interaktif
+## 8. Privasi mode interaktif & larangan kirim data ke internet
 
-Mode Medium membaca aktivitas pemilik di PC, jadi batasnya tidak boleh longgar.
+Mode Medium dan Full membaca aktivitas pemilik di PC, jadi batasnya tidak boleh longgar.
+**Aturan mutlak: tidak ada data aktivitas, tangkapan layar, isi pekerjaan/git diff, catatan
+produktivitas, maupun data sensitif (seperti API key DeepSeek, `.env`, token, kredensial)
+yang boleh naik ke repositori git atau dikirim ke internet.**
 
 - Mode bawaan selalu Low. Medium hanya boleh menyala setelah pemilik menyetujui penjelasannya di
-  Pengaturan, dan Full tidak boleh bisa dipilih sebelum ada persetujuan terpisah dan terbaru.
+  Pengaturan, dan Full tidak boleh bisa dipilih sebelum ada persetujuan terpisah (`fullConsent`).
 - Yang boleh dibaca di Medium hanya proses, jalur program, dan judul jendela yang aktif. Dilarang
-  menambah tangkapan layar, keylogger, papan klip, isi berkas, isi halaman web, atau alamat URL.
-- Judul dan jalur dibuang segera setelah dikelompokkan. Jangan menyimpannya, mencatatnya ke log,
-  menulisnya ke disk, atau menampilkannya, termasuk di menu tray dan keluaran selfie.
-- Hasil pembacaan tidak boleh dikirim ke chatbot, pencarian web, model, atau jaringan mana pun.
-  Untuk Full, apa pun yang mengirim isi pekerjaan pemilik ke AI wajib punya persetujuan sendiri.
-- Jendela pribadi, pengelola kata sandi, layar kunci, dan prompt UAC tidak boleh dibaca. Menu tray
-  harus selalu menampilkan apa yang sedang terbaca selama Medium menyala.
+  menambah keylogger, papan klip, isi berkas, isi halaman web, atau alamat URL.
+- Di mode Full, cuplikan layar ringan (`320×180`) hanya boleh dihitung kecerahan dan gerakannya di
+  memori (RAM) lalu byte gambarnya langsung dibuang. Dilarang menulis gambar ke disk atau mengirimnya
+  ke proses luar, model AI, maupun internet.
+- Judul jendela, nama berkas, dan jalur program dibuang segera setelah dikelompokkan. Jangan
+  menyimpannya, mencatatnya ke log, menulisnya ke disk, atau menampilkannya, termasuk di menu tray
+  dan keluaran selfie.
+- Hasil pembacaan aktivitas, cuplikan layar, evaluasi pekerjaan (`/review`), dan fitur produktivitas
+  (`/timer`, `/todo`, `/note`, `/stats`) wajib **100% lokal** dan **dilarang keras dikirim ke chatbot,
+  pencarian web, penyedia model AI, telemetri, atau jaringan internet mana pun**.
+- Setiap teks yang berpotensi berisi kunci rahasia (`sk-...`, `Bearer ...`, `API_KEY=...`, `.env`,
+  `PRIVATE KEY`) wajib disensor secara lokal (`redact` / `containsSecret`) dan ditolak dari penyimpanan
+  plaintext maupun pengiriman keluar.
+- Jendela pribadi, pengelola kata sandi, layar kunci, dan prompt UAC tidak boleh dibaca atau diambil
+  cuplikan layarnya. Menu tray harus selalu menampilkan apa yang sedang terbaca selama Medium/Full menyala.
 
 ## 9. Startup otomatis
 

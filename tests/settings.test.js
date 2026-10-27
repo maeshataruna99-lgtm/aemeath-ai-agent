@@ -71,6 +71,20 @@ test('a saved full mode from a hand-edited settings file falls back to low', () 
   assert.equal(createSettingsStore(dir).load().interactiveMode, 'low');
 });
 
+test('full mode is accepted only when fullConsent is explicitly true, and resets consent when leaving full', () => {
+  const dir = tempDir('fullconsent');
+  const store = createSettingsStore(dir);
+  assert.equal(store.save({ interactiveMode: 'full', fullConsent: true }).interactiveMode, 'full');
+  assert.equal(createSettingsStore(dir).load().interactiveMode, 'full');
+
+  // Leaving full mode clears fullConsent and fullAiReview so re-entering requires fresh consent
+  store.save({ interactiveMode: 'medium', fullAiReview: true });
+  assert.equal(store.data.interactiveMode, 'medium');
+  assert.equal(store.data.fullConsent, false);
+  assert.equal(store.data.fullAiReview, false);
+  assert.equal(store.save({ interactiveMode: 'full' }).interactiveMode, 'low');
+});
+
 test('the doomscroll limit is a whole number of minutes between 5 and 120', () => {
   const store = createSettingsStore(tempDir('limit'));
   assert.equal(store.load().doomscrollLimitMin, 20);

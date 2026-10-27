@@ -552,9 +552,15 @@
       if (state && state.replied) setTransient('waving', 1800);
     });
     window.aemeath.onChatToggle(toggleChat);
-    // Medium mode: a remark about what Rover is doing, only while the mode is on.
+    // Medium and Full modes: a remark about what Rover is doing, only while the mode is on.
     window.aemeath.onActivityRemark((remark) => {
-      if (settings.interactiveMode !== 'medium' || !remark || !remark.text) return;
+      if (
+        (settings.interactiveMode !== 'medium' && settings.interactiveMode !== 'full') ||
+        !remark ||
+        !remark.text
+      ) {
+        return;
+      }
       showBubble(remark.text);
       setTransient('waving', 1800);
     });
