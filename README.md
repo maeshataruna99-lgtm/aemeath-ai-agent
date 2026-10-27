@@ -140,6 +140,32 @@ matikan atau restart dengan hitung mundur 60 detik, `/batal` untuk membatalkanny
 perintah yang bisa mematikan, menghapus, memformat, atau mengunduh lalu menjalankan sesuatu. Pertanyaan
 itu tidak bisa dimatikan untuk perintah berisiko, dan untuk perintah lain tersedia kotak "Tanya dulu".
 
+### Memori companion
+
+Aemeath bisa mengingat sedikit hal tentang pekerjaanmu, kalau kamu izinkan. Semua diatur di
+Pengaturan, tab *Memori*.
+
+- **Yang disimpan**: proyek yang sedang dikerjakan, tugas yang belum selesai, keputusan desain,
+  cara kamu suka diajak bicara, dan langkah berikutnya yang kamu setujui. Maksimal 200 entri; saat
+  penuh, entri baru ditolak, bukan menghapus yang lama diam-diam.
+- **Asal-usulnya jelas**: entri yang kamu tulis sendiri ditandai "dari kamu" dan tidak pernah
+  dibersihkan otomatis. Ringkasan dari Aemeath hanya tersimpan kalau kamu menekan **Simpan** pada
+  balon tawarannya, dan ditandai "ringkasan AI yang kamu setujui".
+- **Bukan lorebook.** Fakta canon Wuthering Waves tetap dari lorebook bersumber; memori tidak pernah
+  mengubah canon, dan kalau keduanya bertentangan, canon yang menang.
+- **Yang dikirim ke model** hanya potongan yang berhubungan dengan pesanmu, paling banyak empat baris
+  dan sekitar 700 karakter. Kotak chat menuliskan berapa catatan yang ikut dipakai di bawah jawaban.
+- **Kendali penuh**: lihat, ubah, hapus satu per satu, hapus semua, atau matikan penyimpanan. Saat
+  dimatikan, tidak ada yang disimpan dan tidak ada memori yang ikut ke model.
+- **Mode interaktif tetap mengaturnya**: Low hanya memakai memori saat kamu memulai obrolan; Medium
+  boleh menawarkan kelanjutan proyek, paling sering sekali per enam jam; Full menawarkan menyimpan
+  ringkasan setelah sesi AI selesai. Semua tawaran tunduk pada jeda, batas per jam, Focus Mode, dan
+  sakelar "Jeda interaksi proaktif".
+- **Tanpa internet tetap jalan**: jawaban offline boleh mengutip catatan yang relevan.
+- Tersimpan di `memory.json` (versi 1) di folder data aplikasi. Berkas yang tidak terbaca dipindahkan
+  ke `memory.corrupt-<waktu>.json`, bukan ditimpa; berkas dari versi Aemeath yang lebih baru hanya
+  dibaca, tidak ditulis ulang.
+
 ### Mode terminal
 
 Ketik `/change-mode` dan kotak chat berubah menjadi terminal (`PowerShell` di Windows, `Bash` di Linux Mint). Sistem operasi lebih dulu meminta
@@ -150,9 +176,10 @@ di kotak chat (batas 30 detik per perintah dan 20 ribu karakter keluaran). `exit
 
 ### Pengaturan dan menu
 
-- **Jendela Pengaturan** (tray → "Pengaturan...") punya tiga tab: *Umum* (mode interaktif, celetukan,
-  dan slider jedanya), *Chatbot* (penyedia, model, API key, pencarian web, mode offline), dan *Perintah*
-  (perintah bawaan, sakelar mode terminal, dan perintah kustom dengan pemilih berkas dan folder).
+- **Jendela Pengaturan** (tray → "Pengaturan...") punya empat tab: *Umum* (mode interaktif, celetukan,
+  dan slider jedanya), *Chatbot* (penyedia, model, API key, pencarian web, mode offline), *Perintah*
+  (perintah bawaan, sakelar mode terminal, dan perintah kustom dengan pemilih berkas dan folder), dan
+  *Memori* (daftar memori companion, sakelar penyimpanan, dan aturan retensi).
 - **Menu tray**: ngobrol, tampilkan atau sembunyikan, skala, kecepatan jalan, deteksi musik,
   pemantau sesi AI, celetukan, pengaturan, atur ulang posisi, keluar.
 
@@ -194,10 +221,20 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
 - Di mode Full, ekstensi berkas di judul editor dipakai untuk mengenali bahasa pemrograman dan apakah itu
   berkas tes (tanpa menyimpan nama berkas atau judulnya). Aemeath tidak pernah menangkap atau merekam layar.
 - Perintah `/review` membaca `git status` dan `git diff` lokal secara langsung tanpa shell, menyensor pola
-  kunci rahasia (`sk-...`, `API_KEY=...`, `.env`), dan 100% berjalan lokal tanpa pernah mengirim potongan diff
+  kunci rahasia (`sk-...`, nilai `API_KEY` di `.env`), dan 100% berjalan lokal tanpa pernah mengirim potongan diff
   atau isi berkas ke penyedia model maupun jaringan internet mana pun.
 - Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tidak dibaca
   dan tidak pernah diambil cuplikan layarnya.
+
+**Memori companion**
+- Aktif secara bawaan dan bisa dimatikan di Pengaturan → *Memori*. Saat dimatikan, penyimpanan dan
+  pemakaian konteks berhenti; isi yang sudah ada tidak ikut terhapus.
+- Hanya proses utama yang membaca `memory.json`. Jendela Pengaturan boleh menampilkan, mengubah, dan
+  menghapusnya; jendela pet hanya boleh menjawab satu tawaran yang sedang tampil.
+- API key, token, dan kata sandi ditolak sebelum disimpan, dan teks yang lolos tetap disaring dengan
+  pola rahasia yang sama seperti `/review`.
+- Memori tidak pernah dikirim seluruhnya. Hanya potongan yang relevan dengan pesan yang sedang
+  dikirim, dan itu terjadi sebagai bagian dari permintaan chat ke penyedia yang kamu pilih.
 
 **Mode terminal**
 - Masuk hanya lewat `/change-mode`, dan itu selalu melewati prompt UAC dari Windows. Tidak ada
@@ -229,7 +266,7 @@ npm test
 ```
 
 Alat verifikasi visual: `npx electron . --selfie` menjalankan semua keadaan Aemeath, kotak chat,
-Pengaturan, dan perintah kustom dengan balasan, pencarian, dan peluncuran tiruan, lalu menyimpan
+Pengaturan (termasuk tab Memori), dan perintah kustom dengan balasan, pencarian, dan peluncuran tiruan, lalu menyimpan
 tangkapan layar ke `.verify/`. Tambahkan `--user-data-dir=<folder sementara>` supaya tidak
 bentrok dengan Aemeath yang sedang berjalan.
 
@@ -248,11 +285,13 @@ bentrok dengan Aemeath yang sedang berjalan.
 | `src/commands/` | penyimpanan, penjalan, dan penangan perintah kustom dan bawaan |
 | `src/terminal/` | gerbang UAC, sesi PowerShell, dan pengendali mode terminal |
 | `src/settings.js` | penyimpanan pengaturan dan migrasi dari nama lama |
+| `src/memory/` | penyimpanan memori companion berversi, pemilihan konteks, dan penawaran simpan |
 | `assets/pet/` | spritesheet dan atlas (sumber dan lisensi di `NOTICE.md`) |
 | `lorebook/` | trivia lore berkredit sumber (lihat `lorebook/README.md`) |
 | `tests/` | unit test semua modul di atas |
 
-Status: tahap awal (prototipe).
+Status: tahap awal (prototipe). Behavior Director dan Companion Memory sudah berjalan; sisa rencana
+beserta konteks teknisnya ada di [ROADMAP.md](ROADMAP.md).
 
 ## Lisensi
 
