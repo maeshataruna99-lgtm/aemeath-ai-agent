@@ -14,8 +14,9 @@ Terakhir diperbarui: 28 Oktober 2026, di atas commit `8e84ac9`.
 |---|---|---|
 | P0 | Lore-Aware Behavior Director | **Selesai penuh** — `src/behavior/behavior-director.js` |
 | P1 | Companion Memory | **Selesai penuh** — `src/memory/memory-store.js` |
-| P2 | Focus Companion 2.0 | **Sedang berjalan** — titik 2.1 selesai |
-| P3 | Perapian lore & pengalaman visual | **Belum mulai** |
+| P2 | Focus Companion 2.0 | **Selesai penuh** — `src/productivity/productivity-hub.js` |
+| P3 | Perapian lore & pengalaman visual | **Selesai penuh** — `src/feature-guide/` & persona pass |
+| P4 | Tema & personalisasi tampilan | **Baru ditambahkan (P4.1 - P4.6)** — rujukan `docs/design/theme-system-spec.md` |
 
 Bukti: `npm test` → 279 lulus, 0 gagal. Verifikasi visual `npx electron . --selfie` → tangkapan di
 `.verify/` (termasuk `settings-memory.png` dan `memory-offer.png`).
@@ -163,6 +164,38 @@ kerja — **tanpa** menduplikasi penyimpanan yang sudah ada.
 
 ---
 
+## P4 — Tema & personalisasi tampilan
+
+Ukuran: S (kecil), M (sedang), L (besar). Rujukan desain: `docs/design/theme-system-spec.md` dan `docs/design/glass-card.md`.
+
+- [x] **4.1 Fondasi token (M)**
+  Ekstrak semua warna, blur, radius, dan ukuran teks yang hardcode di CSS renderer menjadi variable di `renderer/theme.css`, memakai nama dari `docs/design/glass-card.css`.
+  - Hasil: tampilan identik dengan sebelumnya (refactor murni, tanpa fitur baru).
+  - Selesai bila: tidak ada lagi warna literal di CSS komponen (cek dengan grep: 0 literal ditemukan), dan `--selfie` menghasilkan tangkapan layar dan computed bubbleStyle identik. Semua 314 unit test lulus.
+
+- [x] **4.2 Mesin tema (M)**
+  `src/theme/theme-schema.js`, `derive.js`, `contrast.js`, `presets.js`, `theme-store.js`, beserta unit test di `tests/theme.test.js`.
+  - Selesai bila: input acak/ekstrem tidak pernah menghasilkan token di luar rentang; derivasi OKLCH punya test nilai acuan; berkas rusak dan versi lebih baru tertangani. Diuji dengan 8 test suite komprehensif, seluruh 322 test repo lulus.
+
+- [x] **4.3 IPC dan penyiaran (S)**
+  `theme:get`, `theme:preview`, `theme:set`, `theme:set-preset`, `theme:changed`, dipaparkan lewat preload (`preload.js`, `settings-preload.js`, `feature-preload.js`), dihubungkan ke `renderer/theme-apply.js`.
+  - Selesai bila: mengubah tema di Pengaturan langsung terlihat di jendela pet, chat, dan fitur tanpa restart, dan jendela renderer tidak bisa mengirim CSS mentah. Terverifikasi 6/6 test di `tests/theme-ipc.test.js`, seluruh 328 test repo lulus.
+
+- [x] **4.4 Tab Tampilan dengan slider (L)**
+  Tab kelima di Pengaturan: pilih preset, slider warna dan kaca, kartu pratinjau, tombol Reset, mode Gelap/Terang/Sistem, toggle "Kurangi efek".
+  - Slider sesuai standar `/ui-ux-pro-max` dan spec 5.2 (track hidup, thumb berwarna, input angka, keyboard nav, snap magnetic).
+  - Selesai bila: semua slider bisa dipakai dengan keyboard saja, dan pratinjau tidak patah saat digeser cepat. Terverifikasi visual di `settings-appearance.png` via `--selfie`.
+
+- [x] **4.5 Penjaga kontras dan aksesibilitas (S)**
+  Peringatan kontras (target WCAG AA 4,5:1 untuk teks normal, 3:1 untuk teks sekunder), "Perbaiki otomatis", dukungan `prefers-reduced-motion`, fallback tanpa `backdrop-filter`.
+  - Selesai bila: tidak ada kombinasi slider yang menghasilkan teks utama di bawah 4,5:1 setelah koreksi otomatis. Terverifikasi pada pengujian `tests/appearance.test.js`.
+
+- [x] **4.6 Impor/ekspor dan menu tray (S)**
+  Ekspor tema ke berkas JSON dan impor kembali (melewati validasi skema ketat); submenu "Tema" di tray untuk berganti preset cepat.
+  - Selesai bila: berkas impor yang berisi nilai di luar rentang atau kunci asing ditolak atau dibersihkan, bukan diterapkan. Submenu tray terintegrasi di `menuTemplate()` dan teruji. Seluruh 334 test repo lulus.
+
+---
+
 ## Checklist review & pengujian yang belum bisa dicentang
 
 - [x] Regresi: chat, `/search`, `/timer`, `/todo`, `/note`, `/stats`, perintah kustom, terminal —
@@ -197,7 +230,9 @@ kerja — **tanpa** menduplikasi penyimpanan yang sudah ada.
 | `src/productivity/productivity-hub.js` | `/timer`, `/todo`, `/note`, `/stats` (persisten ke `productivity.json`) |
 | `src/activity/` | pembaca jendela aktif, pelacak, dan `work-reviewer` untuk `/review` |
 | `src/commands/`, `src/terminal/` | perintah kustom dan mode terminal |
-| `renderer/` | `pet.js` (balon + director), `chat-panel.js`, `settings.*` (4 tab) |
+| `src/theme/` | validasi skema, derivasi OKLCH, kontras, preset, dan store tema (P4) |
+| `docs/design/` | spesifikasi sistem tema & kartu kaca acuan (`glass-card.css`, `theme-system-spec.md`) |
+| `renderer/` | `pet.js` (balon + director), `chat-panel.js`, `settings.*` (5 tab), `theme.css` |
 | `tests/` | `node:test`, satu berkas per modul |
 
 ### Aturan yang tidak boleh dilanggar

@@ -1,0 +1,194 @@
+/* ==========================================================================
+   glass-card.css — referensi desain "Glassmorphism Job Card"
+   Plain CSS, tanpa framework. Semua nilai visual lewat CSS variables.
+   Baca juga: docs/design/glass-card.md (aturan pakai) dan
+   docs/design/glass-card.demo.html (contoh render).
+   ========================================================================== */
+
+:root {
+  /* --- Surface (kaca) --- */
+  --glass-bg: rgba(28, 26, 24, 0.45);
+  --glass-bg-fallback: rgba(28, 26, 24, 0.92); /* dipakai bila backdrop-filter tidak didukung */
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-blur: 24px;
+  --glass-saturate: 1.15;
+  --glass-radius: 32px;
+  --glass-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+
+  /* --- Teks --- */
+  --glass-text: #ffffff;
+  --glass-text-muted: rgba(255, 255, 255, 0.55);
+
+  /* --- Komponen kecil (chip, tombol, pemisah) --- */
+  --glass-chip-bg: rgba(255, 255, 255, 0.08);
+  --glass-chip-border: rgba(255, 255, 255, 0.18);
+  --glass-chip-radius: 16px;
+  --glass-divider: rgba(255, 255, 255, 0.25);
+
+  /* --- Tipografi --- */
+  --glass-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --glass-title-size: 40px;
+  --glass-title-weight: 600;
+  --glass-title-tracking: -0.03em;
+
+  /* --- Spasi --- */
+  --glass-pad: 24px;
+  --glass-gap: 12px;
+}
+
+/* ---------- Kartu ---------- */
+.glass-card {
+  box-sizing: border-box;
+  width: 380px;
+  max-width: 100%;
+  padding: var(--glass-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--glass-gap);
+  color: var(--glass-text);
+  font-family: var(--glass-font);
+  background: var(--glass-bg-fallback);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Kaca hanya aktif bila browser/Electron mendukung backdrop-filter */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+}
+
+/* ---------- Header: logo kiri, badge kanan ---------- */
+.glass-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 72px; /* ruang lega agar foto latar terlihat menembus kaca */
+}
+
+.glass-card__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-chip-border);
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.glass-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 16px;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: 14px;
+  color: inherit;
+}
+
+/* ---------- Meta + judul ---------- */
+.glass-card__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.glass-card__meta-time {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--glass-text-muted);
+}
+
+.glass-card__title {
+  margin: 0;
+  font-size: var(--glass-title-size);
+  font-weight: var(--glass-title-weight);
+  letter-spacing: var(--glass-title-tracking);
+  line-height: 1.1;
+}
+
+/* ---------- Chip ---------- */
+.glass-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.glass-chip {
+  padding: 10px 16px;
+  font-size: 15px;
+  color: inherit;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: var(--glass-chip-radius);
+}
+
+/* ---------- Footer: pemisah, gaji/lokasi, tombol ---------- */
+.glass-card__divider {
+  height: 1px;
+  margin: 56px 0 8px;
+  border: 0;
+  background: var(--glass-divider);
+}
+
+.glass-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--glass-gap);
+}
+
+.glass-card__salary {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.glass-card__location {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--glass-text-muted);
+}
+
+/* ---------- Tombol ---------- */
+.glass-btn {
+  padding: 12px 22px;
+  font: inherit;
+  font-size: 16px;
+  color: inherit;
+  cursor: pointer;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: 18px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.glass-btn:active {
+  transform: scale(0.97);
+}
+
+.glass-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+/* Hormati preferensi pengguna yang mengurangi gerak */
+@media (prefers-reduced-motion: reduce) {
+  .glass-btn {
+    transition: none;
+  }
+}

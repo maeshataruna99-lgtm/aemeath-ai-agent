@@ -2,8 +2,9 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src file:; script-src file:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src file: 'unsafe-inline'; script-src file:">
   <title>Pengaturan Aemeath</title>
+  <link rel="stylesheet" href="theme.css">
   <link rel="stylesheet" href="settings.css">
 </head>
 <body>
@@ -16,6 +17,7 @@
       <button type="button" role="tab" id="tab-chatbot" class="tab" aria-controls="panel-chatbot" aria-selected="false" tabindex="-1">Chatbot</button>
       <button type="button" role="tab" id="tab-commands" class="tab" aria-controls="panel-commands" aria-selected="false" tabindex="-1">Perintah</button>
       <button type="button" role="tab" id="tab-memory" class="tab" aria-controls="panel-memory" aria-selected="false" tabindex="-1">Memori</button>
+      <button type="button" role="tab" id="tab-appearance" class="tab" aria-controls="theme-section" aria-selected="false" tabindex="-1">Tampilan</button>
     </div>
 
     <div class="panel" role="tabpanel" id="panel-general" aria-labelledby="tab-general">
@@ -126,48 +128,186 @@
 
       <section class="row" id="theme-section">
         <h2>Tema antarmuka</h2>
-        <div class="modes" role="radiogroup" aria-label="Pilihan Tema Antarmuka">
-          <label class="mode-option" for="theme-default">
-            <input type="radio" name="ui-theme" id="theme-default" value="default">
-            <span><strong>Default</strong><br>Tema klasik slate navy dengan aksen lembut.</span>
-          </label>
-          <label class="mode-option" for="theme-glass">
-            <input type="radio" name="ui-theme" id="theme-glass" value="glass">
-            <span><strong>Glassmorphism</strong> <em class="soon">Baru</em><br>Kaca frosted transparan dengan pantulan specular &amp; skema warna kustom.</span>
-          </label>
+        <p class="hint tight0">
+          Pilih tema bawaan atau sesuaikan warna, frosted blur, dan transparansi kaca secara langsung.
+          Perubahan diterapkan seketika ke seluruh jendela (companion, chat, pengaturan, dan guidebook).
+        </p>
+
+        <!-- Pratinjau Kaca Langsung -->
+        <div class="appearance-preview-stage">
+          <article class="glass-card appearance-preview-card">
+            <header class="glass-card__header">
+              <div class="glass-card__logo" aria-hidden="true">❄</div>
+              <span class="glass-chip" id="preview-preset-badge">Midnight Glass</span>
+            </header>
+            <div class="glass-card__meta">
+              <span>Fleet Snowfluff</span>
+              <span class="glass-card__meta-time" id="preview-contrast-badge">WCAG 7.5:1 ✓</span>
+            </div>
+            <h3 class="glass-card__title">Aemeath Companion</h3>
+            <div class="glass-card__chips">
+              <span class="glass-chip">OKLCH</span>
+              <span class="glass-chip" id="preview-mode-chip">Mode Gelap</span>
+            </div>
+            <hr class="glass-card__divider" />
+            <footer class="glass-card__footer">
+              <div>
+                <p class="glass-card__salary">Pratinjau Kaca</p>
+                <p class="glass-card__location">Live CSS Variables</p>
+              </div>
+              <button class="glass-btn" type="button" id="preview-sample-btn">Uji Tombol</button>
+            </footer>
+          </article>
         </div>
 
-        <div id="glass-controls" class="hidden" style="margin-top: 12px; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08);">
-          <label class="field" style="margin-bottom:6px;"><strong>Preset Warna Kaca</strong></label>
-          <div class="glass-presets-row" id="glass-presets-container" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
-            <button type="button" class="preset-btn" data-preset="violet">🔮 Cyber Violet</button>
-            <button type="button" class="preset-btn" data-preset="blossom">🌸 Blossom</button>
-            <button type="button" class="preset-btn" data-preset="azure">❄️ Frost Azure</button>
-            <button type="button" class="preset-btn" data-preset="emerald">🌿 Aurora</button>
-            <button type="button" class="preset-btn" data-preset="obsidian">🌑 Obsidian</button>
-            <button type="button" class="preset-btn" data-preset="custom">🎨 Kustom</button>
-          </div>
+        <!-- Penjaga Kontras WCAG AA -->
+        <div id="contrast-alert" class="contrast-alert ok hidden" role="status" aria-live="polite">
+          <span id="contrast-text">Kualitas kontras optimal: WCAG AA lolos.</span>
+          <button type="button" id="contrast-autofix" style="display: none;">Perbaiki otomatis</button>
+        </div>
 
-          <div id="glass-sliders">
-            <div class="head">
-              <label for="glass-hue">Hue Warna Kustom (0° - 360°)</label>
-              <output id="glass-hue-value">280°</output>
-            </div>
-            <input type="range" id="glass-hue" min="0" max="360" step="1">
-
-            <div class="head" style="margin-top: 10px;">
-              <label for="glass-blur">Blur Radius Kaca (Kerapatan Frosted)</label>
-              <output id="glass-blur-value">20px</output>
-            </div>
-            <input type="range" id="glass-blur" min="6" max="32" step="1">
-
-            <div class="head" style="margin-top: 10px;">
-              <label for="glass-opacity">Transparansi Kaca (Opacity)</label>
-              <output id="glass-opacity-value">18%</output>
-            </div>
-            <input type="range" id="glass-opacity" min="10" max="45" step="1">
+        <!-- Pilihan Mode Tampilan -->
+        <div class="modes-container">
+          <label class="field">Mode Dasar</label>
+          <div class="modes" role="radiogroup" aria-label="Mode tampilan">
+            <label class="mode-option" for="theme-mode-dark">
+              <input type="radio" name="theme-mode" id="theme-mode-dark" value="dark">
+              <span><strong>Gelap</strong><br>Latar tembus pandang malam.</span>
+            </label>
+            <label class="mode-option" for="theme-mode-light">
+              <input type="radio" name="theme-mode" id="theme-mode-light" value="light">
+              <span><strong>Terang</strong><br>Latar kaca putih bersinar lembut.</span>
+            </label>
+            <label class="mode-option" for="theme-mode-system">
+              <input type="radio" name="theme-mode" id="theme-mode-system" value="system">
+              <span><strong>Sistem</strong><br>Mengikuti tema Windows / OS.</span>
+            </label>
           </div>
         </div>
+
+        <label class="switch" for="theme-reduce-effects" style="margin: 14px 0 16px;">
+          <input type="checkbox" id="theme-reduce-effects">
+          <span>Kurangi efek visual (tanpa blur, opasitas padat, minim animasi)</span>
+        </label>
+
+        <!-- Pilihan Preset Resmi (Sesuai Menu Tray) -->
+        <div class="slider-group">
+          <div class="slider-group-title">
+            <span>Tema Bawaan (Preset)</span>
+            <button type="button" id="theme-btn-reset" class="btn-subtle" title="Kembalikan slider ke preset aktif">Reset ke Preset</button>
+          </div>
+          <div class="preset-selector" role="group" aria-label="Pilihan Preset Tema">
+            <button type="button" class="preset-chip preset-btn active" data-preset="midnight-glass">Midnight Glass</button>
+            <button type="button" class="preset-chip preset-btn" data-preset="soft-light">Soft Light</button>
+            <button type="button" class="preset-chip preset-btn" data-preset="mono">Mono</button>
+            <button type="button" class="preset-chip preset-btn" data-preset="aemeath">Aemeath</button>
+            <button type="button" class="preset-chip preset-btn" data-preset="classic">Classic</button>
+          </div>
+          <p class="hint">Menggeser slider otomatis mengubah tema menjadi <em>Kustom</em>. Klik dua kali pada slider untuk reset ke nilai bawaan.</p>
+        </div>
+
+        <!-- Pengaturan Warna (OKLCH) -->
+        <div class="slider-group">
+          <div class="slider-group-title">Pengaturan Warna Aksen (Ruang OKLCH)</div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-hue">Rona Warna (Hue 0° - 360°)</label>
+              <input type="number" id="theme-num-hue" class="slider-num-input" min="0" max="360" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-hue" class="theme-slider" data-field="hue" min="0" max="360" step="1">
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-chroma">Intensitas Warna (Chroma)</label>
+              <input type="number" id="theme-num-chroma" class="slider-num-input" min="0" max="0.25" step="0.005">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-chroma" class="theme-slider" data-field="chroma" min="0" max="0.25" step="0.005">
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-lightness">Kecerahan Warna (Lightness)</label>
+              <input type="number" id="theme-num-lightness" class="slider-num-input" min="0.30" max="0.90" step="0.01">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-lightness" class="theme-slider" data-field="lightness" min="0.30" max="0.90" step="0.01">
+            </div>
+          </div>
+        </div>
+
+        <!-- Pengaturan Frosted & Transparansi Kaca -->
+        <div class="slider-group">
+          <div class="slider-group-title">Pengaturan Frosted &amp; Transparansi Kaca</div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-opacity">Transparansi Kaca (Opasitas %)</label>
+              <input type="number" id="theme-num-opacity" class="slider-num-input" min="10" max="90" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-opacity" class="theme-slider" data-field="opacity" min="10" max="90" step="1">
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-blur">Kekaburan Frosted (Blur px)</label>
+              <input type="number" id="theme-num-blur" class="slider-num-input" min="0" max="40" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-blur" class="theme-slider" data-field="blur" min="0" max="40" step="1">
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-radius">Sudut Membulat (Radius px)</label>
+              <input type="number" id="theme-num-radius" class="slider-num-input" min="8" max="40" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-radius" class="theme-slider" data-field="radius" min="8" max="40" step="1">
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-border">Kekuatan Garis Tepi (Border %)</label>
+              <input type="number" id="theme-num-border" class="slider-num-input" min="0" max="40" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-border" class="theme-slider" data-field="border" min="0" max="40" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tipografi -->
+        <div class="slider-group">
+          <div class="slider-group-title">Tipografi</div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <label for="theme-slider-scale">Skala Ukuran Teks (%)</label>
+              <input type="number" id="theme-num-scale" class="slider-num-input" min="90" max="120" step="1">
+            </div>
+            <div class="slider-row-control">
+              <input type="range" id="theme-slider-scale" class="theme-slider" data-field="scale" min="90" max="120" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Ekspor / Impor JSON (P4.6) -->
+        <div class="buttons" style="margin-top: 16px;">
+          <button type="button" id="theme-btn-export">Ekspor Tema (JSON)</button>
+          <button type="button" id="theme-btn-import">Impor Tema...</button>
+          <input type="file" id="theme-import-file" accept=".json" class="hidden">
+        </div>
+        <p class="hint">Berkas tema yang diekspor berformat JSON aman dan dapat dibagikan atau dipasang kembali kapan saja.</p>
       </section>
 
       <hr>
@@ -563,6 +703,8 @@
       </section>
     </div>
   </main>
+  <script src="theme-apply.js"></script>
+  <script src="appearance.js"></script>
   <script src="../src/dialogue.js"></script>
   <script src="settings.js"></script>
 </body>

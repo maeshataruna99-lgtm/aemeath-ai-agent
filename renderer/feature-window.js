@@ -67,17 +67,10 @@
       allEntries = [];
     }
 
-    if (window.AemeathThemeManager) {
-      window.AemeathThemeManager.applyTheme(currentSettings, document.body);
-    }
-
     if (guideApi.onSettingsUpdated) {
       guideApi.onSettingsUpdated((updated) => {
         if (updated) {
           currentSettings = Object.assign({}, currentSettings, updated);
-          if (window.AemeathThemeManager) {
-            window.AemeathThemeManager.applyTheme(currentSettings, document.body);
-          }
         }
       });
     }
@@ -97,13 +90,24 @@
     });
 
     if (themeToggleBtn) {
-      themeToggleBtn.addEventListener('click', () => {
-        const nextTheme = currentSettings.theme === 'glass' ? 'default' : 'glass';
-        currentSettings.theme = nextTheme;
-        if (window.AemeathThemeManager) {
-          window.AemeathThemeManager.applyTheme(currentSettings, document.body);
+      const PRESETS_CYCLE = ['midnight-glass', 'soft-light', 'mono', 'aemeath', 'classic'];
+      themeToggleBtn.addEventListener('click', async () => {
+        let currentPreset = 'midnight-glass';
+        if (window.__aemeathTheme && window.__aemeathTheme.theme) {
+          currentPreset = window.__aemeathTheme.theme.preset || 'midnight-glass';
+        } else if (guideApi.getTheme) {
+          try {
+            const p = await guideApi.getTheme();
+            if (p && p.theme) currentPreset = p.theme.preset || 'midnight-glass';
+          } catch {
+            // ignore
+          }
         }
-        guideApi.saveSettings({ theme: nextTheme });
+        const currentIndex = PRESETS_CYCLE.indexOf(currentPreset);
+        const nextPreset = PRESETS_CYCLE[(currentIndex + 1) % PRESETS_CYCLE.length];
+        if (typeof guideApi.setThemePreset === 'function') {
+          guideApi.setThemePreset(nextPreset);
+        }
       });
     }
 

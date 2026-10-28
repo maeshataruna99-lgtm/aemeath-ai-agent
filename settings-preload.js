@@ -26,4 +26,9 @@ contextBridge.exposeInMainWorld('aemeathSettings', {
   clearMemory: () => ipcRenderer.invoke('memory:clear'),
   setMemoryPolicy: (patch) => ipcRenderer.send('memory:set', patch),
   onMemoryUpdated: (fn) => ipcRenderer.on('memory:updated', (_e, status) => fn(status)),
+  getTheme: () => ipcRenderer.invoke('theme:get'),
+  previewTheme: (patch) => ipcRenderer.invoke('theme:preview', patch),
+  setTheme: (patch) => ipcRenderer.invoke('theme:set', patch),
+  setThemePreset: (name) => ipcRenderer.invoke('theme:set-preset', name),
+  onThemeChanged: (fn) => ipcRenderer.on('theme:changed', (_e, payload) => fn(payload)),
 });

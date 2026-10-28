@@ -1,0 +1,268 @@
+/* ==========================================================================
+   theme.css — Fondasi Token Semantik Aemeath (P4.1)
+   Mengadopsi skema token dari docs/design/glass-card.css
+   Semua warna, blur, radius, dan ukuran teks diekstrak ke variabel CSS di sini.
+   ========================================================================== */
+
+:root {
+  /* --- Surface & Background (Default / Classic Aemeath) --- */
+  --glass-bg: rgba(255, 255, 255, 0.97);
+  --glass-bg-fallback: rgba(255, 255, 255, 0.97);
+  --glass-chat-bg: rgba(255, 255, 255, 0.98);
+  --glass-settings-bg: #fff7fb;
+  --glass-blur: 0px;
+  --glass-saturate: 1.0;
+  --glass-radius: 14px;
+  --glass-radius-msg: 12px;
+  --glass-radius-input: 10px;
+  --glass-radius-sm: 8px;
+  --glass-radius-pill: 999px;
+  --glass-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  --glass-shadow-chat: 0 6px 18px rgba(0, 0, 0, 0.2);
+
+  /* --- Border --- */
+  --glass-border: #f472b6;
+  --glass-border-subtle: #f9a8d4;
+  --glass-border-light: #f9c9de;
+  --glass-border-dim: #cbd5e1;
+  --glass-border-code: #334155;
+
+  /* --- Tipografi & Teks --- */
+  --glass-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --glass-font-mono: Consolas, "Cascadia Mono", monospace;
+  --glass-text: #1f2430;
+  --glass-text-muted: #6b7280;
+  --glass-text-dim: #4b5563;
+  --glass-text-field: #374151;
+  --glass-text-white: #ffffff;
+  --glass-title-size: 40px;
+  --glass-title-weight: 600;
+  --glass-title-tracking: -0.03em;
+  --glass-font-size-base: 13px;
+  --glass-font-size-sm: 12px;
+  --glass-font-size-xs: 11px;
+  --glass-line-height: 1.45;
+
+  /* --- Aksen & Status --- */
+  --glass-accent: #f472b6;
+  --glass-accent-deep: #be185d;
+  --glass-accent-active: #9d174d;
+  --glass-accent-link: #db2777;
+  --glass-accent-light: #fdf2f8;
+  --glass-accent-hover: #fde7f1;
+  --glass-accent-checked: #fff0f7;
+  --glass-accent-range: #ec4899;
+  --glass-status-ok: #15803d;
+  --glass-status-warn: #92400e;
+
+  /* --- Komponen Kecil (Chip, Tombol, Pemisah) --- */
+  --glass-chip-bg: rgba(255, 255, 255, 0.08);
+  --glass-chip-border: rgba(255, 255, 255, 0.18);
+  --glass-chip-radius: 16px;
+  --glass-btn-bg: #ffffff;
+  --glass-btn-border: #f9a8d4;
+  --glass-btn-text: #be185d;
+  --glass-btn-hover: #fde7f1;
+  --glass-btn-radius: 8px;
+  --glass-divider: #f9c9de;
+  --glass-divider-dashed: #f9a8d4;
+
+  /* --- Panel & Notifikasi Khusus --- */
+  --glass-chat-notice-bg: #fff1d6;
+  --glass-suggest-bg: #fff7fb;
+  --glass-quote-bg: #fdf2f8;
+  --glass-quote-border: #f472b6;
+  --glass-music-bg: rgba(31, 36, 48, 0.85);
+  --glass-music-text: #ffe4f2;
+  --glass-error-bg: #fee2e2;
+  --glass-error-text: #991b1b;
+  --glass-consent-bg: #fff7e0;
+  --glass-consent-border: #f5d27a;
+  --glass-badge-soon-bg: #e0e7ff;
+  --glass-badge-soon-text: #3730a3;
+
+  /* --- Terminal & Code Blocks --- */
+  --glass-code-bg: #0f172a;
+  --glass-code-text: #f8fafc;
+  --glass-code-header-bg: #1e293b;
+  --glass-code-header-border: #334155;
+  --glass-code-header-text: #94a3b8;
+  --glass-code-copy-bg: #334155;
+  --glass-code-copy-border: #475569;
+  --glass-code-copy-text: #e2e8f0;
+  --glass-inline-code-bg: #f1f5f9;
+  --glass-inline-code-text: #d946ef;
+  --glass-inline-code-border: #e2e8f0;
+  --glass-terminal-text: #7dd3fc;
+  --glass-terminal-dim: #e2e8f0;
+
+  /* --- Spasi --- */
+  --glass-pad: 24px;
+  --glass-gap: 12px;
+}
+
+/* ==========================================================================
+   Komponen Kartu Kaca Acuan (dari docs/design/glass-card.css)
+   ========================================================================== */
+
+.glass-card {
+  box-sizing: border-box;
+  width: 380px;
+  max-width: 100%;
+  padding: var(--glass-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--glass-gap);
+  color: var(--glass-text-white);
+  font-family: var(--glass-font);
+  background: var(--glass-bg-fallback);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+}
+
+.glass-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 72px;
+}
+
+.glass-card__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-chip-border);
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.glass-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 16px;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: 14px;
+  color: inherit;
+}
+
+.glass-card__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.glass-card__meta-time {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--glass-text-muted);
+}
+
+.glass-card__title {
+  margin: 0;
+  font-size: var(--glass-title-size);
+  font-weight: var(--glass-title-weight);
+  letter-spacing: var(--glass-title-tracking);
+  line-height: 1.1;
+}
+
+.glass-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.glass-chip {
+  padding: 10px 16px;
+  font-size: 15px;
+  color: inherit;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: var(--glass-chip-radius);
+}
+
+.glass-card__divider {
+  height: 1px;
+  margin: 56px 0 8px;
+  border: 0;
+  background: var(--glass-divider);
+}
+
+.glass-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--glass-gap);
+}
+
+.glass-card__salary {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.glass-card__location {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--glass-text-muted);
+}
+
+.glass-btn {
+  padding: 12px 22px;
+  font: inherit;
+  font-size: 16px;
+  color: inherit;
+  cursor: pointer;
+  background: var(--glass-chip-bg);
+  border: 1px solid var(--glass-chip-border);
+  border-radius: 18px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.glass-btn:active {
+  transform: scale(0.97);
+}
+
+.glass-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-btn {
+    transition: none;
+  }
+}
+
+/* --- Aksesibilitas: Kurangi Efek --- */
+body.reduce-effects {
+  --glass-blur: 0px !important;
+}
+
+body.reduce-effects *,
+body.reduce-effects *::before,
+body.reduce-effects *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

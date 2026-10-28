@@ -45,4 +45,6 @@ contextBridge.exposeInMainWorld('aemeath', {
   dismissMemory: (offerId) => ipcRenderer.invoke('memory:dismiss', offerId),
   answerContinuation: (offerId, choice) => ipcRenderer.invoke('memory:continuation-answer', offerId, choice),
   onLorebookUpdated: (fn) => ipcRenderer.on('lorebook:updated', (_e, data) => fn(data)),
+  getTheme: () => ipcRenderer.invoke('theme:get'),
+  onThemeChanged: (fn) => ipcRenderer.on('theme:changed', (_e, themeData) => fn(themeData)),
 });

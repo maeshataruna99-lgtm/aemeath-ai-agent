@@ -13,6 +13,7 @@ const {
   safeStorage,
   screen,
   shell,
+  nativeTheme,
 } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -51,8 +52,18 @@ const {
   MIN_SCALE,
   MAX_SCALE,
 } = require('./src/settings');
+const { createThemeStore } = require('./src/theme/theme-store');
+const { normalizeTheme, mergeTheme } = require('./src/theme/theme-schema');
+const { deriveTokens } = require('./src/theme/derive');
+const { getPreset } = require('./src/theme/presets');
+const { evaluateContrast } = require('./src/theme/contrast');
 
-const gotLock = app.requestSingleInstanceLock();
+const isSelfie = process.argv.includes('--selfie');
+if (isSelfie) {
+  const selfieDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeath-selfie-'));
+  app.setPath('userData', selfieDir);
+}
+const gotLock = isSelfie ? true : app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
@@ -60,7 +71,6 @@ if (!gotLock) {
 }
 
 function main() {
-  const isSelfie = process.argv.includes('--selfie');
   // No input for this long means Rover is away; routine lines wait until he is back.
   const IDLE_PRESENCE_SECONDS = 120;
   app.setAppUserModelId('aemeath.ai.agent');
@@ -85,6 +95,7 @@ function main() {
   let continuationTimer = null;
   let presenceTimer = null;
   let lastPresence = null;
+  let themeStore = null;
 
   migrateLegacySettings(app.getPath('userData'), path.join(app.getPath('appData'), 'Aemeth'));
   const settingsStore = createSettingsStore(app.getPath('userData'));
@@ -349,6 +360,7 @@ function main() {
       ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
       : app.getPath('userData');
     commandStore = createCommandStore({ dir: dataDir });
+    themeStore = createThemeStore({ dir: dataDir });
     lorebookOverlayFile = path.join(dataDir, OVERLAY_FILE);
     lorebookUpdater = createLorebookUpdater({ dir: dataDir });
     reloadLorebook();
@@ -424,6 +436,7 @@ function main() {
       win = null;
     });
     win.loadFile(path.join(__dirname, 'renderer', 'index.html')).then(() => {
+      broadcastTheme();
       win.show();
       console.log('[aemeath] pet window ready ' + workArea.width + 'x' + workArea.height);
       startWatchers();
@@ -753,6 +766,89 @@ function main() {
       }
     });
 
+    if (nativeTheme && typeof nativeTheme.on === 'function') {
+      nativeTheme.on('updated', () => {
+        if (!themeStore) return;
+        const current = themeStore.getState();
+        if (current.mode === 'system') {
+          broadcastTheme(getCurrentThemePayload());
+        }
+      });
+    }
+
+    ipcMain.handle('theme:get', (event) => {
+      if (!fromWindow(event, win) && !fromWindow(event, settingsWin) && !fromWindow(event, featureWin)) {
+        return null;
+      }
+      return getCurrentThemePayload();
+    });
+
+    ipcMain.handle('theme:preview', (event, patch) => {
+      if (!fromWindow(event, settingsWin) || !themeStore) return null;
+      const current = themeStore.getState();
+      const merged = mergeTheme(current, patch);
+      if (patch && (patch.accent || patch.glass || patch.text)) {
+        if (!patch.preset) merged.preset = 'custom';
+      }
+      const normalized = normalizeTheme(merged);
+      const effectiveMode = resolveEffectiveMode(normalized.mode);
+      const tokens = deriveTokens(normalized, effectiveMode);
+      const contrast = evaluateContrast(normalized, null, effectiveMode);
+      const payload = {
+        theme: normalized,
+        tokens,
+        effectiveMode,
+        contrast,
+        isReadOnly: themeStore.isReadOnly(),
+        notice: themeStore.getNotice(),
+      };
+      broadcastTheme(payload);
+      return payload;
+    });
+
+    ipcMain.handle('theme:set', (event, patch) => {
+      if ((!fromWindow(event, settingsWin) && !fromWindow(event, featureWin)) || !themeStore) return null;
+      const current = themeStore.getState();
+      const merged = mergeTheme(current, patch);
+      if (patch && (patch.accent || patch.glass || patch.text)) {
+        if (!patch.preset) merged.preset = 'custom';
+      }
+      const result = themeStore.save(merged);
+      const effectiveMode = resolveEffectiveMode(result.theme.mode);
+      const tokens = deriveTokens(result.theme, effectiveMode);
+      const contrast = evaluateContrast(result.theme, null, effectiveMode);
+      const payload = {
+        theme: result.theme,
+        tokens,
+        effectiveMode,
+        contrast,
+        isReadOnly: themeStore.isReadOnly(),
+        notice: themeStore.getNotice(),
+      };
+      broadcastTheme(payload);
+      updateTray();
+      return payload;
+    });
+
+    ipcMain.handle('theme:set-preset', (event, presetName) => {
+      if ((!fromWindow(event, settingsWin) && !fromWindow(event, featureWin)) || !themeStore) return null;
+      const result = themeStore.setPreset(presetName);
+      const effectiveMode = resolveEffectiveMode(result.theme.mode);
+      const tokens = deriveTokens(result.theme, effectiveMode);
+      const contrast = evaluateContrast(result.theme, null, effectiveMode);
+      const payload = {
+        theme: result.theme,
+        tokens,
+        effectiveMode,
+        contrast,
+        isReadOnly: themeStore.isReadOnly(),
+        notice: themeStore.getNotice(),
+      };
+      broadcastTheme(payload);
+      updateTray();
+      return payload;
+    });
+
     ipcMain.on('app:quit', () => app.quit());
     ipcMain.on('pet:contextmenu', () => {
       if (tray) tray.popUpContextMenu(Menu.buildFromTemplate(menuTemplate()));
@@ -778,6 +874,40 @@ function main() {
     if (aggregateTimer) clearInterval(aggregateTimer);
     if (continuationTimer) clearTimeout(continuationTimer);
   });
+
+  function resolveEffectiveMode(mode) {
+    if (mode === 'system') {
+      return nativeTheme && nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+    }
+    return mode === 'light' ? 'light' : 'dark';
+  }
+
+  function getCurrentThemePayload() {
+    if (!themeStore) return null;
+    const currentTheme = themeStore.getState();
+    const effectiveMode = resolveEffectiveMode(currentTheme.mode);
+    const tokens = deriveTokens(currentTheme, effectiveMode);
+    const contrast = evaluateContrast(currentTheme, null, effectiveMode);
+    return {
+      theme: currentTheme,
+      tokens,
+      effectiveMode,
+      contrast,
+      isReadOnly: themeStore.isReadOnly(),
+      notice: themeStore.getNotice(),
+    };
+  }
+
+  function broadcastTheme(payload) {
+    const data = payload || getCurrentThemePayload();
+    if (!data) return;
+    const windows = [win, settingsWin, featureWin];
+    for (const w of windows) {
+      if (w && !w.isDestroyed() && w.webContents) {
+        w.webContents.send('theme:changed', data);
+      }
+    }
+  }
 
   // Chat lives in a box next to the pet; the tray only asks the overlay to toggle it.
   function toggleChat() {
@@ -812,7 +942,9 @@ function main() {
     settingsWin.on('closed', () => {
       settingsWin = null;
     });
-    settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+    settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html')).then(() => {
+      broadcastTheme();
+    });
   }
 
   function openFeatureWindow() {
@@ -842,7 +974,9 @@ function main() {
     featureWin.on('closed', () => {
       featureWin = null;
     });
-    featureWin.loadFile(path.join(__dirname, 'renderer', 'feature-window.html'));
+    featureWin.loadFile(path.join(__dirname, 'renderer', 'feature-window.html')).then(() => {
+      broadcastTheme();
+    });
   }
 
   // Starting with Windows. In development the entry must name the app folder too, or
@@ -1033,9 +1167,28 @@ function main() {
     updateTray();
   }
 
+  function applyPresetFromTray(presetName) {
+    if (!themeStore) return;
+    const result = themeStore.setPreset(presetName);
+    const effectiveMode = resolveEffectiveMode(result.theme.mode);
+    const tokens = deriveTokens(result.theme, effectiveMode);
+    const contrast = evaluateContrast(result.theme, null, effectiveMode);
+    const payload = {
+      theme: result.theme,
+      tokens,
+      effectiveMode,
+      contrast,
+      isReadOnly: themeStore.isReadOnly(),
+      notice: themeStore.getNotice(),
+    };
+    broadcastTheme(payload);
+    updateTray();
+  }
+
   function menuTemplate() {
     const running = provider ? provider.activeSessionCount() : 0;
     const awaiting = provider ? provider.pendingDecisionCount() : 0;
+    const currentPreset = themeStore ? themeStore.getState().preset : 'midnight-glass';
     return [
       { label: 'Sesi AI berjalan: ' + running, enabled: false },
       { label: 'Menunggu keputusanmu: ' + awaiting, enabled: false },
@@ -1060,6 +1213,44 @@ function main() {
       {
         label: 'Mode transparan (tembus klik): ' + (settings.transparentMode ? 'aktif' : 'nonaktif'),
         click: () => toggleFeature('transparentMode'),
+      },
+      {
+        label: 'Tema',
+        submenu: [
+          {
+            label: 'Midnight Glass (Bawaan)',
+            type: 'radio',
+            checked: currentPreset === 'midnight-glass',
+            click: () => applyPresetFromTray('midnight-glass'),
+          },
+          {
+            label: 'Soft Light',
+            type: 'radio',
+            checked: currentPreset === 'soft-light',
+            click: () => applyPresetFromTray('soft-light'),
+          },
+          {
+            label: 'Mono',
+            type: 'radio',
+            checked: currentPreset === 'mono',
+            click: () => applyPresetFromTray('mono'),
+          },
+          {
+            label: 'Aemeath',
+            type: 'radio',
+            checked: currentPreset === 'aemeath',
+            click: () => applyPresetFromTray('aemeath'),
+          },
+          {
+            label: 'Classic',
+            type: 'radio',
+            checked: currentPreset === 'classic',
+            click: () => applyPresetFromTray('classic'),
+          },
+          ...(currentPreset === 'custom'
+            ? [{ label: 'Kustom (Slider)', type: 'radio', checked: true, enabled: false }]
+            : []),
+        ],
       },
       {
         label: 'Kecepatan jalan',
@@ -1356,6 +1547,11 @@ function main() {
     await settingsWin.webContents.executeJavaScript(`document.getElementById('add-preset').scrollIntoView()`);
     await sleep(300);
     fs.writeFileSync(path.join(dir, 'settings-commands-ps.png'), (await settingsWin.webContents.capturePage()).toPNG());
+
+    await settingsWin.webContents.executeJavaScript(`document.getElementById('tab-appearance').click()`);
+    await sleep(400);
+    fs.writeFileSync(path.join(dir, 'settings-appearance.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    console.log('[aemeath] selfie saved: settings-appearance');
 
     const requestsBefore = selfieRequests.length;
     win.webContents.send('chat:toggle'); // close

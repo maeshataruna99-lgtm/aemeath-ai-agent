@@ -29,22 +29,6 @@
     document.getElementById('provider-name-2'),
   ];
 
-  const themeDefault = document.getElementById('theme-default');
-  const themeGlass = document.getElementById('theme-glass');
-  const glassControls = document.getElementById('glass-controls');
-  const glassHue = document.getElementById('glass-hue');
-  const glassHueValue = document.getElementById('glass-hue-value');
-  const glassBlur = document.getElementById('glass-blur');
-  const glassBlurValue = document.getElementById('glass-blur-value');
-  const glassOpacity = document.getElementById('glass-opacity');
-  const glassOpacityValue = document.getElementById('glass-opacity-value');
-  const presetButtons = document.querySelectorAll('#glass-presets-container .preset-btn');
-
-  function updatePresetButtons(activePreset) {
-    presetButtons.forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.preset === activePreset);
-    });
-  }
 
   let status = null;
   let currentPlatform = {
@@ -195,26 +179,6 @@
     opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
     renderTransparency();
     shortcutSelect.value = typeof settings.chatShortcut === 'string' ? settings.chatShortcut : 'Alt+Space';
-    const activeTheme = settings.theme === 'glass' ? 'glass' : 'default';
-    if (themeDefault && themeGlass) {
-      themeDefault.checked = activeTheme === 'default';
-      themeGlass.checked = activeTheme === 'glass';
-      if (glassControls) glassControls.classList.toggle('hidden', activeTheme !== 'glass');
-    }
-    const currentPreset = settings.glassPreset || 'violet';
-    updatePresetButtons(currentPreset);
-    if (glassHue) {
-      glassHue.value = typeof settings.glassHue === 'number' ? settings.glassHue : 280;
-      if (glassHueValue) glassHueValue.textContent = glassHue.value + '°';
-    }
-    if (glassBlur) {
-      glassBlur.value = typeof settings.glassBlur === 'number' ? settings.glassBlur : 20;
-      if (glassBlurValue) glassBlurValue.textContent = glassBlur.value + 'px';
-    }
-    if (glassOpacity) {
-      glassOpacity.value = Math.round((typeof settings.glassOpacity === 'number' ? settings.glassOpacity : 0.18) * 100);
-      if (glassOpacityValue) glassOpacityValue.textContent = glassOpacity.value + '%';
-    }
     doom.value = settings.doomscrollLimitMin || 20;
     doomValue.textContent = 'setelah ' + doom.value + ' menit';
     renderMode(
@@ -414,67 +378,6 @@
   shortcutSelect.addEventListener('change', () => {
     window.aemeathSettings.set({ chatShortcut: shortcutSelect.value });
   });
-
-  if (themeDefault) {
-    themeDefault.addEventListener('change', () => {
-      if (themeDefault.checked) {
-        if (glassControls) glassControls.classList.add('hidden');
-        window.aemeathSettings.set({ theme: 'default' });
-      }
-    });
-  }
-
-  if (themeGlass) {
-    themeGlass.addEventListener('change', () => {
-      if (themeGlass.checked) {
-        if (glassControls) glassControls.classList.remove('hidden');
-        window.aemeathSettings.set({ theme: 'glass' });
-      }
-    });
-  }
-
-  presetButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const preset = btn.dataset.preset;
-      updatePresetButtons(preset);
-      const updates = { glassPreset: preset };
-      if (preset === 'blossom') { updates.glassHue = 335; if (glassHue) glassHue.value = 335; }
-      else if (preset === 'violet') { updates.glassHue = 280; if (glassHue) glassHue.value = 280; }
-      else if (preset === 'azure') { updates.glassHue = 205; if (glassHue) glassHue.value = 205; }
-      else if (preset === 'emerald') { updates.glassHue = 155; if (glassHue) glassHue.value = 155; }
-      else if (preset === 'obsidian') { updates.glassHue = 225; if (glassHue) glassHue.value = 225; }
-      if (glassHueValue && updates.glassHue != null) glassHueValue.textContent = updates.glassHue + '°';
-      window.aemeathSettings.set(updates);
-    });
-  });
-
-  if (glassHue) {
-    glassHue.addEventListener('input', () => {
-      if (glassHueValue) glassHueValue.textContent = glassHue.value + '°';
-    });
-    glassHue.addEventListener('change', () => {
-      updatePresetButtons('custom');
-      window.aemeathSettings.set({ glassPreset: 'custom', glassHue: Number(glassHue.value) });
-    });
-  }
-
-  if (glassBlur) {
-    glassBlur.addEventListener('input', () => {
-      if (glassBlurValue) glassBlurValue.textContent = glassBlur.value + 'px';
-    });
-    glassBlur.addEventListener('change', () => {
-      window.aemeathSettings.set({ glassBlur: Number(glassBlur.value) });
-    });
-  }
-
-  if (glassOpacity) {
-    glassOpacity.addEventListener('input', () => {
-      if (glassOpacityValue) glassOpacityValue.textContent = glassOpacity.value + '%';
-    });
-    glassOpacity.addEventListener('change', () => {
-      window.aemeathSettings.set({ glassOpacity: Number(glassOpacity.value) / 100 });
-    });
-  }
 
   // ---- Lorebook & Wiki updater -----------------------------------------------
   const wikiPageInput = document.getElementById('wiki-page');
@@ -1172,11 +1075,40 @@
   const tabs = Array.from(document.querySelectorAll('.tab'));
 
   function selectTab(tab) {
+    if (tab && tab.id === 'tab-appearance') {
+      const tabGeneral = document.getElementById('tab-general');
+      const panelGeneral = document.getElementById('panel-general');
+      for (const other of tabs) {
+        const isCurrent = other === tab;
+        other.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+        other.tabIndex = isCurrent ? 0 : -1;
+        const targetId = other.getAttribute('aria-controls');
+        if (targetId && targetId !== 'theme-section') {
+          const el = document.getElementById(targetId);
+          if (el) el.classList.toggle('hidden', other !== tabGeneral);
+        }
+      }
+      if (panelGeneral) {
+        panelGeneral.classList.remove('hidden');
+        const themeSection = document.getElementById('theme-section');
+        if (themeSection) {
+          themeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+      return;
+    }
+
     for (const other of tabs) {
       const on = other === tab;
       other.setAttribute('aria-selected', String(on));
       other.tabIndex = on ? 0 : -1;
-      document.getElementById(other.getAttribute('aria-controls')).classList.toggle('hidden', !on);
+      const targetId = other.getAttribute('aria-controls');
+      if (targetId && targetId !== 'theme-section') {
+        const targetPanel = document.getElementById(targetId);
+        if (targetPanel) {
+          targetPanel.classList.toggle('hidden', !on);
+        }
+      }
     }
   }
 
