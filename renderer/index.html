@@ -26,7 +26,11 @@
       </div>
       <div id="chat-log" aria-live="polite"></div>
       <div id="chat-suggest" class="hidden" role="listbox" aria-label="Perintah"></div>
+      <div id="chat-attachments" class="hidden" aria-label="Lampiran gambar"></div>
+      <div id="chat-attachments-disclosure" class="chat-att-disclosure hidden" role="status">Gambar akan dikirim ke penyedia AI untuk dianalisis.</div>
       <form id="chat-form" autocomplete="off">
+        <input id="chat-file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden">
+        <button id="chat-attach" type="button" title="Lampirkan gambar (PNG, JPEG, WebP)">&#128206;</button>
         <input id="chat-input" type="text" maxlength="600" placeholder="Tulis pesan, atau / untuk perintah...">
         <button id="chat-send" type="submit">Kirim</button>
       </form>

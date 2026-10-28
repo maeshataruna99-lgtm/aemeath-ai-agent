@@ -472,6 +472,119 @@ body {
   white-space: nowrap;
 }
 
+#chat-attachments {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  margin-top: 6px;
+  background: var(--glass-code-bg);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--glass-radius-input);
+  overflow-x: auto;
+  align-items: center;
+}
+
+#chat-attachments.hidden {
+  display: none;
+}
+
+.chat-att-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: var(--glass-btn-bg);
+  border: 1px solid var(--glass-border-dim);
+  border-radius: var(--glass-radius-sm);
+  font-size: var(--glass-font-size-xs);
+  max-width: 160px;
+}
+
+.chat-att-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.chat-att-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-att-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 85px;
+}
+
+.chat-att-size {
+  color: var(--glass-text-muted);
+  font-size: 10px;
+}
+
+.chat-att-remove {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-weight: bold;
+  color: var(--glass-text-muted);
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.chat-att-remove:hover {
+  color: var(--glass-error-text);
+  background: var(--glass-error-bg);
+}
+
+.chat-att-disclosure {
+  font-size: 10px;
+  color: var(--glass-text-dim, var(--glass-text-muted));
+  font-style: italic;
+  padding: 2px 6px;
+  white-space: nowrap;
+  user-select: none;
+  opacity: 0.85;
+}
+
+#chat-attach {
+  padding: 4px 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--glass-radius-input);
+  background: var(--glass-btn-bg);
+  color: var(--glass-text-dim);
+}
+
+#chat-attach:hover:not(:disabled) {
+  background: var(--glass-btn-hover);
+  color: var(--glass-accent);
+}
+
+#chat-log .msg-thumbnails {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+#chat-log .msg-thumb-img {
+  max-width: 120px;
+  max-height: 90px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 #chat-form {
   display: flex;
   gap: 6px;

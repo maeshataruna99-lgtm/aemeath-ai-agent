@@ -62,6 +62,12 @@ test('offers the models named in the DeepSeek docs', () => {
   assert.deepEqual(MODELS.map((m) => m.id), ['deepseek-flash', 'deepseek-v4-pro']);
 });
 
+test('declares vision capability as unsupported', () => {
+  const provider = createDeepSeekProvider();
+  assert.equal(provider.capabilities.vision, false);
+  assert.equal(provider.supportsVision(), false);
+});
+
 test('maps HTTP statuses to stable error codes', async () => {
   const cases = { 400: 'format', 401: 'auth', 402: 'balance', 422: 'format', 429: 'rate', 500: 'server', 503: 'server' };
   for (const [status, code] of Object.entries(cases)) {

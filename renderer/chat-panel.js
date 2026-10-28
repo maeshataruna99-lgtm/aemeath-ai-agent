@@ -39,6 +39,10 @@
     const suggest = document.getElementById('chat-suggest');
     const modeBadge = document.getElementById('chat-mode');
     const sizeButton = document.getElementById('chat-size');
+    const attachmentsContainer = document.getElementById('chat-attachments');
+    const attachmentsDisclosure = document.getElementById('chat-attachments-disclosure');
+    const fileInput = document.getElementById('chat-file-input');
+    const attachButton = document.getElementById('chat-attach');
 
     let isOpen = false;
     let busy = false;
@@ -53,6 +57,7 @@
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
     let requestCounter = 0;
+    let pendingAttachments = [];
 
     function isSafeHttpUrl(url) {
       if (typeof url !== 'string') return false;
@@ -148,7 +153,22 @@
       return count + ' catatan memori ikut kupakai untuk jawaban ini';
     }
 
-    function add(kind, text, sources, note) {
+    function appendThumbnails(container, attachments) {
+      if (!attachments || attachments.length === 0) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'msg-thumbnails';
+      attachments.forEach((att) => {
+        const img = document.createElement('img');
+        img.className = 'msg-thumb-img';
+        img.src = att.dataUrl || ('data:' + (att.mimeType || 'image/png') + ';base64,' + att.data);
+        img.alt = att.name || 'lampiran';
+        img.title = att.name || 'lampiran';
+        wrap.appendChild(img);
+      });
+      container.appendChild(wrap);
+    }
+
+    function add(kind, text, sources, note, attachments) {
       const message = document.createElement('div');
       message.className = 'msg ' + kind;
       const body = document.createElement('div');
@@ -156,6 +176,7 @@
       message.appendChild(body);
 
       updateMessageContent(message, text, kind.startsWith('bot') && !kind.includes('pending'));
+      appendThumbnails(message, attachments);
       appendSources(message, sources);
       appendNote(message, note);
 
@@ -169,6 +190,7 @@
     // there is no key and offline answers are switched off.
     function controls() {
       input.disabled = false;
+      if (attachButton) attachButton.disabled = busy || mode === 'terminal';
       send.disabled = busy;
     }
 
@@ -227,18 +249,127 @@
       }, mode === 'terminal' ? TERMINAL_IDLE_MS : IDLE_CLOSE_MS);
     }
 
+    function renderPendingAttachments() {
+      if (!attachmentsContainer) return;
+      if (pendingAttachments.length === 0) {
+        attachmentsContainer.classList.add('hidden');
+        attachmentsContainer.textContent = '';
+        if (attachmentsDisclosure) attachmentsDisclosure.classList.add('hidden');
+        reposition();
+        return;
+      }
+      attachmentsContainer.classList.remove('hidden');
+      attachmentsContainer.textContent = '';
+      if (attachmentsDisclosure) attachmentsDisclosure.classList.remove('hidden');
+      pendingAttachments.forEach((att) => {
+        const item = document.createElement('div');
+        item.className = 'chat-att-item';
+
+        const thumb = document.createElement('img');
+        thumb.className = 'chat-att-thumb';
+        thumb.src = att.dataUrl;
+        thumb.alt = att.name;
+
+        const meta = document.createElement('div');
+        meta.className = 'chat-att-meta';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'chat-att-name';
+        nameSpan.textContent = att.name;
+        nameSpan.title = att.name;
+
+        const sizeSpan = document.createElement('span');
+        sizeSpan.className = 'chat-att-size';
+        const kb = (att.size / 1024).toFixed(0);
+        sizeSpan.textContent = kb + ' KB';
+
+        meta.append(nameSpan, sizeSpan);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'chat-att-remove';
+        removeBtn.type = 'button';
+        removeBtn.title = 'Hapus lampiran';
+        removeBtn.setAttribute('aria-label', 'Hapus lampiran ' + att.name);
+        removeBtn.innerHTML = '&times;';
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pendingAttachments = pendingAttachments.filter((a) => a.id !== att.id);
+          renderPendingAttachments();
+          controls();
+          if (isOpen) input.focus();
+        });
+
+        item.append(thumb, meta, removeBtn);
+        attachmentsContainer.appendChild(item);
+      });
+
+      reposition();
+    }
+
+    function addPendingFile(file, optionalName) {
+      if (!file) return;
+      if (pendingAttachments.length >= 3) {
+        add('err', 'Maksimal 3 gambar per pesan.');
+        return;
+      }
+      const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+      if (file.type && !allowed.includes(file.type)) {
+        add('err', 'Format berkas tidak didukung (hanya PNG, JPEG, dan WebP).');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        add('err', 'Ukuran gambar ' + (file.name || 'ini') + ' melebihi batas 5 MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const base64Data = typeof dataUrl === 'string' ? dataUrl.replace(/^data:[^;]+;base64,/, '') : '';
+        const id = 'att-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+        pendingAttachments.push({
+          id: id,
+          name: optionalName || file.name || 'image.png',
+          mimeType: file.type || 'image/png',
+          size: file.size,
+          data: base64Data,
+          dataUrl: dataUrl,
+        });
+        renderPendingAttachments();
+        controls();
+        touch();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (attachButton && fileInput) {
+      attachButton.addEventListener('click', () => {
+        fileInput.click();
+      });
+      fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files || []);
+        files.forEach((f) => addPendingFile(f));
+        fileInput.value = '';
+      });
+    }
+
     // Chat and terminal share the box; only the look and where lines go differ.
     function setMode(next, nextCwd) {
       mode = next === 'terminal' ? 'terminal' : 'chat';
       if (nextCwd) cwd = nextCwd;
       el.classList.toggle('terminal', mode === 'terminal');
       modeBadge.classList.toggle('hidden', mode !== 'terminal');
+      if (mode === 'terminal') {
+        pendingAttachments = [];
+        renderPendingAttachments();
+      }
       input.placeholder =
         mode === 'terminal'
           ? 'Ketik perintah PowerShell... (exit untuk keluar)'
           : 'Tulis pesan, atau / untuk perintah...';
       notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
       hideSuggestions();
+      controls();
       reposition();
     }
 
@@ -309,6 +440,8 @@
 
     function resetConversation() {
       api.chatReset();
+      pendingAttachments = [];
+      renderPendingAttachments();
       log.textContent = '';
       if (isOpen && mode === 'chat') add('bot', GREETING);
     }
@@ -388,8 +521,12 @@
     }
 
     // An ordinary chat message. `shown` means Rover's line is already in the log.
-    async function sendChat(text, shown) {
-      if (!shown) add('user', text);
+    async function sendChat(inputOrText, shown, attachmentPreviews) {
+      const isObject = inputOrText && typeof inputOrText === 'object';
+      const text = isObject ? (inputOrText.text || '') : (inputOrText || '');
+      const attachments = isObject && Array.isArray(inputOrText.attachments) ? inputOrText.attachments : [];
+
+      if (!shown) add('user', text, null, null, attachmentPreviews || attachments);
       if (!ready) {
         add('err', 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
         return;
@@ -397,7 +534,11 @@
       const isExplicitSearch = /^\/search(?:\s|$)/i.test(text);
       const pending = add(
         'bot pending',
-        isExplicitSearch ? 'Aemeath sedang mencari di web...' : 'Aemeath sedang berpikir...',
+        isExplicitSearch
+          ? 'Aemeath sedang mencari di web...'
+          : attachments.length > 0
+            ? 'Aemeath sedang melihat gambar...'
+            : 'Aemeath sedang berpikir...',
       );
       const requestId = 'req-' + Date.now() + '-' + (++requestCounter);
       let streamedText = '';
@@ -418,7 +559,7 @@
       controls();
       touch();
       try {
-        const result = await api.chatSend(text, requestId);
+        const result = await api.chatSend(inputOrText, requestId);
         if (result.ok) {
           if (isStreaming) {
             // Finalize with full text and clickable sources
@@ -450,11 +591,27 @@
 
     async function submit() {
       const text = input.value.trim();
-      if (!text || busy) return;
+      const hasAttachments = pendingAttachments.length > 0;
+      if ((!text && !hasAttachments) || busy) return;
       input.value = '';
       hideSuggestions();
       if (mode === 'terminal') {
         return /^\/change-mode(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
+      }
+      if (hasAttachments) {
+        const payload = {
+          text: text,
+          attachments: pendingAttachments.map((a) => ({
+            type: 'image',
+            mimeType: a.mimeType,
+            data: a.data,
+            name: a.name,
+          })),
+        };
+        const previews = pendingAttachments.slice();
+        pendingAttachments = [];
+        renderPendingAttachments();
+        return sendChat(payload, false, previews);
       }
       // Explicit manual web search (/search <query>) streams through chat with forced web lookup.
       if (!confirming && /^\/search\s+\S/i.test(text)) {
@@ -469,11 +626,33 @@
       return sendChat(text, false);
     }
 
+    function handlePaste(event) {
+      const clipboard = event.clipboardData;
+      if (!clipboard || !clipboard.items) return;
+      const items = Array.from(clipboard.items);
+      const imageItems = items.filter((item) => item.type && item.type.startsWith('image/'));
+      if (imageItems.length === 0) return; // Ordinary text paste is completely untouched
+
+      imageItems.forEach((item) => {
+        const file = item.getAsFile();
+        if (file) {
+          const ext = item.type === 'image/jpeg' ? 'jpg' : item.type === 'image/webp' ? 'webp' : 'png';
+          const name = 'clipboard-' + Date.now() + '.' + ext;
+          addPendingFile(file, name);
+        }
+      });
+      if (!clipboard.getData('text/plain')) {
+        event.preventDefault();
+      }
+    }
+
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       submit();
     });
     input.addEventListener('input', showSuggestions);
+    input.addEventListener('paste', handlePaste);
+    el.addEventListener('paste', handlePaste);
     el.addEventListener('keydown', (event) => {
       touch();
       if (event.key === 'Escape') close();

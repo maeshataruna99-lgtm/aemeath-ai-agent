@@ -10,6 +10,7 @@ const { isUnsafe, deflection } = require('./safety');
 const { shouldSearch, isRealtimeQuery, formatSearchBlock } = require('./web-search');
 const { detectJourneyWell, getJourneyWellReply } = require('./journey-well');
 const { resolveTravelIntent, getTravelDialogue } = require('./travel-intent');
+const { validateAttachments } = require('./attachment');
 
 const MAX_INPUT = 600;
 const MAX_HISTORY = 20; // user + assistant messages kept for context
@@ -92,16 +93,35 @@ function createChatService(options) {
     return entries.length;
   }
 
-  async function send(rawText, onChunk, callOptions) {
-    const rawTrimmed = typeof rawText === 'string' ? rawText.trim() : '';
+  async function send(rawInput, onChunk, callOptions) {
+    let rawText = '';
+    let rawAttachments = [];
+
+    if (typeof rawInput === 'string') {
+      rawText = rawInput;
+      rawAttachments = (callOptions && callOptions.attachments) || [];
+    } else if (rawInput && typeof rawInput === 'object') {
+      rawText = typeof rawInput.text === 'string' ? rawInput.text : '';
+      rawAttachments = rawInput.attachments || (callOptions && callOptions.attachments) || [];
+    }
+
+    const attachments = validateAttachments(rawAttachments);
+
+    const rawTrimmed = rawText.trim();
     const searchCmd = /^\/search(?:\s+([\s\S]*))?$/i.exec(rawTrimmed);
     const explicitSearch = Boolean(searchCmd || (callOptions && callOptions.forceSearch));
-    const text = searchCmd ? (searchCmd[1] || '').trim() : rawTrimmed;
+    let text = searchCmd ? (searchCmd[1] || '').trim() : rawTrimmed;
     if (!text) {
-      throw new ChatError(
-        'empty-input',
-        explicitSearch ? 'Tulis kata kunci setelah /search ya, Rover.' : 'Tulis sesuatu dulu, Rover.',
-      );
+      if (attachments.length > 0) {
+        text = attachments.length > 1
+          ? 'Tolong bandingkan gambar-gambar ini dan jelaskan apa yang kamu lihat.'
+          : 'Tolong jelaskan gambar ini.';
+      } else {
+        throw new ChatError(
+          'empty-input',
+          explicitSearch ? 'Tulis kata kunci setelah /search ya, Rover.' : 'Tulis sesuatu dulu, Rover.',
+        );
+      }
     }
     if (text.length > MAX_INPUT) {
       throw new ChatError('too-long', 'Pesannya terlalu panjang (maksimal ' + MAX_INPUT + ' karakter).');
@@ -156,6 +176,19 @@ function createChatService(options) {
     const config = getConfig();
     const provider = providers.get(config.provider);
     if (!provider) throw new ChatError('provider', 'Penyedia chatbot tidak dikenal.');
+
+    const supportsVision =
+      typeof provider.supportsVision === 'function'
+        ? provider.supportsVision(config.model || provider.defaultModel)
+      : Boolean(provider.capabilities && provider.capabilities.vision);
+
+    if (attachments.length > 0 && !supportsVision) {
+      throw new ChatError(
+        'unsupported-capability',
+        'Penyedia ' + provider.name + ' (' + (config.model || provider.defaultModel) + ') tidak mendukung input gambar.',
+      );
+    }
+
     const apiKey = getKey(provider.id);
     if (!apiKey) {
       if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key', picked);
@@ -229,8 +262,17 @@ function createChatService(options) {
           travel.subIntent +
           '. Tanggapi dengan kepedulian khas Aemeath tanpa mengada-ada bahaya palsu atau guilt-tripping.]';
       }
+      const hasVisionContext =
+        attachments.length > 0 || history.some((h) => h.content && h.content.includes('[Lampiran:'));
       const messages = [
-        { role: 'system', content: buildSystemPrompt(getKnowledge(), { companion, memory: picked.block }) },
+        {
+          role: 'system',
+          content: buildSystemPrompt(getKnowledge(), {
+            companion,
+            memory: picked.block,
+            vision: hasVisionContext,
+          }),
+        },
       ]
         .concat(history)
         .concat([{ role: 'user', content: content }]);
@@ -238,15 +280,29 @@ function createChatService(options) {
         apiKey,
         model: config.model || provider.defaultModel,
         messages: messages,
+        attachments: attachments,
         signal: controller.signal,
         onChunk: typeof onChunk === 'function' ? (delta) => onChunk(redact(delta, apiKey)) : undefined,
       });
       const cleanReply = redact(reply.text, apiKey);
       const answer = isUnsafe(cleanReply) ? deflection(turns) : cleanReply;
-      // History keeps what Rover typed (with any accidental key redacted), not the bulky search block.
-      history.push({ role: 'user', content: safeText }, { role: 'assistant', content: answer });
+      // History keeps what Rover typed (with any accidental key redacted), not the bulky search block or binary image data.
+      const historyUserText =
+        attachments.length > 0
+          ? safeText + ' [Lampiran: ' + attachments.map((a) => a.name).join(', ') + ']'
+          : safeText;
+      history.push({ role: 'user', content: historyUserText }, { role: 'assistant', content: answer });
       if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
       const result = { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
+      if (attachments.length > 0) {
+        result.attachments = attachments.map((a) => ({
+          name: a.name,
+          mimeType: a.mimeType,
+          size: a.size,
+          width: a.width,
+          height: a.height,
+        }));
+      }
       if (travel && travel.intent !== 'none' && travel.animation) {
         result.anim = travel.animation;
         result.event = 'travel-response';
@@ -259,7 +315,9 @@ function createChatService(options) {
     } catch (error) {
       const failure =
         error instanceof ChatError
-          ? error
+          ? (containsSecret(error.message, apiKey)
+              ? new ChatError(error.code, redact(error.message, apiKey))
+              : error)
           : new ChatError('unknown', redact(error && error.message, apiKey) || 'Terjadi kesalahan.');
       if (OFFLINE_CODES.has(failure.code) && canFallBack) return localAnswer(text, 'offline', picked);
       throw failure;

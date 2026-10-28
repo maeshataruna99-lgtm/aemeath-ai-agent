@@ -134,6 +134,7 @@ function main() {
       status: 200,
       json: async () => ({
         choices: [{ message: { content: 'Halo, Rover! Ini balasan contoh untuk uji tampilan.' } }],
+        candidates: [{ content: { parts: [{ text: 'Halo, Rover! Ini balasan contoh untuk uji tampilan.' }] } }],
       }),
     };
   };
@@ -220,6 +221,7 @@ function main() {
         keyUrl: p.keyUrl,
         models: p.models,
         hasKey: keyStore.has(p.id),
+        capabilities: p.capabilities || { vision: false },
       })),
     };
   }
@@ -610,12 +612,12 @@ function main() {
         return { ok: false };
       }
     });
-    ipcMain.handle('chat:send', async (event, text, requestId) => {
+    ipcMain.handle('chat:send', async (event, input, requestId) => {
       if (!fromWindow(event, win)) return { ok: false, error: 'Tidak diizinkan.' };
       win?.webContents?.send('chat:state', { thinking: true });
       const streaming = settings.chatStreaming !== false;
       try {
-        const reply = await chatService.send(text, streaming ? (chunk) => {
+        const reply = await chatService.send(input, streaming ? (chunk) => {
           win?.webContents?.send('chat:chunk', { requestId, delta: chunk });
         } : undefined);
         win?.webContents?.send('chat:state', { thinking: false, replied: true });
@@ -629,6 +631,7 @@ function main() {
           animMs: reply.animMs,
           event: reply.event,
           emotion: reply.emotion,
+          attachments: reply.attachments,
         };
       } catch (error) {
         win?.webContents?.send('chat:state', { thinking: false, replied: false });

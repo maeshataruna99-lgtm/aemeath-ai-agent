@@ -19,6 +19,7 @@ function service(overrides) {
             id: 'fake',
             name: 'Fake',
             defaultModel: 'fake-1',
+            supportsVision: overrides && 'supportsVision' in overrides ? overrides.supportsVision : undefined,
             send: async (request) => {
               sent.push(request);
               if (overrides && overrides.send) return overrides.send(request);
@@ -146,10 +147,11 @@ test('timeouts abort the request', async () => {
   assert.equal(await code(chat.send('halo')), 'unknown');
 });
 
-test('the registry knows DeepSeek and nothing else yet', () => {
+test('the registry knows DeepSeek and Gemini', () => {
   const providers = createProviders({ fetchImpl: async () => ({}) });
   assert.equal(providers.defaultId, 'deepseek');
   assert.equal(providers.get('deepseek').name, 'DeepSeek');
+  assert.equal(providers.get('gemini').name, 'Google Gemini');
   assert.equal(providers.get('nope'), null);
 });
 
@@ -160,3 +162,48 @@ test('the persona stays in character and discloses being an AI when sincerely as
   assert.match(prompt, /Bahasa Indonesia/);
   assert.match(prompt, /pet buatan penggemar yang ditenagai model AI/);
 });
+
+test('handles image attachments with text and forwards to vision-capable provider', async () => {
+  const { chat, sent } = service({ supportsVision: () => true });
+  // Minimal PNG buffer
+  const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 10, 0, 0, 0, 10, 8, 2, 0, 0, 0, 0, 0, 0, 0]);
+
+  const res = await chat.send({
+    text: 'Coba lihat gambar ini',
+    attachments: [{ type: 'image', data: pngBuf, name: 'screenshot.png' }],
+  });
+
+  assert.equal(res.text, 'jawaban 1');
+  assert.equal(res.attachments.length, 1);
+  assert.equal(res.attachments[0].name, 'screenshot.png');
+  assert.equal(res.attachments[0].mimeType, 'image/png');
+
+  assert.equal(sent[0].attachments.length, 1);
+  assert.equal(sent[0].attachments[0].mimeType, 'image/png');
+  // History does not store raw base64 data, only metadata indicator
+  assert.ok(chat.historyLength > 0);
+});
+
+test('attachment without text defaults to a polite question prompt', async () => {
+  const { chat, sent } = service({ supportsVision: () => true });
+  const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 10, 0, 0, 0, 10, 8, 2, 0, 0, 0, 0, 0, 0, 0]);
+
+  const res = await chat.send({
+    text: '',
+    attachments: [{ type: 'image', data: pngBuf }],
+  });
+
+  assert.equal(res.text, 'jawaban 1');
+  assert.ok(sent[0].messages.some((m) => m.content.includes('Tolong jelaskan gambar ini.')));
+});
+
+test('throws unsupported-capability when provider does not support vision', async () => {
+  const { chat } = service({ supportsVision: () => false });
+  const pngBuf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 10, 0, 0, 0, 10, 8, 2, 0, 0, 0, 0, 0, 0, 0]);
+
+  assert.equal(
+    await code(chat.send({ text: 'lihat ini', attachments: [{ type: 'image', data: pngBuf }] })),
+    'unsupported-capability',
+  );
+});
+

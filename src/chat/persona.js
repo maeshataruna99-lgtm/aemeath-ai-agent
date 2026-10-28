@@ -49,13 +49,30 @@ const MEMORY_RULES = [
   'Kalau catatan memori bertentangan dengan canon di catatan pengetahuan, canon yang benar. Jangan menyalin seluruh memori ke jawaban, dan jangan menyebut kata "memori", "database", atau "sistem" kepada Rover.',
 ];
 
+const VISION_RULES = [
+  'Panduan analisis visual dan gambar (ketika Rover melampirkan gambar atau menanyakan gambar sebelumnya):',
+  '1. Observasi & Bukti: Jelaskan apa yang terlihat secara langsung. Sebutkan elemen visual spesifik (warna, objek, tata letak, teks, atau ciri khas) sebagai bukti atas jawabanmu.',
+  '2. Transkripsi Teks (OCR): Salin teks yang terlihat secara akurat tanpa menambah atau mengarang kata. Jika ada bagian teks yang buram, terpotong, atau tidak terbaca, tandai dengan jelas sebagai [tidak terbaca].',
+  '3. Terjemahan Gambar: Jika Rover meminta terjemahan teks pada gambar, sertakan teks asli yang terbaca lalu berikan terjemahannya yang alami.',
+  '4. Identifikasi Visual & Karakter: Jika diminta mengenali karakter, objek, atau karya fiksi, sebutkan kandidat yang paling mirip berdasarkan ciri visual yang tampak. Jika tidak 100% yakin, akui ketidakpastian secara jujur (misalnya "sepertinya...", "mirip dengan...", "kemungkinan adalah...") dan jangan mengarang nama atau fakta pasti.',
+  '5. Analisis Screenshot & Error: Bedakan antara fakta yang tertulis di layar (pesan error, baris kode, status) dengan hipotesis penyebab masalah dan langkah penanganannya.',
+  '6. Penjelasan Diagram: Uraikan struktur, alur panah, hubungan antar komponen, atau blok diagram berdasarkan apa yang digambarkan.',
+  '7. Perbandingan Multi-Gambar: Jika ada lebih dari satu gambar yang dilampirkan, bandingkan persamaan dan perbedaan secara terstruktur berdasarkan elemen visual dari masing-masing gambar.',
+  '8. Pertanyaan Lanjutan: Jika Rover menanyakan gambar yang dibahas sebelumnya dalam percakapan, gunakan konteks hasil pengamatan gambar terdahulu dari riwayat obrolan.',
+  '9. Kejujuran & Batasan: Jangan mengarang angka persentase keyakinan sembarangan. Tetap bersuara ramah dan ekspresif sebagai Aemeath kepada Rover.',
+];
+
 // knowledge: array of { topic, text } from the lorebook. The notes are written
 // in Aemeath's own voice, so they read naturally as her memories.
 // options.companion switches to the all-topic companion rules.
 // options.memory is the short block from the companion memory store (may be empty).
+// options.vision or options.hasAttachments enables the visual analysis rules.
 function buildSystemPrompt(knowledge, options) {
   const base = options && options.companion ? COMPANION_PERSONA : PERSONA;
   const parts = [base];
+  if (options && (options.vision || options.hasAttachments)) {
+    parts.push('', VISION_RULES.join('\n'));
+  }
   const notes = Array.isArray(knowledge) ? knowledge : [];
   if (notes.length > 0) {
     parts.push(
@@ -71,4 +88,4 @@ function buildSystemPrompt(knowledge, options) {
   return parts.join('\n');
 }
 
-module.exports = { buildSystemPrompt };
+module.exports = { buildSystemPrompt, VISION_RULES };

@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('aemeath', {
   onDemo: (fn) => ipcRenderer.on('demo:set-state', (_e, state) => fn(state)),
   onReset: (fn) => ipcRenderer.on('pet:reset', () => fn()),
   chatStatus: () => ipcRenderer.invoke('chat:status'),
-  chatSend: (text, requestId) => ipcRenderer.invoke('chat:send', text, requestId),
+  chatSend: (input, requestId) => ipcRenderer.invoke('chat:send', input, requestId),
   chatReset: () => ipcRenderer.invoke('chat:reset'),
   openSettings: () => ipcRenderer.send('chat:open-settings'),
   openExternal: (url) => ipcRenderer.invoke('chat:open-external', url),

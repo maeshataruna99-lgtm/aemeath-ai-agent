@@ -131,6 +131,8 @@ function createDeepSeekProvider(options) {
     models: MODELS,
     defaultModel: 'deepseek-flash',
     keyUrl: 'https://platform.deepseek.com/api_keys',
+    capabilities: { vision: false },
+    supportsVision: () => false,
     send: send,
   };
 }

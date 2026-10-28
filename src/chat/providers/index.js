@@ -5,9 +5,10 @@
 // and list it here.
 
 const { createDeepSeekProvider } = require('./deepseek');
+const { createGeminiProvider } = require('./gemini');
 
 function createProviders(options) {
-  const list = [createDeepSeekProvider(options)];
+  const list = [createDeepSeekProvider(options), createGeminiProvider(options)];
   const byId = new Map(list.map((provider) => [provider.id, provider]));
   return {
     list: list,
