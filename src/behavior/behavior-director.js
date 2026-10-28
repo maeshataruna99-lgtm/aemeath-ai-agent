@@ -41,6 +41,22 @@
     trivia: PRIORITY.chatter,
   };
 
+  const KIND_CATEGORY = {
+    'decision-request': 'decision',
+    'session-failed': 'failure',
+    'session-stopped': 'failure',
+    greeting: 'direct',
+    'memory-saved': 'direct',
+    'memory-refused': 'direct',
+    'session-finished': 'productivity',
+    'timer-done': 'productivity',
+    'work-session-end': 'productivity',
+    'activity-remark': 'activity',
+    'memory-offer': 'activity',
+    chatter: 'chatter',
+    trivia: 'chatter',
+  };
+
   // How long a line may wait for its turn before it is no longer worth saying.
   // A remark about a game is stale after a minute; a pending decision is not.
   const PRIORITY_TTL_MS = {
@@ -88,6 +104,26 @@
     return shared / (left.size + right.size - shared);
   }
 
+  function parseMinutes(str) {
+    if (typeof str !== 'string') return null;
+    const match = str.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!match) return null;
+    return Number(match[1]) * 60 + Number(match[2]);
+  }
+
+  function isWithinQuietHours(timestamp, startStr, endStr) {
+    const start = parseMinutes(startStr);
+    const end = parseMinutes(endStr);
+    if (start === null || end === null || start === end) return false;
+    const d = new Date(timestamp);
+    const current = d.getHours() * 60 + d.getMinutes();
+    if (start < end) {
+      return current >= start && current < end;
+    }
+    // Crosses midnight, e.g. 23:00 to 07:00
+    return current >= start || current < end;
+  }
+
   function createBehaviorDirector(options) {
     const opts = options || {};
     const clock = opts.now || Date.now;
@@ -115,13 +151,51 @@
     let recentTexts = []; // { text, at } of anything said proactively
     const stats = { shown: 0, dropped: 0, queued: 0, preempted: 0, merged: 0, evicted: 0, expired: 0 };
 
+    let currentPriorities = Object.assign({}, PRIORITY);
+
+    let quietHours = {
+      enabled: Boolean(opts.quietHours && opts.quietHours.enabled),
+      start: (opts.quietHours && opts.quietHours.start) || '23:00',
+      end: (opts.quietHours && opts.quietHours.end) || '07:00',
+    };
+
+    function setQuietHours(config) {
+      if (!config || typeof config !== 'object') return;
+      if (typeof config.enabled === 'boolean') quietHours.enabled = config.enabled;
+      if (typeof config.start === 'string' && parseMinutes(config.start) !== null) {
+        quietHours.start = config.start;
+      }
+      if (typeof config.end === 'string' && parseMinutes(config.end) !== null) {
+        quietHours.end = config.end;
+      }
+    }
+
+    function inQuietHours(at) {
+      return quietHours.enabled && isWithinQuietHours(at, quietHours.start, quietHours.end);
+    }
+
+    function applyPriorities(overrides) {
+      if (!overrides || typeof overrides !== 'object') return;
+      for (const key of Object.keys(PRIORITY)) {
+        const val = overrides[key];
+        if (typeof val === 'number' && Number.isFinite(val) && val >= 1 && val <= 6) {
+          currentPriorities[key] = Math.round(val);
+        }
+      }
+    }
+
+    if (opts.priorities) {
+      applyPriorities(opts.priorities);
+    }
+
     function normalize(event, at) {
       const raw = event || {};
       const text = typeof raw.text === 'string' ? raw.text.trim() : '';
+      const category = KIND_CATEGORY[raw.kind] || (raw.kind in PRIORITY ? raw.kind : 'chatter');
       let priority =
         typeof raw.priority === 'number' && raw.priority >= 1 && raw.priority <= 6
           ? Math.round(raw.priority)
-          : KIND_PRIORITY[raw.kind] || PRIORITY.chatter;
+          : currentPriorities[category] || currentPriorities[raw.kind] || KIND_PRIORITY[raw.kind] || currentPriorities.chatter || 6;
       const ttlMs =
         typeof raw.ttlMs === 'number' && raw.ttlMs > 0 ? raw.ttlMs : PRIORITY_TTL_MS[priority] || 20000;
       return {
@@ -150,7 +224,7 @@
     // only ones the frequency controls may hold back: a timer he set and an AI
     // session that failed still have to be heard while the pause switch is on.
     function isProactive(priority) {
-      return priority >= PRIORITY.activity;
+      return priority >= currentPriorities.activity;
     }
 
     function pruneBudget(at) {
@@ -278,6 +352,8 @@
       if (isProactive(item.priority) && idle) return drop('idle', item);
       // 3. Focus Mode only holds back routine lines, never a pending decision.
       if (isProactive(item.priority) && focus) return drop('focus', item);
+      // 3b. Quiet hours (Do Not Disturb) silences proactive chatter and remarks.
+      if (isProactive(item.priority) && inQuietHours(at)) return drop('quiet', item);
       // 4. Low mode never comments on desktop activity.
       if (item.priority === PRIORITY.activity && mode === 'low') return drop('mode', item);
       // 5. The chatter switch keeps its old meaning.
@@ -420,6 +496,7 @@
         })),
         stats: Object.assign({}, stats),
         remarksThisHour: budget.length,
+        quietHours: Object.assign({}, quietHours),
       };
     }
 
@@ -435,6 +512,14 @@
       setIdle: setIdle,
       setChatOpen: setChatOpen,
       setLimits: setLimits,
+      setPriorities: applyPriorities,
+      getPriorities: function () {
+        return Object.assign({}, currentPriorities);
+      },
+      setQuietHours: setQuietHours,
+      getQuietHours: function () {
+        return Object.assign({}, quietHours);
+      },
       reset: reset,
       state: state,
       get pendingCount() {
@@ -448,6 +533,8 @@
 
   return {
     createBehaviorDirector: createBehaviorDirector,
+    isWithinQuietHours: isWithinQuietHours,
+    parseMinutes: parseMinutes,
     PRIORITY: PRIORITY,
     KIND_PRIORITY: KIND_PRIORITY,
     PRIORITY_TTL_MS: PRIORITY_TTL_MS,

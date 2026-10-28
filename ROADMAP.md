@@ -12,12 +12,12 @@ Terakhir diperbarui: 28 Oktober 2026, di atas commit `8e84ac9`.
 
 | Fase | Isi | Status |
 |---|---|---|
-| P0 | Lore-Aware Behavior Director | **Selesai** — `src/behavior/behavior-director.js`, 1 polish tersisa |
-| P1 | Companion Memory | **Selesai inti** — `src/memory/memory-store.js`, 3 sisa kecil |
-| P2 | Focus Companion 2.0 | **Belum mulai** |
+| P0 | Lore-Aware Behavior Director | **Selesai penuh** — `src/behavior/behavior-director.js` |
+| P1 | Companion Memory | **Selesai penuh** — `src/memory/memory-store.js` |
+| P2 | Focus Companion 2.0 | **Sedang berjalan** — titik 2.1 selesai |
 | P3 | Perapian lore & pengalaman visual | **Belum mulai** |
 
-Bukti: `npm test` → 265 lulus, 0 gagal. Verifikasi visual `npx electron . --selfie` → tangkapan di
+Bukti: `npm test` → 279 lulus, 0 gagal. Verifikasi visual `npx electron . --selfie` → tangkapan di
 `.verify/` (termasuk `settings-memory.png` dan `memory-offer.png`).
 
 Yang **sudah** ada dan tidak perlu dibuat ulang:
@@ -35,20 +35,19 @@ Yang **sudah** ada dan tidak perlu dibuat ulang:
 
 ## P0 — polish yang belum ada
 
-- [ ] **0.1 Pengaturan prioritas notifikasi**
-  Roadmap menyebut "pengaturan prioritas notifikasi"; sekarang urutannya tetap (tidak bisa diatur).
-  Kalau dianggap perlu: tambahkan pemetaan kategori → prioritas di `settings.js` + tab *Umum*, lalu
-  teruskan ke `createBehaviorDirector({ ... })`/`setPriorities()`.
-  *Selesai jika:* pengguna bisa menaikkan/menurunkan satu kategori tanpa mengubah kode, dan
-  `tests/behavior.test.js` menguji urutan hasilnya.
-  *Catatan:* kalau ternyata tidak dibutuhkan, hapus item ini dan tulis alasannya di README.
+- [x] **0.1 Pengaturan prioritas notifikasi**
+  Pemetaan kategori → prioritas kini dapat diatur pengguna melalui `settings.js` dan antarmuka
+  tab *Umum* (Pengaturan), lalu diteruskan ke `createBehaviorDirector({ priorities })` dan
+  `director.setPriorities()`. Pengguna dapat menaikkan/menurunkan prioritas notifikasi (1-6) tanpa
+  mengubah kode sumber. Diuji di `tests/behavior.test.js` dan `tests/settings.test.js`.
 
-- [ ] **0.2 Mode senyap sistem (Do Not Disturb / jam tenang)**
-  Sekarang yang dihormati: pause switch, idle 2 menit, Focus Mode, chat terbuka. "Mode senyap"
-  tingkat OS belum dibaca. Pendekatan termurah: jam tenang yang diatur pengguna (mis. 23.00–07.00)
-  di `settings.js`, lalu `director.setIdle(true)`/penundaan setara saat di dalam rentang itu.
-  *Selesai jika:* celetukan rutin tidak muncul di dalam rentang, tetapi event keputusan tetap tampil,
-  dan ada tes untuk batas jam 00.00.
+- [x] **0.2 Mode senyap sistem (Do Not Disturb / jam tenang)**
+  Jam tenang yang dapat dikonfigurasi (`quietHoursEnabled`, `quietHoursStart`, `quietHoursEnd`)
+  ditambahkan di `settings.js`, tab *Umum* (Pengaturan), dan diintegrasikan ke `behavior-director.js`.
+  Celetukan proaktif otomatis ditahan (`reason: 'quiet'`) saat waktu saat ini berada dalam rentang
+  jam tenang, sementara event keputusan (`decision`), kegagalan (`failure`), dan timer tetap lolos.
+  Mendukung rentang melintasi tengah malam dan batas jam 00:00. Diuji di `tests/behavior.test.js` dan
+  `tests/settings.test.js`.
 
 - [x] **0.3 Dokumentasi perilaku per mode** — sudah masuk README (tabel mode + bagian Memori companion).
 
@@ -56,36 +55,34 @@ Yang **sudah** ada dan tidak perlu dibuat ulang:
 
 ## P1 — sisa
 
-- [ ] **1.1 Pecah ringkasan sesi Full menjadi dua entri**
-  Sekarang `acceptOffer()` menyimpan satu entri `context` berisi ringkasan. Roadmap meminta ringkasan
-  **dan** langkah berikutnya.
-  *Di mana:* `src/memory/memory-store.js` (`proposeSession`, `acceptOffer`), `main.js`
-  (`maybeProposeMemory`).
-  *Selesai jika:* satu klik Simpan menghasilkan dua entri (satu `context`, satu `next-step`) dengan
-  `source: 'assistant'` dan `project` sama, keduanya bisa dihapus terpisah; `tests/memory.test.js`
-  menguji jumlah dan jenisnya.
-  *Hati-hati:* jangan menebak langkah berikutnya — kalau ringkasan tidak memuatnya, simpan satu entri
-  saja dan jangan mengarang.
+- [x] **1.1 Pecah ringkasan sesi Full menjadi dua entri**
+  Sekarang `acceptOffer()` menyimpan ringkasan dan langkah berikutnya menjadi dua entri terpisah
+  (satu `context`, satu `next-step`). Jika ringkasan tidak memuat langkah berikutnya, hanya satu
+  entri yang disimpan tanpa mengarang data. Keduanya tersimpan dengan `source: 'assistant'` dan `project`
+  yang sama serta dapat dihapus secara terpisah. Diuji di `tests/memory.test.js`.
 
-- [ ] **1.2 Preferensi frekuensi sapaan**
-  Memori jenis `preference` tersimpan, tetapi tidak memengaruhi `chatterIntervalMin`.
-  Pilihan yang aman: Aemeath **menawarkan** penyesuaian ("mau kubuat lebih jarang?"), bukan mengubah
-  setelan sendiri.
-  *Selesai jika:* tidak ada perubahan setelan tanpa klik pengguna, dan ada tes bahwa penawaran
-  menghormati cooldown serta mode.
+- [x] **1.2 Preferensi frekuensi sapaan**
+  Ketika ada memori preferensi sapaan/celetukan (mis. ingin sapaan lebih jarang atau lebih sering),
+  Aemeath menawarkan penyesuaian interval (`preferenceOffer`) melalui balon dialog interaktif
+  dengan tombol "Ubah" tanpa pernah mengubah setelan secara sepihak. Menghormati mode (hanya aktif
+  di Medium dan Full, tenang di Low dan disabled) serta jeda cooldown (`PREFERENCE_OFFER_GAP_MS`).
+  Hanya jika pengguna mengklik tombol persetujuan, `acceptOffer` meneruskan `settingsPatch` untuk
+  disimpan ke `chatterIntervalMin`. Diuji di `tests/memory.test.js`.
 
-- [ ] **1.3 Keputusan retensi entri tulisan pengguna**
-  Sekarang hanya ringkasan AI yang dipangkas; entri "dari kamu" tidak pernah dihapus otomatis
-  (sengaja, agar tidak menghilangkan data diam-diam). Putuskan: biarkan, atau sediakan opsi retensi
-  untuk entri pengguna yang harus dinyalakan eksplisit.
-  *Selesai jika:* keputusannya tertulis di README dan tercermin di `status()`/UI.
+- [x] **1.3 Keputusan retensi entri tulisan pengguna**
+  Keputusan ditetapkan dan didokumentasikan di `README.md`: entri tulisan pengguna (`source: 'user'`)
+  **tidak pernah dihapus otomatis** untuk melindungi catatan personal dari kehilangan data diam-diam.
+  Retensi berkala hanya membersihkan ringkasan AI (`source: 'assistant'`). Keputusan ini tercermin
+  eksplisit di `status().retentionScope = 'assistant-only'`, di antarmuka tab *Memori* (Pengaturan),
+  dan diuji di `tests/memory.test.js`.
 
-- [ ] **1.4 Perintah `/memory` (opsional)**
-  Pengelolaan sekarang hanya lewat Pengaturan. Kalau ingin cepat dari kotak chat: `/memory`,
-  `/memory hapus <nomor>`, `/memory nonaktif|aktif` sebagai `builtins` baru di `main.js` yang memakai
-  store yang sama (tanpa IPC baru).
-  *Selesai jika:* `tests/memory.test.js` atau `tests/commands.test.js` menguji ketiga bentuk, dan
-  `/memory hapus` tidak pernah menghapus tanpa nomor yang valid.
+- [x] **1.4 Perintah `/memory` (opsional)**
+  Perintah bawaan `/memory` ditambahkan di `src/memory/memory-store.js` (`createMemoryBuiltin`), didaftarkan
+  ke daftar perintah terlindungi (`BUILTIN_NAMES` di `command-store.js`), dan diintegrasikan ke `main.js`.
+  Mendukung `/memory` (menampilkan daftar catatan bernomor), `/memory nonaktif` dan `/memory aktif`
+  (mengubah status tanpa merusak berkas), serta `/memory hapus <nomor>` (menghapus catatan sesuai nomor
+  urutan secara aman dan memvalidasi nomor sebelum eksekusi). Diuji di `tests/memory.test.js` dan
+  `tests/commands.test.js`.
 
 ---
 
@@ -94,66 +91,73 @@ Yang **sudah** ada dan tidak perlu dibuat ulang:
 Tujuan: menyatukan `/timer`, `/todo`, `/note`, `/stats`, sesi AI, dan `/review` menjadi satu alur
 kerja — **tanpa** menduplikasi penyimpanan yang sudah ada.
 
-- [ ] **2.1 Sesi kerja terorkestrasi**
-  Alur yang diminta roadmap: pilih tugas → tawarkan timer + Focus Mode → tunda celetukan → status
-  sesi AI → ringkasan saat selesai → `/review` → tawarkan simpan ke memori → lanjutkan tugas.
-  *Yang kurang:* "Focus Mode" sekarang hanya berarti timer aktif (`productivity.timerActive`).
-  Perlu objek sesi kerja eksplisit (mulai, tugas terkait, timer, selesai) yang bisa dibaca
-  `pushPresence()` dan dirender ke balon.
-  *Di mana:* modul baru `src/productivity/work-session.js` (disarankan), `main.js`, `renderer/pet.js`.
-  *Selesai jika:* ringkasan sesi hanya berisi fakta yang tersedia (timer, tugas, hasil `/review`,
-  event sesi) dan **menandai** yang tidak tersedia; tidak ada tes/commit status yang dikarang.
+- [x] **2.1 Sesi kerja terorkestrasi**
+  Modul baru `src/productivity/work-session.js` diimplementasikan untuk mengorkestrasi alur kerja
+  fokus: pelacakan sesi eksplisit (mulai, tugas terkait, durasi, selesai), pencatatan event sesi AI,
+  dan hasil review git lokal (`/review`). Terintegrasi dengan `productivity-hub.js` (`/todo fokus <nomor>`,
+  perintah baru `/focus [durasi] [tugas]`, `/focus status`, `/focus selesai`), `pushPresence()` di `main.js`,
+  dan balon pet di `pet.js`. Ringkasan sesi selesai diformat secara ketat berdasarkan fakta yang tersedia
+  dan menandai secara eksplisit data yang tidak ada (`[tidak ada / belum dijalankan]`) tanpa mengarang status
+  tes atau commit. Diuji di `tests/work-session.test.js` dan `tests/productivity.test.js`.
 
-- [ ] **2.2 Daily Quest**
-  Maksimal tiga prioritas harian, masing-masing bisa ditautkan ke item `/todo`. Status selesai hanya
-  dari konfirmasi pengguna atau bukti yang bisa diverifikasi. Tanpa skor, tanpa hukuman.
-  *Di mana:* perluas state `productivity-hub` **dengan migrasi yang tidak menghilangkan data**
-  (`normalizeState` sudah menangani bentuk lama), atau berkas baru `daily.json`.
-  *Selesai jika:* data lama tetap terbaca setelah perubahan skema, dan hari berganti tanpa
-  menghapus riwayat yang belum ditutup pengguna.
+- [x] **2.2 Daily Quest**
+  Perluasan skema aman pada `productivity-hub.js` dengan `normalizeState(raw, nowMs)` tanpa menghilangkan data
+  `todos` dan `notes` legacy. Mendukung maksimal 3 prioritas harian (`/quest tambah <teks>`, `/quest todo <nomor>`,
+  `/quest selesai <nomor>`, `/quest hapus <nomor>`, `/quest riwayat`, `/quest bersih`, serta alias `/daily`).
+  Item quest dapat ditautkan ke `/todo` dan otomatis selesai saat todo terkait ditandai selesai. Selesai hanya
+  berdasarkan konfirmasi pengguna/bukti tanpa skor, poin, atau hukuman rasa bersalah. Pergantian hari (`rolloverQuestsIfNeeded`)
+  mengarsipkan riwayat ke `questHistory` tanpa menghapus tugas yang belum selesai (unclosed quests otomatis dipertahankan
+  ke hari baru). Dilindungi di `BUILTIN_NAMES` dan diuji secara komprehensif di `tests/daily-quest.test.js`.
 
-- [ ] **2.3 Resume Work**
-  Tampilkan proyek terakhir, tugas tertunda, dan langkah berikutnya yang tersimpan; pengguna memilih
-  lanjut, ubah, atau abaikan. Tidak membuka aplikasi, terminal, atau berkas otomatis.
-  *Di mana:* `memoryStore.continuation()` sudah menyiapkan teksnya; sisanya penyajian + pilihan.
-  *Selesai jika:* ketiga pilihan bekerja, dan tidak ada aksi sistem yang berjalan dari teks balasan.
+- [x] **2.3 Resume Work**
+  `memoryStore.continuation(mode)` diperluas untuk menyajikan ringkasan proyek terakhir, tugas tertunda,
+  dan langkah berikutnya yang tersimpan dari memori companion. Menyajikan 3 pilihan eksplisit bagi pengguna
+  pada balon bicara: "Lanjut" (`resume`), "Ubah" (`modify`), dan "Abaikan" (`dismiss`).
+  Pilihan "Lanjut" mencatat kelanjutan kerja dengan respons hangat tanpa meluncurkan aksi eksternal,
+  "Ubah" membuka fokus chat agar pengguna dapat menyunting tugas/perintah secara bebas, dan "Abaikan"
+  menolak tawaran dengan santun. Tidak ada aplikasi, terminal, atau berkas yang dibuka secara otomatis.
+  Diuji secara komprehensif di `tests/resume-work.test.js` dan `tests/memory.test.js`.
 
-- [ ] **2.4 Gating mode untuk P2**
-  Low: alat tetap manual, tanpa sesi proaktif. Medium: tawarkan timer saat sesi kerja terdeteksi,
-  pengingat istirahat, ingatkan tugas tertunda dengan frekuensi terbatas, ringkasan setelah sesi AI.
-  Full: hubungkan konteks coding + sesi AI + timer + todo + `/stats` + `/review`, dan minta izin
-  sebelum menyimpan ringkasan.
-  *Selesai jika:* ketiga mode bisa dijelaskan dalam satu paragraf dan perilakunya sesuai; ada tes
-  untuk setiap mode.
+- [x] **2.4 Gating mode untuk P2**
+  Gating mode diverifikasi dan diuji secara ketat untuk ketiga mode:
+  - **Low:** seluruh alat produktivitas (`/timer`, `/focus`, `/todo`, `/quest`, `/note`, `/stats`) murni manual, tanpa sesi proaktif, tanpa pelacakan kategori di `/stats`, dan tanpa sapaan kelanjutan kerja proaktif.
+  - **Medium:** pemantauan aktivitas tanpa membaca judul jendela sensitif, rekap waktu per kategori di `/stats`, pengingat istirahat/timer saat sesi kerja panjang terdeteksi, celetukan desktop diizinkan, dan sapaan kelanjutan tugas tertunda (Resume Work) maksimal 1 kali per 6 jam.
+  - **Full** *(wajib persetujuan eksplisit):* integrasi penuh konteks kerja (bahasa kode, status tes, review git lokal via `/review`, sesi AI Claude Code/Antigravity, sesi kerja terorkestrasi `/focus`, timer, `/todo`, dan `/quest`), serta proposal penyimpanan ringkasan sesi kerja faktual ke memori companion hanya setelah pengguna menekan "Simpan".
+  Perilaku ketiga mode dijelaskan secara ringkas di `README.md` dan diuji secara komprehensif di `tests/p2-gating.test.js`.
 
 ---
 
 ## P3 — Perapian lore dan pengalaman visual
 
-- [ ] **3.1 Metadata dan verifikasi lorebook**
-  Tambah status verifikasi per entri, waktu pemeriksaan, dan pemisahan tegas antara canon,
-  interpretasi, dan informasi yang bisa berubah. Sekarang overlay hanya menyimpan `updatedAt` global.
-  *Di mana:* `lorebook/`, `src/lorebook-loader.js`, `src/lorebook-updater.js`, `lorebook/README.md`.
-  *Selesai jika:* setiap entri menyebut sumber + status, dan entri tanpa sumber tidak dipakai sebagai
-  jawaban pasti.
+- [x] **3.1 Metadata dan verifikasi lorebook**
+  Metadata verifikasi per entri (`status: 'verified'|'unverified'`, `kind: 'canon'|'interpretation'|'evolving'`,
+  `checkedAt: YYYY-MM-DD`) diimplementasikan di seluruh 74 entri bawaan (`lorebook/*.json`), divalidasi ketat
+  oleh `validateLorebook` di `src/lorebook.js`, dan diisi otomatis pada entri baru dari sync wiki di `src/lorebook-updater.js`
+  (`buildEntry`). `src/chat/local-responder.js` memastikan entri tanpa sumber valid atau yang berstatus `unverified`
+  tidak pernah dipakai sebagai jawaban fakta pasti. Terdokumentasi lengkap di `lorebook/README.md` dan diuji di
+  `tests/lorebook-verification.test.js`.
 
-- [ ] **3.2 Hubungkan event perilaku dengan animasi**
-  Sebagian jenis baris sudah memilih animasi (`session-finished` → review, `session-failed` → failed,
-  timer → jumping, aktivitas → waving). Lengkapi untuk tawaran memori, Daily Quest, dan Resume Work,
-  memakai baris atlas yang tersedia (`idle`, `running-right/left`, `waving`, `jumping`, `waiting`,
-  `review`, `failed`, `music`).
-  *Selesai jika:* tidak ada nama animasi yang tidak ada di atlas, dan `tests/atlas.test.js` tetap hijau.
+- [x] **3.2 Hubungkan event perilaku dengan animasi**
+  Pemetaan komprehensif perilaku ke animasi diimplementasikan di `src/atlas.js` (`animationForBehavior`).
+  Tawaran memori (`waiting`), hasil simpan/tolak memori (`waving`/`idle`), Daily Quest selesai (`jumping`),
+  Resume Work (`waving` untuk tawaran, `jumping` saat Lanjut, `waiting` saat Ubah, `idle` saat Abaikan),
+  serta keputusan pending (`waiting`) terhubung penuh ke baris atlas. Tidak ada nama animasi di luar atlas
+  dan diuji secara ketat di `tests/behavior-animation.test.js` serta `tests/atlas.test.js`.
 
-- [ ] **3.3 Daily Chronicle (opsional)**
-  Panel ringkasan harian opsional: apa yang dikerjakan, berapa lama, apa yang tersisa. Hanya dari data
-  lokal yang benar-benar ada.
-  *Selesai jika:* bisa dimatikan, dan tidak menampilkan angka yang tidak punya sumber.
+- [x] **3.3 Daily Chronicle (opsional)**
+  Modul `src/productivity/daily-chronicle.js` (`formatDailyChronicle`) dan perintah bawaan `/chronicle`
+  (`/chronicle`, `/chronicle aktif`, `/chronicle nonaktif`) diimplementasikan untuk menyajikan ringkasan harian
+  faktual: apa yang dikerjakan (sesi fokus dan durasi nyata, rekap aktivitas), dan apa yang tersisa (Daily Quest
+  dan tugas /todo tertunda). Hanya menyajikan data lokal yang benar-benar ada tanpa angka rekaan, rating, skor,
+  atau metrik tanpa sumber. Dapat dinonaktifkan sepenuhnya (`dailyChronicleEnabled: false`). Dilindungi di
+  `BUILTIN_NAMES` dan diuji di `tests/daily-chronicle.test.js`.
 
-- [ ] **3.4 Persona pass untuk respons proaktif**
+- [x] **3.4 Persona pass untuk respons proaktif**
   Tinjau ulang seluruh teks proaktif (celetukan, reaksi aktivitas, tawaran memori, ringkasan) agar
-  terdengar seperti Aemeath dan tidak mengklaim ingatan yang tidak tersimpan.
-  *Selesai jika:* daftar teks ditinjau manual dan tidak ada kalimat yang menyebut "sistem",
-  "database", atau "memori" ke pengguna.
+  terdengar seperti Aemeath dan tidak mengklaim ingatan yang tidak tersimpan. Seluruh kalimat yang menyebut
+  "sistem", "database", atau "memori" ke pengguna telah dibersihkan (mis. "semua sistem hijau" -> "kondisiku prima dan penuh energi",
+  "simpan ke memori" -> "catatan kita", "di memori tercatat" -> "sesuai preferensimu"). Diuji secara ketat di
+  `tests/persona-pass.test.js`.
 
 **Voice Companion tetap di luar cakupan** (sesuai roadmap awal).
 
@@ -163,10 +167,10 @@ kerja — **tanpa** menduplikasi penyimpanan yang sudah ada.
 
 - [x] Regresi: chat, `/search`, `/timer`, `/todo`, `/note`, `/stats`, perintah kustom, terminal —
   tercakup `npm test` dan jalur `--selfie`.
-- [ ] **Regresi `/review`**: belum ada tes khusus; `work-reviewer` belum tersentuh, tapi klaimnya
-  bersandar pada kode yang tak berubah. Tambahkan satu tes dengan repo git sementara.
-- [ ] **Pengujian build**: repo hanya punya `start` dan `test`, tidak ada langkah build. Putuskan:
-  tambahkan `npm run verify` (syntax check semua berkas + `npm test`) atau nyatakan tidak berlaku.
+- [x] **Regresi `/review`**: diuji dengan repo git sementara nyata di `tests/work-reviewer.test.js` (memverifikasi
+  kasus repo bersih, repo kotor dengan modifikasi berkas kode/test/untracked, dan penanganan saat bukan repo git).
+- [x] **Pengujian build**: skrip verifikasi menyeluruh diimplementasikan via `scripts/verify.js` dan perintah `npm run verify`
+  (memeriksa validitas sintaks seluruh 46 berkas JavaScript dan menjalankan `npm test` dengan 302/302 pengujian lulus).
 - [x] Mode: Low, Normal/Medium, Full konsisten dengan dokumentasi (README + perilaku).
 - [x] Proaktivitas: tidak ada spam saat beberapa event berdekatan (tes director).
 - [x] Privasi: pengamatan tetap opt-in; memori bisa dikelola.

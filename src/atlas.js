@@ -52,5 +52,34 @@
     return Object.keys(atlas.animations);
   }
 
-  return { validateAtlas: validateAtlas, frameRect: frameRect, animationNames: animationNames };
+  const EVENT_ANIMATIONS = {
+    'session-finished': 'review',
+    'session-failed': 'failed',
+    'decision-request': 'waiting',
+    'timer-done': 'jumping',
+    'activity-remark': 'waving',
+    'chatter': 'waving',
+    'memory-offer': 'waiting',
+    'memory-saved': 'waving',
+    'memory-refused': 'idle',
+    'continuation': 'waving',
+    'resume-work': 'waving',
+    'resume-work:resume': 'jumping',
+    'resume-work:modify': 'waiting',
+    'resume-work:dismiss': 'idle',
+    'quest-done': 'jumping',
+    'quest-added': 'waving',
+  };
+
+  function animationForBehavior(kind) {
+    return (kind && EVENT_ANIMATIONS[kind]) || 'idle';
+  }
+
+  return {
+    validateAtlas: validateAtlas,
+    frameRect: frameRect,
+    animationNames: animationNames,
+    animationForBehavior: animationForBehavior,
+    EVENT_ANIMATIONS: EVENT_ANIMATIONS,
+  };
 });

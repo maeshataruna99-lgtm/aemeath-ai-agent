@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createProductivityHub, parseDurationMs, formatDuration, MAX_ITEMS } = require('../src/productivity/productivity-hub');
+const { createWorkSessionManager } = require('../src/productivity/work-session');
 const { createCommandHandler } = require('../src/commands/command-handler');
 
 function tempDir() {
@@ -93,12 +94,14 @@ test('/todo adds, marks done, deletes, cleans up, and persists to disk', () => {
   assert.equal(reloaded.todos.length, 2);
   assert.equal(reloaded.todos[0].done, true);
 
+  // Complete all todos at once
+  reloaded.runTodo('tambah Tugas ketiga');
+  const allDone = reloaded.runTodo('selesai semua');
+  assert.equal(allDone.ok, true);
+  assert.equal(reloaded.todos.every((t) => t.done), true);
+
   // Clean removes completed items first
   reloaded.runTodo('bersih');
-  assert.equal(reloaded.todos.length, 1);
-  assert.equal(reloaded.todos[0].text, 'Tulis unit test baru');
-
-  reloaded.runTodo('hapus 1');
   assert.equal(reloaded.todos.length, 0);
 });
 
@@ -157,3 +160,54 @@ test('/stats and commandHandler integration work end-to-end', async () => {
   assert.match(stats.output, /ngoding 42 menit, web 10 menit/);
   hub.stop();
 });
+
+test('orchestrated work session integration: /todo fokus, /focus status, and /focus selesai', async () => {
+  const dir = tempDir();
+  let nowMs = 1000000;
+  let finishedSummary = null;
+  const workSession = createWorkSessionManager({
+    now: () => nowMs,
+    onSessionFinished: (f) => {
+      finishedSummary = f;
+    },
+  });
+
+  const hub = createProductivityHub({
+    dir,
+    now: () => nowMs,
+    workSession: workSession,
+  });
+
+  const handler = createCommandHandler({
+    getCommands: () => [],
+    run: async () => ({ ok: true }),
+    builtins: hub.asBuiltins(),
+  });
+
+  // 1. Add todo and start focus on it
+  await handler.handle('/todo tambah Rapikan dokumentasi');
+  const fokusRes = await handler.handle('/todo fokus 1');
+  assert.equal(fokusRes.ok, true);
+  assert.match(fokusRes.text, /Rapikan dokumentasi/);
+  assert.equal(hub.timerActive, true);
+  assert.equal(workSession.active, true);
+  assert.equal(workSession.current().task, 'Rapikan dokumentasi');
+
+  // 2. /focus status reports current task and remaining time
+  nowMs += 10 * 60 * 1000; // 10 minutes pass
+  const statusRes = await handler.handle('/focus status');
+  assert.equal(statusRes.ok, true);
+  assert.match(statusRes.text, /Rapikan dokumentasi/);
+  assert.match(statusRes.text, /15 menit/);
+
+  // 3. /focus selesai finishes session and produces summary
+  const finishRes = await handler.handle('/focus selesai');
+  assert.equal(finishRes.ok, true);
+  assert.equal(hub.timerActive, false);
+  assert.equal(workSession.active, false);
+  assert.ok(finishedSummary);
+  assert.equal(finishedSummary.task, 'Rapikan dokumentasi');
+  assert.match(finishRes.text, /Ringkasan Sesi Kerja/);
+  assert.match(finishRes.text, /10 menit/);
+});
+

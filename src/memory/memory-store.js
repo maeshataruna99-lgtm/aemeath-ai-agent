@@ -37,6 +37,8 @@ const MAX_OFFERS = 4;
 const OFFER_TTL_MS = 10 * 60 * 1000;
 // She does not offer the same continuation twice in one working day.
 const CONTINUATION_GAP_MS = 6 * 60 * 60 * 1000;
+// Preference offer cooldown: at most once per 6 hours.
+const PREFERENCE_OFFER_GAP_MS = 6 * 60 * 60 * 1000;
 // A project nobody touched for three weeks is not "what you were doing".
 const CONTINUATION_MAX_AGE_MS = 21 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -76,6 +78,41 @@ function cleanText(raw, maxLen) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLen || MAX_TEXT);
+}
+
+const NEXT_STEP_PATTERN =
+  /(?:^|[.;!?]|\s*[-–]\s*)\s*(?:langkah\s+(?:berikutnya|selanjutnya|ke\s+depan)|rencana\s+berikutnya|tindak\s+lanjut|next\s+steps?|follow-up|todo)\s*[:\-–]\s*(.+)$/i;
+
+function splitSummaryAndNextStep(text) {
+  if (!text || typeof text !== 'string') return { summary: '', nextStep: null };
+  const match = text.match(NEXT_STEP_PATTERN);
+  if (!match) return { summary: text.trim(), nextStep: null };
+  const before = text.slice(0, match.index).trim().replace(/[.;!?\-–]+$/, '').trim();
+  const nextStep = match[1].trim();
+  if (!before || before.length < 10) {
+    return { summary: text.trim(), nextStep: null };
+  }
+  return { summary: before, nextStep: nextStep };
+}
+
+function parseChatterPreference(text) {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+  const chatterWords = /(sapa|sapaan|celetuk|celetukan|bicara|ngobrol|interaksi|chatter|greeting)/i;
+  const rarerWords = /(jarang|kurang|jangan sering|terlalu sering|tenang|diam|senyap|berisik|ganggu|kurangi)/i;
+  const frequentWords = /(lebih sering|sering kali|perbanyak|tambah sapa)/i;
+
+  const hasChatter = chatterWords.test(lower);
+  const hasRarer = rarerWords.test(lower);
+  const hasFrequent = frequentWords.test(lower);
+
+  if (hasRarer && (hasChatter || /sering/i.test(lower))) {
+    return 'rarer';
+  }
+  if (hasFrequent && hasChatter) {
+    return 'more_frequent';
+  }
+  return null;
 }
 
 function normalizeForCompare(text) {
@@ -230,6 +267,10 @@ function createMemoryStore(options) {
       typeof parsed.lastContinuationAt === 'number' && parsed.lastContinuationAt > 0
         ? parsed.lastContinuationAt
         : null;
+    state.lastPreferenceOfferAt =
+      typeof parsed.lastPreferenceOfferAt === 'number' && parsed.lastPreferenceOfferAt > 0
+        ? parsed.lastPreferenceOfferAt
+        : null;
   }
 
   function load() {
@@ -239,6 +280,7 @@ function createMemoryStore(options) {
       retentionDays: clampRetention(opts.retentionDays || DEFAULT_RETENTION_DAYS),
       nextId: 1,
       lastContinuationAt: null,
+      lastPreferenceOfferAt: null,
       memories: [],
     };
     readOnly = false;
@@ -280,6 +322,7 @@ function createMemoryStore(options) {
       retentionDays: state.retentionDays,
       nextId: state.nextId,
       lastContinuationAt: state.lastContinuationAt,
+      lastPreferenceOfferAt: state.lastPreferenceOfferAt,
       memories: state.memories,
     };
     const tmp = file + '.tmp';
@@ -412,6 +455,7 @@ function createMemoryStore(options) {
     const removed = state.memories.length;
     state.memories = [];
     state.lastContinuationAt = null;
+    state.lastPreferenceOfferAt = null;
     offers = [];
     persist();
     return removed;
@@ -527,9 +571,23 @@ function createMemoryStore(options) {
   function proposeSession(input) {
     if (blocked()) return null;
     const raw = input || {};
-    const summary = cleanText(raw.summary, MAX_TEXT);
+    let summary = cleanText(raw.summary, MAX_TEXT);
+    let nextStep = raw.nextStep ? cleanText(raw.nextStep, MAX_TEXT) : null;
+
+    if (!nextStep && summary) {
+      const split = splitSummaryAndNextStep(summary);
+      if (split.nextStep) {
+        summary = cleanText(split.summary, MAX_TEXT);
+        nextStep = cleanText(split.nextStep, MAX_TEXT);
+      }
+    }
+
     // Nothing to remember? Say nothing rather than invent a summary.
     if (summary.length < 12 || containsSecret(summary)) return null;
+    if (nextStep && (nextStep.length < 5 || containsSecret(nextStep))) {
+      nextStep = null;
+    }
+
     const project = raw.project ? cleanText(raw.project, MAX_PROJECT) : null;
     const at = now();
     trimOffers(at);
@@ -541,6 +599,7 @@ function createMemoryStore(options) {
       sessionId: raw.sessionId || null,
       kind: 'context',
       memoryText: summary,
+      nextStepText: nextStep || null,
     };
     offers.push(offer);
     const where = project ? 'sesi di ' + project : 'sesi tadi';
@@ -551,7 +610,7 @@ function createMemoryStore(options) {
       text:
         'Rover, ' +
         where +
-        ' sudah selesai. Mau kusimpan ringkasannya ke memori? ' +
+        ' sudah selesai. Mau kusimpan ringkasannya untuk catatan kita? ' +
         'Nanti bisa kupakai waktu kamu lanjut lagi.',
     };
   }
@@ -564,6 +623,20 @@ function createMemoryStore(options) {
     const index = offers.findIndex((offer) => offer.id === id);
     if (index < 0) return { ok: false, error: 'Penawaran itu sudah kedaluwarsa, Rover.' };
     const offer = offers[index];
+
+    if (offer.actionType === 'chatter-interval') {
+      offers.splice(index, 1);
+      return {
+        ok: true,
+        settingsPatch: { chatterIntervalMin: offer.suggestedInterval },
+        text: 'Sip, interval sapaan kuubah jadi ' + offer.suggestedInterval + ' menit sesuai preferensimu ya~',
+      };
+    }
+
+    if (offer.actionType === 'continuation') {
+      return answerContinuation(id, 'resume');
+    }
+
     const result = remember({
       text: offer.memoryText,
       kind: offer.kind,
@@ -571,11 +644,24 @@ function createMemoryStore(options) {
       project: offer.project,
     });
     if (!result.ok) return result;
+
+    const memories = [result.memory];
+    if (offer.nextStepText) {
+      const nextStepResult = remember({
+        text: offer.nextStepText,
+        kind: 'next-step',
+        source: 'assistant',
+        project: offer.project,
+      });
+      if (nextStepResult.ok) memories.push(nextStepResult.memory);
+    }
+
     offers.splice(index, 1);
     return {
       ok: true,
       memory: result.memory,
-      text: 'Sudah kusimpan di memori' + (offer.project ? ' untuk ' + offer.project : '') + '. Kalau mau diubah atau dihapus, ada di Pengaturan → Memori, ya~',
+      memories: memories,
+      text: 'Sudah kusimpan' + (offer.project ? ' untuk ' + offer.project : '') + '. Kalau mau diubah atau dihapus, ada di Pengaturan ya~',
     };
   }
 
@@ -592,15 +678,38 @@ function createMemoryStore(options) {
     if (mode === 'low' || state.disabled) return null;
     const at = now();
     if (state.lastContinuationAt && at - state.lastContinuationAt < CONTINUATION_GAP_MS) return null;
-    const candidates = state.memories
+    trimOffers(at);
+    const recent = state.memories
       .filter((memory) => ['project', 'task', 'next-step'].includes(memory.kind))
       .filter((memory) => at - memory.updatedAt <= CONTINUATION_MAX_AGE_MS)
       .sort((a, b) => b.updatedAt - a.updatedAt);
-    const memory = candidates[0];
-    if (!memory) return null;
+    if (recent.length === 0) return null;
+
+    const memory = recent[0];
+    const lastProject = recent.find((m) => m.kind === 'project');
+    const lastTask = recent.find((m) => m.kind === 'task');
+    const lastNextStep = recent.find((m) => m.kind === 'next-step');
 
     let text = '';
-    if (memory.kind === 'task') {
+    const hasMultiple = (lastProject && lastTask) || (lastProject && lastNextStep) || (lastTask && lastNextStep);
+
+    if (hasMultiple) {
+      const parts = [];
+      if (lastProject) {
+        parts.push('proyek ' + (lastProject.project || lastProject.text));
+      }
+      if (lastTask) {
+        parts.push('tugas tertunda: ' + lastTask.text);
+      }
+      if (lastNextStep) {
+        parts.push('langkah berikutnya: ' + lastNextStep.text);
+      }
+      const projNote = (lastNextStep && lastNextStep.project) || (lastTask && lastTask.project) || (lastProject && (lastProject.project || lastProject.text));
+      text =
+        'Rover, mau lanjut kerja' + (projNote ? ' di ' + projNote : '') + '?\n' +
+        parts.map((p) => '• ' + p).join('\n') +
+        '\nMau lanjut, ubah, atau abaikan dulu?';
+    } else if (memory.kind === 'task') {
       text =
         'Rover, masih ada tugas yang belum selesai' +
         (memory.project ? ' di ' + memory.project : '') +
@@ -622,9 +731,134 @@ function createMemoryStore(options) {
         memory.text +
         ' Mau dilanjutkan?';
     }
+
+    offerSeq += 1;
+    const offer = {
+      id: 'offer-' + offerSeq,
+      at: at,
+      kind: 'continuation',
+      actionType: 'continuation',
+      project: memory.project,
+      memory: publicMemory(memory),
+      details: {
+        project: lastProject ? lastProject.project || lastProject.text : null,
+        task: lastTask ? lastTask.text : null,
+        nextStep: lastNextStep ? lastNextStep.text : null,
+      },
+    };
+    offers.push(offer);
+
     state.lastContinuationAt = at;
     persist();
-    return { memory: publicMemory(memory), text: text };
+
+    return {
+      id: offer.id,
+      memory: publicMemory(memory),
+      text: text,
+      actionable: true,
+      offerType: 'continuation',
+      actions: [
+        { id: 'resume', label: 'Lanjut' },
+        { id: 'modify', label: 'Ubah' },
+        { id: 'dismiss', label: 'Abaikan' },
+      ],
+    };
+  }
+
+  function answerContinuation(offerId, rawChoice) {
+    const choice = String(rawChoice || 'resume').toLowerCase();
+    const at = now();
+    trimOffers(at);
+    const index = offers.findIndex((offer) => offer.id === offerId);
+    if (index >= 0) {
+      offers.splice(index, 1);
+    }
+
+    if (choice === 'modify') {
+      return {
+        ok: true,
+        choice: 'modify',
+        openChat: true,
+        text: 'Oke Rover, kamu mau ubah rencana atau tugas yang mana? Ketik di obrolan atau gunakan /todo ya~',
+      };
+    }
+
+    if (choice === 'dismiss' || choice === 'later' || choice === 'batal' || choice === 'abaikan') {
+      return {
+        ok: true,
+        choice: 'dismiss',
+        text: 'Baiklah Rover, kita abaikan dulu. Fokus ke hal lain dengan nyaman ya~',
+      };
+    }
+
+    return {
+      ok: true,
+      choice: 'resume',
+      text: 'Siap Rover! Semangat melanjutkan pekerjaanmu~ Kalau butuh bantuan atau timer, panggil aku ya!',
+    };
+  }
+
+  // Medium and Full: offer to adjust chatter interval if a matching preference exists.
+  // Low mode and disabled store never propose it.
+  function preferenceOffer(mode, currentInterval) {
+    if (mode === 'low' || state.disabled) return null;
+    const at = now();
+    trimOffers(at);
+    if (state.lastPreferenceOfferAt && at - state.lastPreferenceOfferAt < PREFERENCE_OFFER_GAP_MS) return null;
+
+    const current = typeof currentInterval === 'number' && Number.isFinite(currentInterval) ? currentInterval : 3.5;
+    const candidates = state.memories
+      .filter((memory) => memory.kind === 'preference')
+      .map((memory) => ({ memory: memory, direction: parseChatterPreference(memory.text) }))
+      .filter((item) => Boolean(item.direction))
+      .sort((a, b) => b.memory.updatedAt - a.memory.updatedAt);
+
+    if (candidates.length === 0) return null;
+    const candidate = candidates[0];
+    let suggested = null;
+    let directionText = '';
+
+    if (candidate.direction === 'rarer') {
+      if (current >= 15) return null;
+      suggested = Math.min(15, Math.max(5, Math.round(current * 2)));
+      if (suggested <= current) return null;
+      directionText = 'lebih jarang';
+    } else if (candidate.direction === 'more_frequent') {
+      if (current <= 1) return null;
+      suggested = Math.max(1, Math.min(10, Math.round(current / 2)));
+      if (suggested >= current) return null;
+      directionText = 'lebih sering';
+    } else {
+      return null;
+    }
+
+    offerSeq += 1;
+    const offer = {
+      id: 'offer-' + offerSeq,
+      at: at,
+      kind: 'preference',
+      actionType: 'chatter-interval',
+      suggestedInterval: suggested,
+      memoryId: candidate.memory.id,
+    };
+    offers.push(offer);
+    state.lastPreferenceOfferAt = at;
+    persist();
+
+    return {
+      id: offer.id,
+      actionable: true,
+      actionLabel: 'Ubah',
+      suggestedInterval: suggested,
+      text:
+        'Rover, sesuai preferensimu: "' +
+        candidate.memory.text +
+        '". Mau kubuat jeda sapaanku ' +
+        directionText +
+        ' (jadi ' +
+        suggested +
+        ' menit)?',
+    };
   }
 
   function status() {
@@ -641,6 +875,7 @@ function createMemoryStore(options) {
       readOnly: readOnly,
       notice: notice,
       retentionDays: state.retentionDays,
+      retentionScope: 'assistant-only',
       count: state.memories.length,
       maxEntries: maxEntries,
       bySource: bySource,
@@ -667,6 +902,11 @@ function createMemoryStore(options) {
     acceptOffer: acceptOffer,
     dismissOffer: dismissOffer,
     continuation: continuation,
+    answerContinuation: answerContinuation,
+    preferenceOffer: preferenceOffer,
+    asBuiltin: function () {
+      return createMemoryBuiltin(this);
+    },
     reload: load,
     get disabled() {
       return state.disabled;
@@ -677,8 +917,87 @@ function createMemoryStore(options) {
   };
 }
 
+function createMemoryBuiltin(memoryStore) {
+  return {
+    description: 'Kelola memori companion (/memory, /memory hapus <nomor>, /memory nonaktif|aktif)',
+    run: async (arg) => {
+      if (!memoryStore) return { ok: false, text: 'Modul memori belum siap.' };
+      const trimmed = String(arg == null ? '' : arg).trim();
+
+      if (!trimmed) {
+        if (memoryStore.disabled) {
+          return { ok: true, text: 'Penyimpanan memori sedang nonaktif. Ketik /memory aktif untuk menyalakannya.' };
+        }
+        const list = memoryStore.list();
+        if (list.length === 0) {
+          return {
+            ok: true,
+            text: 'Belum ada memori tersimpan, Rover. Tulis di Pengaturan → Memori, atau suruh aku mengingat hal penting~',
+          };
+        }
+        const lines = list.map((m, i) => `${i + 1}. [${m.kindLabel || m.kind}] ${m.text}`);
+        return {
+          ok: true,
+          text: `Daftar memori (${list.length}):\n${lines.join('\n')}\nKetik /memory hapus <nomor> untuk menghapus.`,
+        };
+      }
+
+      const parts = trimmed.split(/\s+/);
+      const sub = parts[0].toLowerCase();
+      const param = parts.slice(1).join(' ').trim();
+
+      if (sub === 'aktif' || sub === 'enable' || sub === 'on') {
+        memoryStore.setDisabled(false);
+        return { ok: true, text: 'Penyimpanan memori sudah diaktifkan kembali.' };
+      }
+
+      if (sub === 'nonaktif' || sub === 'disable' || sub === 'off') {
+        memoryStore.setDisabled(true);
+        return { ok: true, text: 'Penyimpanan memori sudah dinonaktifkan.' };
+      }
+
+      if (sub === 'hapus' || sub === 'delete' || sub === 'rm') {
+        if (!param) {
+          return {
+            ok: false,
+            text: 'Tulis nomor memori yang mau dihapus ya. Contoh: /memory hapus 1 (lihat nomor di /memory).',
+          };
+        }
+        const num = parseInt(param, 10);
+        if (!Number.isFinite(num) || num <= 0) {
+          return {
+            ok: false,
+            text: 'Nomor memori tidak valid. Ketik /memory untuk melihat daftar nomor memori.',
+          };
+        }
+        const list = memoryStore.list();
+        const target = list[num - 1];
+        if (!target) {
+          return {
+            ok: false,
+            text: 'Memori nomor ' + num + ' tidak ditemukan. Ketik /memory untuk melihat daftar yang ada.',
+          };
+        }
+        const deleted = memoryStore.forget(target.id);
+        if (deleted) {
+          return { ok: true, text: `Memori nomor ${num} ("${target.text}") sudah kuhapus ya, Rover.` };
+        }
+        return { ok: false, text: 'Gagal menghapus memori itu.' };
+      }
+
+      return {
+        ok: false,
+        text: 'Format perintah memori: /memory (lihat daftar), /memory hapus <nomor>, /memory aktif, /memory nonaktif.',
+      };
+    },
+  };
+}
+
 module.exports = {
   createMemoryStore,
+  createMemoryBuiltin,
+  splitSummaryAndNextStep,
+  parseChatterPreference,
   FILE_NAME,
   VERSION,
   MAX_ENTRIES,
@@ -688,6 +1007,7 @@ module.exports = {
   DEFAULT_RETENTION_DAYS,
   OFFER_TTL_MS,
   CONTINUATION_GAP_MS,
+  PREFERENCE_OFFER_GAP_MS,
   CONTINUATION_MAX_AGE_MS,
   KINDS,
   KIND_LABEL,

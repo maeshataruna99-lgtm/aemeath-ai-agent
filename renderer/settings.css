@@ -415,3 +415,50 @@ code {
 .mem .mem-delete {
   white-space: nowrap;
 }
+
+.priority-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.priority-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.priority-row label {
+  font-size: 13px;
+  color: #374151;
+  flex: 1;
+}
+
+.priority-row select {
+  width: 140px;
+}
+
+.time-range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.time-range-row label {
+  font-size: 13px;
+  color: #374151;
+}
+
+.time-range-row input[type="time"] {
+  padding: 6px 10px;
+  border: 1px solid #f9a8d4;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}

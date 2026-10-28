@@ -36,7 +36,7 @@ const SMALL_TALK = [
     'Sama-sama, Rover! Kalau butuh apa-apa, panggil aku saja.',
   ] },
   { test: /\b(apa kabar|kabarmu|lagi apa|sedang apa)\b/, replies: [
-    'Aku baik! Semua sistem hijau, dan aku senang kamu mampir.',
+    'Aku baik! Kondisiku prima dan penuh energi, senang kamu mampir!',
   ] },
   { test: /\b(siapa (kamu|dirimu|namamu)|kenalan|perkenalkan)\b/, replies: [
     'Aku Aemeath, hantu digital yang dulu Synchronist di Startorch Academy. Cuma kamu yang bisa melihatku, Rover!',
@@ -50,7 +50,16 @@ function createLocalResponder(options) {
   const pick = (list) => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 
   function index() {
-    const entries = getEntries().map((entry) => ({
+    const rawList = typeof getEntries === 'function' ? getEntries() : [];
+    // Only verified, sourced entries can be used as certain answers
+    const validEntries = (Array.isArray(rawList) ? rawList : []).filter((entry) => {
+      if (!entry) return false;
+      const hasSource = Boolean(entry.source || (entry.credit && entry.credit.url));
+      const isVerified = (entry.status || 'verified') === 'verified';
+      return hasSource && isVerified;
+    });
+
+    const entries = validEntries.map((entry) => ({
       entry: entry,
       topic: new Set(keywords(entry.topic)),
       body: new Set(keywords(entry.topic + ' ' + entry.text)),

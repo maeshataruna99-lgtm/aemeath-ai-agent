@@ -10,6 +10,9 @@
   const proactiveCap = document.getElementById('proactive-cap');
   const proactiveCapValue = document.getElementById('proactive-cap-value');
   const proactiveCooldown = document.getElementById('proactive-cooldown');
+  const quietHoursToggle = document.getElementById('quiet-hours-toggle');
+  const quietHoursStart = document.getElementById('quiet-hours-start');
+  const quietHoursEnd = document.getElementById('quiet-hours-end');
 
   const provider = document.getElementById('provider');
   const model = document.getElementById('model');
@@ -192,6 +195,16 @@
       typeof settings.proactiveCooldownMin === 'number' ? settings.proactiveCooldownMin : 10,
     );
     if (!proactiveCooldown.value) proactiveCooldown.value = '10';
+    const priorities = settings.notificationPriorities || {};
+    for (const el of document.querySelectorAll('.prio-select')) {
+      const cat = el.dataset.category;
+      if (cat && priorities[cat]) {
+        el.value = String(priorities[cat]);
+      }
+    }
+    if (quietHoursToggle) quietHoursToggle.checked = settings.quietHoursEnabled === true;
+    if (quietHoursStart) quietHoursStart.value = settings.quietHoursStart || '23:00';
+    if (quietHoursEnd) quietHoursEnd.value = settings.quietHoursEnd || '07:00';
     renderProactive();
     refreshLorebook();
     await loadCommands();
@@ -222,6 +235,33 @@
   proactiveCooldown.addEventListener('change', () => {
     window.aemeathSettings.set({ proactiveCooldownMin: Number(proactiveCooldown.value) });
   });
+
+  for (const el of document.querySelectorAll('.prio-select')) {
+    el.addEventListener('change', async () => {
+      const cat = el.dataset.category;
+      if (!cat) return;
+      const settings = (await window.aemeathSettings.get()) || {};
+      const priorities = Object.assign({}, settings.notificationPriorities || {});
+      priorities[cat] = Number(el.value);
+      window.aemeathSettings.set({ notificationPriorities: priorities });
+    });
+  }
+
+  if (quietHoursToggle) {
+    quietHoursToggle.addEventListener('change', () => {
+      window.aemeathSettings.set({ quietHoursEnabled: quietHoursToggle.checked });
+    });
+  }
+  if (quietHoursStart) {
+    quietHoursStart.addEventListener('change', () => {
+      window.aemeathSettings.set({ quietHoursStart: quietHoursStart.value });
+    });
+  }
+  if (quietHoursEnd) {
+    quietHoursEnd.addEventListener('change', () => {
+      window.aemeathSettings.set({ quietHoursEnd: quietHoursEnd.value });
+    });
+  }
 
   terminal.addEventListener('change', () => {
     window.aemeathSettings.set({ terminalEnabled: terminal.checked });

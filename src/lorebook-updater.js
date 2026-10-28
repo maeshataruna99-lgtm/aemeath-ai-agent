@@ -183,12 +183,15 @@ function createLorebookUpdater(options) {
       // Replace any previous synced entries for this sourceId
       overlay.entries = overlay.entries.filter((e) => e && e.source !== sourceId);
       chunks.forEach((text, idx) => {
-        overlay.entries.push({
-          id: sourceId + '-' + (idx + 1),
-          topic: page.title,
-          source: sourceId,
-          text: text.slice(0, MAX_TEXT),
-        });
+        overlay.entries.push(
+          buildEntry(sourceId, page.title, text, {
+            id: sourceId + '-' + (idx + 1),
+            index: idx + 1,
+            status: 'verified',
+            kind: 'canon',
+            checkedAt: today,
+          })
+        );
         addedEntries += 1;
       });
       updatedPages += 1;
@@ -214,9 +217,24 @@ function createLorebookUpdater(options) {
     };
   }
 
+  function buildEntry(sourceId, topic, text, options) {
+    const opts = options || {};
+    const today = now().toISOString().slice(0, 10);
+    return {
+      id: opts.id || (sourceId + '-' + (opts.index || 1)),
+      topic: topic,
+      source: sourceId,
+      text: text.slice(0, MAX_TEXT),
+      status: opts.status || 'verified',
+      kind: opts.kind || 'canon',
+      checkedAt: opts.checkedAt || today,
+    };
+  }
+
   return {
     update: update,
     readOverlay: readOverlay,
+    buildEntry: buildEntry,
     get overlayPath() {
       return file;
     },

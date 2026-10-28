@@ -363,3 +363,74 @@ test('state() reports enough to explain why she is quiet', () => {
   assert.deepEqual(state.pending, []);
   assert.equal(state.stats.shown, 0);
 });
+
+test('notification priorities can be customized and alter the delivery order without code changes', () => {
+  // Normally: failure (2) > productivity (4).
+  // Here we invert it: productivity: 2, failure: 4.
+  const h = make({
+    mode: 'medium',
+    priorities: { productivity: 2, failure: 4 },
+  });
+
+  assert.equal(h.director.getPriorities().productivity, 2);
+  assert.equal(h.director.getPriorities().failure, 4);
+
+  // Submit failure first; it shows because nothing is active
+  const failRes = h.failed('Sesi AI gagal.');
+  assert.equal(failRes.action, 'show');
+  assert.equal(failRes.item.priority, 4);
+
+  // Now submit timer (productivity, priority 2).
+  // Because priority 2 is higher than 4 (lower number = higher priority), it interrupts failure!
+  const timerRes = h.timer('Timer fokus selesai.');
+  assert.equal(timerRes.action, 'preempt');
+  assert.equal(timerRes.item.priority, 2);
+  assert.equal(timerRes.interrupted.priority, 4);
+
+  // Dynamic update via setPriorities()
+  h.director.setPriorities({ chatter: 1, decision: 6 });
+  assert.equal(h.director.getPriorities().chatter, 1);
+  assert.equal(h.director.getPriorities().decision, 6);
+
+  // Invalid numbers should be ignored or clamped, keeping valid 1-6 range
+  h.director.setPriorities({ chatter: 99, productivity: -5 });
+  assert.equal(h.director.getPriorities().chatter, 1);
+  assert.equal(h.director.getPriorities().productivity, 2);
+});
+
+test('quiet hours suppress proactive chatter while keeping decision events, and handle midnight boundary correctly', () => {
+  const h = make({
+    mode: 'medium',
+    quietHours: { enabled: true, start: '23:00', end: '07:00' },
+  });
+
+  function timeAt(hh, mm) {
+    const d = new Date(2026, 9, 28, hh, mm, 0, 0);
+    return d.getTime();
+  }
+
+  // 1. Outside quiet hours (14:00) -> chatter is allowed
+  const tDay = timeAt(14, 0);
+  assert.equal(h.director.submit({ kind: 'chatter', text: 'Halo siang!' }, tDay).action, 'show');
+  h.director.finish();
+
+  // 2. Exactly at start boundary 23:00 -> chatter dropped, decision allowed
+  const t2300 = timeAt(23, 0);
+  assert.equal(h.director.submit({ kind: 'chatter', text: 'Halo malam!' }, t2300).reason, 'quiet');
+  assert.equal(h.director.submit({ kind: 'decision-request', text: 'Perlu keputusan!' }, t2300).action, 'show');
+  h.director.finish();
+
+  // 3. Across midnight boundary 00:00 -> chatter dropped, decision allowed
+  const t0000 = timeAt(0, 0);
+  assert.equal(h.director.submit({ kind: 'chatter', text: 'Tengah malam!' }, t0000).reason, 'quiet');
+  assert.equal(h.director.submit({ kind: 'decision-request', text: 'Keputusan tengah malam!' }, t0000).action, 'show');
+  h.director.finish();
+
+  // 4. Before end boundary 06:59 -> quiet
+  const t0659 = timeAt(6, 59);
+  assert.equal(h.director.submit({ kind: 'chatter', text: 'Pagi buta!' }, t0659).reason, 'quiet');
+
+  // 5. At end boundary 07:00 -> no longer quiet, chatter allowed
+  const t0700 = timeAt(7, 0);
+  assert.equal(h.director.submit({ kind: 'chatter', text: 'Selamat pagi!' }, t0700).action, 'show');
+});

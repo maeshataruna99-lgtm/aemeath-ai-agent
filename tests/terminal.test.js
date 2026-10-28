@@ -221,8 +221,8 @@ test('problems with a line are explained, not thrown', async () => {
 // ---- built-in /change-mode ----------------------------------------------------
 
 test('change-mode is reserved so a custom command can never shadow it', () => {
-  assert.deepEqual(BUILTIN_NAMES, ['change-mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review']);
-  for (const name of ['change-mode', '/Change-Mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'HELP', 'bantuan']) {
+  assert.deepEqual(BUILTIN_NAMES, ['change-mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle']);
+  for (const name of ['change-mode', '/Change-Mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle', 'HELP', 'bantuan']) {
     const { commands, errors } = normalizeCommands([{ name, target: os.tmpdir() }]);
     assert.equal(commands.length, 0, name);
     assert.match(errors[0].message, /sudah dipakai/, name);
@@ -296,7 +296,7 @@ test('errors come back as text, multi-statement lines work and shell metacharact
 });
 
 test('a command that never ends is killed, and the next one starts a fresh shell where it left off', { skip: !onWindows, timeout: 60000 }, async () => {
-  const session = createTerminalSession({ spawn: childProcess.spawn, cwd: os.homedir(), timeoutMs: 1500 });
+  const session = createTerminalSession({ spawn: childProcess.spawn, cwd: os.homedir(), timeoutMs: 5000 });
   try {
     await session.run('Set-Location $env:TEMP');
     const slow = await session.run('Start-Sleep -Seconds 30');

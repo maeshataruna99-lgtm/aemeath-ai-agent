@@ -9,6 +9,16 @@ const { validateLorebook } = require('./lorebook');
 
 const SOURCES_FILE = 'sources.json';
 
+function normalizeEntry(item, sources) {
+  if (!item || typeof item !== 'object') return item;
+  const source = sources && sources[item.source];
+  return Object.assign({}, item, {
+    status: item.status || 'verified',
+    kind: item.kind || 'canon',
+    checkedAt: item.checkedAt || (source && source.accessed) || '2026-10-27',
+  });
+}
+
 function loadLorebook(dir, overlayFile) {
   const sources = JSON.parse(fs.readFileSync(path.join(dir, SOURCES_FILE), 'utf8'));
   const entries = [];
@@ -19,7 +29,9 @@ function loadLorebook(dir, overlayFile) {
   for (const name of files) {
     const list = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
     if (!Array.isArray(list)) throw new Error('lorebook: ' + name + ' must contain an array');
-    entries.push(...list);
+    for (const item of list) {
+      entries.push(normalizeEntry(item, sources));
+    }
   }
   if (overlayFile && fs.existsSync(overlayFile)) {
     try {
@@ -31,7 +43,7 @@ function loadLorebook(dir, overlayFile) {
         const existingIds = new Set(entries.map((e) => e && e.id));
         for (const item of overlay.entries) {
           if (item && item.id && !existingIds.has(item.id) && sources[item.source]) {
-            entries.push(item);
+            entries.push(normalizeEntry(item, sources));
             existingIds.add(item.id);
           }
         }

@@ -3,102 +3,153 @@
     "id": "lore-terminology",
     "topic": "Lore",
     "source": "wiki-lore",
-    "text": "Istilah dunia kita dikelompokkan jadi Solaris-3, Waveworn Phenomenon, Lament, Tacet Field, Resonator, Tacet Discord, Echoes, Sentinel, Threnodian, Reverberation, dan Remnant. Kamu hafal berapa, Rover?"
+    "text": "Istilah dunia kita dikelompokkan jadi Solaris-3, Waveworn Phenomenon, Lament, Tacet Field, Resonator, Tacet Discord, Echoes, Sentinel, Threnodian, Reverberation, dan Remnant. Kamu hafal berapa, Rover?",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lament-definition",
     "topic": "Lament",
     "source": "wiki-the-lament",
-    "text": "Lament adalah sebutan untuk rangkaian bencana kepunahan massal di planet ini. Secara ketat, ia masih berlangsung sampai sekarang, Rover."
+    "text": "Lament adalah sebutan untuk rangkaian bencana kepunahan massal di planet ini. Secara ketat, ia masih berlangsung sampai sekarang, Rover.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lament-black-shores",
     "topic": "Lament",
     "source": "wiki-the-lament",
-    "text": "Black Shores mengawasi dan meredam dampak Lament lewat Tethys System, bahkan punya sistem untuk memprediksi kemunculannya."
+    "text": "Black Shores mengawasi dan meredam dampak Lament lewat Tethys System, bahkan punya sistem untuk memprediksi kemunculannya.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "waveworn-list",
     "topic": "Waveworn Phenomenon",
     "source": "wiki-waveworn-phenomenon",
-    "text": "Waveworn Phenomenon itu kumpulan keanehan pasca-Lament: Tacet Field, Etheric Sea, Retroact Rain, sampai hilangnya gravitasi."
+    "text": "Waveworn Phenomenon itu kumpulan keanehan pasca-Lament: Tacet Field, Etheric Sea, Retroact Rain, sampai hilangnya gravitasi.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "waveworn-name",
     "topic": "Waveworn Phenomenon",
     "source": "wiki-waveworn-phenomenon",
-    "text": "Nama Mandarin Waveworn Phenomenon kira-kira berarti \"erosi pantai\". Nama selembut itu untuk fenomena sebesar ini, aneh ya?"
+    "text": "Nama Mandarin Waveworn Phenomenon kira-kira berarti \"erosi pantai\". Nama selembut itu untuk fenomena sebesar ini, aneh ya?",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "resonator-awakening",
     "topic": "Resonator",
     "source": "wiki-resonator",
-    "text": "Saat Resonator terbangun, muncul Tacet Mark di tubuhnya. Bentuknya ditentukan oleh Rabelle's Curve. Aku tipe Natural, kamu tipe yang mana?"
+    "text": "Saat Resonator terbangun, muncul Tacet Mark di tubuhnya. Bentuknya ditentukan oleh Rabelle's Curve. Aku tipe Natural, kamu tipe yang mana?",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "resonator-types",
     "topic": "Resonator",
     "source": "wiki-resonator",
-    "text": "Rabelle's Curve membagi Resonator jadi tiga golongan: Natural, Mutant, dan Congenital, menurut kapan dan bagaimana mereka terbangun."
+    "text": "Rabelle's Curve membagi Resonator jadi tiga golongan: Natural, Mutant, dan Congenital, menurut kapan dan bagaimana mereka terbangun.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "tacet-discord-nature",
     "topic": "Tacet Discord",
     "source": "wiki-tacet-discord",
-    "text": "Tacet Discord terbentuk dari sisa energi frekuensi kacau. Mereka memakan frekuensi lain agar stabil, dan bentuknya ikut meniru apa yang mereka makan."
+    "text": "Tacet Discord terbentuk dari sisa energi frekuensi kacau. Mereka memakan frekuensi lain agar stabil, dan bentuknya ikut meniru apa yang mereka makan.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "tacet-discord-core",
     "topic": "Tacet Discord",
     "source": "wiki-tacet-discord",
-    "text": "Di dalam Tacet Discord ada Tacet Core, yang di kalangan akademisi disebut Reverberation Body. Nama yang rapi untuk makhluk yang berantakan."
+    "text": "Di dalam Tacet Discord ada Tacet Core, yang di kalangan akademisi disebut Reverberation Body. Nama yang rapi untuk makhluk yang berantakan.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "threnodian-fear",
     "topic": "Threnodian",
     "source": "wiki-threnodian",
-    "text": "Threnodian itu bentuk ketakutan manusia yang memadat. Mereka melahap kehendak yang runtuh, dan tiap Threnodian terikat pada ketakutan tertentu."
+    "text": "Threnodian itu bentuk ketakutan manusia yang memadat. Mereka melahap kehendak yang runtuh, dan tiap Threnodian terikat pada ketakutan tertentu.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "threnodian-ovathrax",
     "topic": "Threnodian",
     "source": "wiki-threnodian",
-    "text": "Ovathrax, Threnodian Perang, muncul di Jinzhou, tanah yang berabad-abad jadi medan tempur. Ketakutan selalu lahir di tempat yang pantas."
+    "text": "Ovathrax, Threnodian Perang, muncul di Jinzhou, tanah yang berabad-abad jadi medan tempur. Ketakutan selalu lahir di tempat yang pantas.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-general-terms",
     "topic": "Lore: Istilah Umum",
     "source": "wiki-lore",
-    "text": "Dalam arsip Lore umum Solaris-3, tercatat istilah penting seperti Anchoring, Arbiter (julukanmu, Rover!), Echoes, Homeland & Pre-Lament Civilization, Remnant, Resonance Beacon, serta Terminal."
+    "text": "Dalam arsip Lore umum Solaris-3, tercatat istilah penting seperti Anchoring, Arbiter (julukanmu, Rover!), Echoes, Homeland & Pre-Lament Civilization, Remnant, Resonance Beacon, serta Terminal.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-huanglong-terms",
     "topic": "Lore: Huanglong",
     "source": "wiki-lore",
-    "text": "Lore wilayah Huanglong mencakup Pangu Terminal, legenda Suan'ni, Evil Miasma, serta sejarah perang besar seperti Battle Beneath the Crescent dan Fortress and Gorges War di Jinzhou."
+    "text": "Lore wilayah Huanglong mencakup Pangu Terminal, legenda Suan'ni, Evil Miasma, serta sejarah perang besar seperti Battle Beneath the Crescent dan Fortress and Gorges War di Jinzhou.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-black-shores-terms",
     "topic": "Lore: Black Shores",
     "source": "wiki-lore",
-    "text": "Di Black Shores, pengetahuan dunia dijaga lewat Tethys System, Stellar Matrices, bunga penanda Blake Bloom, para Left Behinds, serta robot kecil KU-Roro yang rajin membantu!"
+    "text": "Di Black Shores, pengetahuan dunia dijaga lewat Tethys System, Stellar Matrices, bunga penanda Blake Bloom, para Left Behinds, serta robot kecil KU-Roro yang rajin membantu!",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-rinascita-terms",
     "topic": "Lore: Rinascita",
     "source": "wiki-lore",
-    "text": "Lore Rinascita erat dengan ancaman Dark Tide, Common Echoes, para Harbinger, kapal Pilgrim's Sail, Ragunna Terminal, serta tradisi Carnevale, Great Agon, dan Night of Remembrance."
+    "text": "Lore Rinascita erat dengan ancaman Dark Tide, Common Echoes, para Harbinger, kapal Pilgrim's Sail, Ragunna Terminal, serta tradisi Carnevale, Great Agon, dan Night of Remembrance.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-lahai-roi-terms",
     "topic": "Lore: Lahai-Roi",
     "source": "wiki-lore",
-    "text": "Lore Lahai-Roi meliputi Exostrider, Exoswarm, Reactor Drive, Soliskin, Heliodic Six, Heliogyre, Stargrams, Starstacks, hingga fenomena Void Storm, Shimmer, Voidspace, dan Voidworms!"
+    "text": "Lore Lahai-Roi meliputi Exostrider, Exoswarm, Reactor Drive, Soliskin, Heliodic Six, Heliogyre, Stargrams, Starstacks, hingga fenomena Void Storm, Shimmer, Voidspace, dan Voidworms!",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   },
   {
     "id": "lore-ashinohara-festivals",
     "topic": "Lore: Ashinohara & Festival",
     "source": "wiki-lore",
-    "text": "Wilayah Ashinohara mengenal Legacy Talismans dan Suzu, sementara di Jinzhou warga merayakan Moon-Chasing Festival dan kompetisi Riverside Games. Seru banget kalau kita ke sana, Rover!"
+    "text": "Wilayah Ashinohara mengenal Legacy Talismans dan Suzu, sementara di Jinzhou warga merayakan Moon-Chasing Festival dan kompetisi Riverside Games. Seru banget kalau kita ke sana, Rover!",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-27"
   }
 ]

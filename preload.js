@@ -36,10 +36,13 @@ contextBridge.exposeInMainWorld('aemeath', {
   },
   openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
   onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
+  onQuestDone: (fn) => ipcRenderer.on('productivity:quest-done', (_e, payload) => fn(payload)),
+  onWorkSessionFinished: (fn) => ipcRenderer.on('work-session:finished', (_e, finished) => fn(finished)),
   // Companion memory: she can offer to remember something, and Rover answers on
   // the bubble. The overlay never reads the memory list.
   onMemoryOffer: (fn) => ipcRenderer.on('memory:offer', (_e, offer) => fn(offer)),
   acceptMemory: (offerId) => ipcRenderer.invoke('memory:accept', offerId),
   dismissMemory: (offerId) => ipcRenderer.invoke('memory:dismiss', offerId),
+  answerContinuation: (offerId, choice) => ipcRenderer.invoke('memory:continuation-answer', offerId, choice),
   onLorebookUpdated: (fn) => ipcRenderer.on('lorebook:updated', (_e, data) => fn(data)),
 });

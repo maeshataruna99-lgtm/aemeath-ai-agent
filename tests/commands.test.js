@@ -200,7 +200,17 @@ test('the real spawn path starts a program with arguments and no shell', async (
   assert.equal(result.ok, true);
 
   const deadline = Date.now() + 5000;
-  while (!fs.existsSync(marker) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  while (Date.now() < deadline) {
+    if (fs.existsSync(marker)) {
+      try {
+        const content = fs.readFileSync(marker, 'utf8');
+        if (content.length > 0) break;
+      } catch {
+        // file lock transient
+      }
+    }
+    await new Promise((r) => setTimeout(r, 50));
+  }
   assert.equal(fs.readFileSync(marker, 'utf8'), 'two words|;|calc', 'arguments arrive intact, no shell involved');
 });
 
@@ -290,4 +300,35 @@ test('workflow commands validate multiple targets and open all of them without a
   assert.deepEqual(await rMissing.run(valid.commands[0]), { ok: false, code: 'missing' });
   assert.deepEqual(rMissing.opened, []);
   assert.deepEqual(rMissing.external, []);
+});
+
+test('/memory is reserved and routes to the builtin memory handler', async () => {
+  // 1. A custom command cannot shadow /memory
+  const dup = normalizeCommands([{ name: 'memory', target: FOLDER }]);
+  assert.equal(dup.commands.length, 0);
+  assert.match(dup.errors[0].message, /sudah dipakai/);
+
+  // 2. Command handler dispatches /memory and subcommands to builtin
+  let memoryCalled = false;
+  let receivedArg = null;
+  const h = createCommandHandler({
+    getCommands: () => [],
+    run: async () => ({ ok: true }),
+    builtins: {
+      memory: {
+        description: 'Kelola memori companion',
+        run: async (arg) => {
+          memoryCalled = true;
+          receivedArg = arg;
+          return { ok: true, text: 'daftar memori dipanggil' };
+        },
+      },
+    },
+  });
+
+  const res = await h.handle('/memory hapus 1');
+  assert.equal(res.isCommand, true);
+  assert.equal(res.ok, true);
+  assert.equal(memoryCalled, true);
+  assert.equal(receivedArg, 'hapus 1');
 });

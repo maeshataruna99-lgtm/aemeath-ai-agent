@@ -78,6 +78,11 @@ Di mode **Full** (memerlukan persetujuan terpisah), Aemeath juga melakukan:
 Pengelompokannya memakai kata kunci pada judul halaman, jadi sesekali bisa meleset (misalnya situs yang
 tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alamat situs, layar, atau ketikanmu.
 
+**Perilaku Focus Companion 2.0 per Mode Interaktif:**
+- **Low:** seluruh alat produktivitas (`/timer`, `/focus`, `/todo`, `/quest`, `/note`, `/stats`) berjalan murni manual; tanpa sesi proaktif, tanpa pelacakan aktivitas kerja di `/stats`, dan tanpa sapaan kelanjutan kerja proaktif.
+- **Medium:** memantau kategori aplikasi aktif tanpa membaca judul sensitif, merekam durasi per kategori di `/stats`, menawarkan pengingat istirahat/timer saat sesi kerja panjang terdeteksi, mengizinkan celetukan desktop, serta menyapa dan menawarkan kelanjutan tugas tertunda (Resume Work) maksimal satu kali per 6 jam.
+- **Full** *(butuh persetujuan eksplisit):* menghubungkan seluruh konteks kerja (bahasa kode, pengujian, penilaian git lokal via `/review`, sesi AI Claude Code/Antigravity, sesi fokus terorkestrasi `/focus`, timer, `/todo`, dan `/quest`), serta secara proaktif menawarkan penyimpanan ringkasan sesi kerja faktual ke memori companion yang hanya disimpan jika kamu menekan tombol "Simpan".
+
 ### Fleet Snowfluff GPT (ngobrol dengan Aemeath)
 
 - **Celetukan.** Sesekali Aemeath menyapamu sendiri, dalam Bahasa Indonesia dan dengan
@@ -123,9 +128,13 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 
 **Perintah bawaan produktivitas**:
 - `/timer` — pasang timer fokus atau Pomodoro (mis. `/timer 25m Fokus`, `/timer pomodoro`, `/timer status`, `/timer batal`). Saat selesai Aemeath melompat dan mengingatkanmu lewat gelembung bicara.
-- `/todo` — kelola daftar tugas cepat lokal (`/todo`, `/todo tambah <tugas>`, `/todo selesai <nomor>`, `/todo hapus <nomor>`, `/todo bersih`).
+- `/focus` — orkestrasi sesi fokus kerja (`/focus 25m <tugas>`, `/focus status`, `/focus selesai`, `/focus batal`), mencatat waktu, progres sesi AI, dan review git tanpa mengarang data.
+- `/todo` — kelola daftar tugas cepat lokal (`/todo`, `/todo tambah <tugas>`, `/todo selesai <nomor>|semua`, `/todo fokus <nomor>`, `/todo hapus <nomor>`, `/todo bersih`).
+- `/quest` atau `/daily` — kelola maksimal 3 prioritas harian (`/quest tambah <tugas>`, `/quest todo <nomor>`, `/quest selesai <nomor>|semua`, `/quest riwayat`, `/quest bersih`). Tugas yang belum selesai dipertahankan otomatis saat pergantian hari.
 - `/note` — simpan dan lihat catatan cepat satu baris (`/note`, `/note <teks>`, `/note hapus <nomor>`, `/note bersih`).
-- `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium atau Full menyala), sisa timer aktif, dan jumlah tugas serta catatan.
+- `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium atau Full menyala), status timer aktif, progres Daily Quest, serta jumlah tugas dan catatan.
+- `/chronicle` — ringkasan harian opsional: apa yang dikerjakan, durasi nyata, dan apa yang tersisa (`/chronicle`, `/chronicle aktif`, `/chronicle nonaktif`). Hanya menyajikan fakta lokal yang terverifikasi tanpa skor atau hukuman.
+- `/memory` — kelola catatan memori companion langsung dari obrolan (`/memory`, `/memory hapus <nomor>`, `/memory aktif`, `/memory nonaktif`).
 - `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 - `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
@@ -235,6 +244,9 @@ Semua pengaturan disimpan di folder data aplikasi (`%APPDATA%\Aemeath`), bukan d
   pola rahasia yang sama seperti `/review`.
 - Memori tidak pernah dikirim seluruhnya. Hanya potongan yang relevan dengan pesan yang sedang
   dikirim, dan itu terjadi sebagai bagian dari permintaan chat ke penyedia yang kamu pilih.
+- Kebijakan retensi (30, 90, 180, 365 hari, atau tidak pernah) hanya membersihkan ringkasan sesi dari AI
+  (`source: 'assistant'`). Catatan yang kamu tulis sendiri (`source: 'user'`) tidak pernah dihapus
+  otomatis agar tidak ada data yang hilang diam-diam, dan hanya bisa dihapus manual lewat tombol Hapus.
 
 **Mode terminal**
 - Masuk hanya lewat `/change-mode`, dan itu selalu melewati prompt UAC dari Windows. Tidak ada

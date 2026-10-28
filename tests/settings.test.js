@@ -162,3 +162,69 @@ test('transparentMode defaults to false and opacity is clamped between 0.15 and 
   assert.equal(store.save({ transparentMode: 'yes', opacity: 'x' }).transparentMode, false);
   assert.equal(store.data.opacity, 0.6);
 });
+
+test('notificationPriorities are clamped between 1 and 6 and default to standard ladder', () => {
+  const dir = tempDir('priorities');
+  const store = createSettingsStore(dir);
+  const initial = store.load();
+  assert.deepEqual(initial.notificationPriorities, {
+    decision: 1,
+    failure: 2,
+    direct: 3,
+    productivity: 4,
+    activity: 5,
+    chatter: 6,
+  });
+
+  const updated = store.save({
+    notificationPriorities: {
+      productivity: 1,
+      chatter: 2,
+      invalidKey: 3,
+      decision: 99, // out of range, should remain default 1
+    },
+  });
+
+  assert.equal(updated.notificationPriorities.productivity, 1);
+  assert.equal(updated.notificationPriorities.chatter, 2);
+  assert.equal(updated.notificationPriorities.decision, 1);
+  assert.equal(updated.notificationPriorities.failure, 2);
+  assert.equal(updated.notificationPriorities.invalidKey, undefined);
+
+  // Survives a reload from disk
+  const reloaded = createSettingsStore(dir).load();
+  assert.equal(reloaded.notificationPriorities.productivity, 1);
+  assert.equal(reloaded.notificationPriorities.chatter, 2);
+});
+
+test('quietHoursEnabled defaults to false and start/end validate HH:MM format', () => {
+  const dir = tempDir('quiethours');
+  const store = createSettingsStore(dir);
+  const initial = store.load();
+  assert.equal(initial.quietHoursEnabled, false);
+  assert.equal(initial.quietHoursStart, '23:00');
+  assert.equal(initial.quietHoursEnd, '07:00');
+
+  const updated = store.save({
+    quietHoursEnabled: true,
+    quietHoursStart: '22:30',
+    quietHoursEnd: '06:15',
+  });
+  assert.equal(updated.quietHoursEnabled, true);
+  assert.equal(updated.quietHoursStart, '22:30');
+  assert.equal(updated.quietHoursEnd, '06:15');
+
+  // Invalid formats fall back to defaults
+  const invalid = store.save({
+    quietHoursStart: '25:99',
+    quietHoursEnd: 'not-a-time',
+  });
+  assert.equal(invalid.quietHoursStart, '23:00');
+  assert.equal(invalid.quietHoursEnd, '07:00');
+
+  // Survives a reload from disk
+  const reloaded = createSettingsStore(dir).load();
+  assert.equal(reloaded.quietHoursEnabled, true);
+  assert.equal(reloaded.quietHoursStart, '23:00');
+  assert.equal(reloaded.quietHoursEnd, '07:00');
+});

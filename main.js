@@ -40,6 +40,7 @@ const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
 const { createWorkReviewer } = require('./src/activity/work-reviewer');
 const { createProductivityHub } = require('./src/productivity/productivity-hub');
+const { createWorkSessionManager } = require('./src/productivity/work-session');
 const { createMemoryStore } = require('./src/memory/memory-store');
 const { detectPlatform, applyLinuxStartup, getLinuxStartupStatus } = require('./src/platform');
 const {
@@ -69,6 +70,7 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let productivity = null;
+  let workSession = null;
   let memoryStore = null;
   let lorebookUpdater = null;
   let activityTrayTimer = null;
@@ -313,7 +315,13 @@ function main() {
     },
     review: {
       description: 'Tinjau dan nilai perubahan kodinganmu saat ini (git diff)',
-      run: () => workReviewer.review(),
+      run: async () => {
+        const res = await workReviewer.review();
+        if (workSession && workSession.active) {
+          workSession.recordReview(res);
+        }
+        return res;
+      },
     },
   };
   const commandHandler = createCommandHandler({
@@ -333,17 +341,41 @@ function main() {
     lorebookOverlayFile = path.join(dataDir, OVERLAY_FILE);
     lorebookUpdater = createLorebookUpdater({ dir: dataDir });
     reloadLorebook();
+    workSession = createWorkSessionManager({
+      onSessionFinished: (finished) => {
+        win?.webContents?.send('work-session:finished', finished);
+        if (memoryStore && settings.interactiveMode === 'full') {
+          const offer = memoryStore.proposeSession({
+            project: finished.project,
+            summary: finished.summaryText,
+            sessionId: finished.id,
+          });
+          if (offer) win?.webContents?.send('memory:offer', offer);
+        }
+      },
+    });
     productivity = createProductivityHub({
       dir: dataDir,
+      workSession: workSession,
       getActivitySummary: () => activity.summary(),
       onTimerDone: (payload) => {
         win?.webContents?.send('productivity:timer-done', payload);
+      },
+      onQuestDone: (quest) => {
+        win?.webContents?.send('productivity:quest-done', quest);
+      },
+      getChronicleEnabled: () => settings.dailyChronicleEnabled === true,
+      setChronicleEnabled: (enabled) => {
+        Object.assign(settings, settingsStore.save({ dailyChronicleEnabled: Boolean(enabled) }));
+        win?.webContents?.send('settings:updated', settings);
+        settingsWin?.webContents?.send('settings:updated', settings);
       },
     });
     Object.assign(builtins, productivity.asBuiltins());
     // Memory lives next to settings.json in the app data folder. The selfie run
     // gets a throwaway folder, so visual checks never touch real memories.
     memoryStore = createMemoryStore({ dir: dataDir });
+    builtins.memory = memoryStore.asBuiltin();
 
     // The selfie run keeps keys in memory so it can never touch a real saved key.
     keyStore = createKeyStore({
@@ -662,7 +694,20 @@ function main() {
     ipcMain.handle('memory:accept', (event, offerId) => {
       if (!fromWindow(event, win) || !memoryStore) return { ok: false, error: 'Tidak diizinkan.' };
       const result = memoryStore.acceptOffer(offerId);
+      if (result && result.ok && result.settingsPatch) {
+        Object.assign(settings, settingsStore.save(result.settingsPatch));
+        win?.webContents?.send('settings:updated', settings);
+        settingsWin?.webContents?.send('settings:updated', settings);
+      }
       settingsWin?.webContents?.send('memory:updated', memoryStatus());
+      return result;
+    });
+    ipcMain.handle('memory:continuation-answer', (event, offerId, choice) => {
+      if (!fromWindow(event, win) || !memoryStore) return { ok: false, error: 'Tidak diizinkan.' };
+      const result = memoryStore.answerContinuation(offerId, choice);
+      if (result && result.openChat) {
+        toggleChat();
+      }
       return result;
     });
     ipcMain.handle('memory:dismiss', (event, offerId) => {
@@ -799,6 +844,9 @@ function main() {
     provider = createClaudeCodeProvider({
       onEvent: (event) => {
         if (!settings.watcherEnabled) return;
+        if (workSession && workSession.active) {
+          workSession.recordAiEvent(event);
+        }
         win?.webContents?.send('session:event', event);
         pushAggregate();
         updateTray();
@@ -830,9 +878,23 @@ function main() {
 
   function pushPresence() {
     const idle = isSelfie ? false : powerMonitor.getSystemIdleTime() >= IDLE_PRESENCE_SECONDS;
-    const focus = Boolean(productivity && productivity.timerActive);
-    if (lastPresence && lastPresence.idle === idle && lastPresence.focus === focus) return;
-    lastPresence = { idle: idle, focus: focus };
+    const sessionState = workSession ? workSession.presenceState() : { active: false };
+    const focus = Boolean((productivity && productivity.timerActive) || sessionState.active);
+    if (
+      lastPresence &&
+      lastPresence.idle === idle &&
+      lastPresence.focus === focus &&
+      lastPresence.task === sessionState.task
+    ) {
+      return;
+    }
+    lastPresence = {
+      idle: idle,
+      focus: focus,
+      task: sessionState.task,
+      project: sessionState.project,
+      remainingMs: sessionState.remainingMs,
+    };
     win?.webContents?.send('presence:state', lastPresence);
   }
 
@@ -859,18 +921,24 @@ function main() {
     const offer = memoryStore.proposeSession({
       project: event.projectName,
       summary: event.summary,
+      nextStep: event.nextStep,
       sessionId: event.sessionId,
     });
     if (offer) win?.webContents?.send('memory:offer', offer);
   }
 
-  // Medium and Full: one offer to continue what he was doing, at most once per
-  // working day. Low mode and a switched-off store stay quiet.
+  // Medium and Full: one offer to continue what he was doing, or an offer to adjust
+  // chatter interval if a matching preference is recorded. Low mode and a switched-off store stay quiet.
   function offerContinuation() {
     if (!memoryStore || !win) return;
     const offer = memoryStore.continuation(settings.interactiveMode);
     if (offer) {
-      win.webContents.send('memory:offer', { text: offer.text, actionable: false });
+      win.webContents.send('memory:offer', offer);
+      return;
+    }
+    const prefOffer = memoryStore.preferenceOffer(settings.interactiveMode, settings.chatterIntervalMin);
+    if (prefOffer) {
+      win.webContents.send('memory:offer', prefOffer);
     }
   }
 

@@ -192,6 +192,101 @@
           selesai, reaksi aktivitas, lalu celetukan. Celetukan ditunda saat kamu mengetik di kotak chat,
           saat komputer idle, dan saat timer fokus berjalan.
         </p>
+
+        <div id="priority-ladder" class="row">
+          <label class="field">Urutan prioritas notifikasi (1 = tertinggi, 6 = terendah)</label>
+          <div class="priority-grid">
+            <div class="priority-row">
+              <label for="prio-decision">Keputusan sesi AI</label>
+              <select id="prio-decision" data-category="decision" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+            <div class="priority-row">
+              <label for="prio-failure">Sesi AI gagal / berhenti</label>
+              <select id="prio-failure" data-category="failure" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+            <div class="priority-row">
+              <label for="prio-direct">Permintaan langsung &amp; memori</label>
+              <select id="prio-direct" data-category="direct" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+            <div class="priority-row">
+              <label for="prio-productivity">Timer &amp; sesi selesai</label>
+              <select id="prio-productivity" data-category="productivity" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+            <div class="priority-row">
+              <label for="prio-activity">Aktivitas &amp; tawaran memori</label>
+              <select id="prio-activity" data-category="activity" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+            <div class="priority-row">
+              <label for="prio-chatter">Obrolan santai &amp; trivia</label>
+              <select id="prio-chatter" data-category="chatter" class="prio-select">
+                <option value="1">1 (Tertinggi)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 (Terendah)</option>
+              </select>
+            </div>
+          </div>
+          <p class="hint tight">
+            Ubah urutan ini jika ingin suatu kategori (misalnya timer atau celetukan) lebih diutamakan
+            atau ditunda saat beberapa pesan datang bersamaan.
+          </p>
+        </div>
+
+        <div id="quiet-hours-section" class="row">
+          <label class="field check" for="quiet-hours-toggle">
+            <input type="checkbox" id="quiet-hours-toggle">
+            <span>Aktifkan jam tenang (Do Not Disturb)</span>
+          </label>
+          <div id="quiet-hours-time" class="row">
+            <div class="time-range-row">
+              <label for="quiet-hours-start">Mulai</label>
+              <input type="time" id="quiet-hours-start" value="23:00">
+              <label for="quiet-hours-end">Sampai</label>
+              <input type="time" id="quiet-hours-end" value="07:00">
+            </div>
+          </div>
+          <p class="hint tight">
+            Selama jam tenang, Aemeath tidak akan menyapa atau mengobrol santai.
+            Pemberitahuan penting (seperti keputusan sesi AI dan timer) tetap diizinkan muncul.
+          </p>
+        </div>
       </section>
 
       <hr>

@@ -25,9 +25,22 @@ Semua `*.json` selain `sources.json` dimuat otomatis oleh
   "id": "unik-dalam-seluruh-lorebook",
   "topic": "Judul pendek topik",
   "source": "id-di-sources.json",
-  "text": "Kalimat dalam suara Aemeath, Bahasa Indonesia, maksimal 260 karakter."
+  "text": "Kalimat dalam suara Aemeath, Bahasa Indonesia, maksimal 260 karakter.",
+  "status": "verified",
+  "kind": "canon",
+  "checkedAt": "2026-10-27"
 }
 ```
+
+### Keterangan Metadata Entri:
+- **`status`**:
+  - `verified`: Informasi telah diverifikasi kecocokannya dengan sumber primer game / wiki resmi.
+  - `unverified`: Belum diverifikasi sepenuhnya; entri berstatus ini tidak pernah digunakan sebagai jawaban pasti.
+- **`kind`**:
+  - `canon`: Fakta resmi dan kanonis dari dunia Wuthering Waves.
+  - `interpretation`: Penjelasan analitis atau interpretasi berbasis lore yang belum diucapkan secara eksplisit.
+  - `evolving`: Informasi mengenai konten yang sedang atau akan berkembang (misal event patch baru atau wilayah mendatang).
+- **`checkedAt`**: Tanggal verifikasi/pemeriksaan terakhir dalam format ISO `YYYY-MM-DD`.
 
 Format sumber di `sources.json`:
 

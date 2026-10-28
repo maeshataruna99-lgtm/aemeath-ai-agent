@@ -139,6 +139,12 @@
     return AemeathBehavior.createBehaviorDirector({
       mode: settings.interactiveMode,
       chatterEnabled: settings.chatterEnabled !== false,
+      priorities: settings.notificationPriorities,
+      quietHours: {
+        enabled: settings.quietHoursEnabled === true,
+        start: settings.quietHoursStart,
+        end: settings.quietHoursEnd,
+      },
     });
   }
 
@@ -148,6 +154,12 @@
     director.setMode(settings.interactiveMode);
     director.setChatterEnabled(settings.chatterEnabled !== false);
     director.setPaused(settings.proactivePaused === true);
+    if (settings.notificationPriorities) director.setPriorities(settings.notificationPriorities);
+    director.setQuietHours({
+      enabled: settings.quietHoursEnabled === true,
+      start: settings.quietHoursStart,
+      end: settings.quietHoursEnd,
+    });
     const cooldownMin = typeof settings.proactiveCooldownMin === 'number' ? settings.proactiveCooldownMin : 10;
     const maxPerHour = typeof settings.proactiveMaxPerHour === 'number' ? settings.proactiveMaxPerHour : 6;
     director.setLimits({ maxPerHour: maxPerHour, cooldownMs: Math.max(0, cooldownMin) * 60000 });
@@ -405,6 +417,22 @@
   function bubbleActions(action) {
     const actions = document.createElement('div');
     actions.className = 'bubble-actions';
+
+    if (Array.isArray(action.actions) && action.actions.length > 0) {
+      for (const act of action.actions) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        if (act.id === 'dismiss' || act.id === 'later') btn.className = 'ghost';
+        btn.textContent = act.label;
+        btn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          answerContinuationChoice(action.id, act.id);
+        });
+        actions.appendChild(btn);
+      }
+      return actions;
+    }
+
     const accept = document.createElement('button');
     accept.type = 'button';
     accept.textContent = action.label || 'Simpan';
@@ -422,6 +450,34 @@
     });
     actions.append(accept, later);
     return actions;
+  }
+
+  function answerContinuationChoice(offerId, choice) {
+    for (const button of bubble.querySelectorAll('.bubble-actions button')) button.disabled = true;
+    const clear = () => {
+      hideBubble();
+      if (director) director.clearActive();
+    };
+    if (typeof window.aemeath.answerContinuation === 'function') {
+      window.aemeath
+        .answerContinuation(offerId, choice)
+        .then((result) => {
+          clear();
+          if (result && result.text) {
+            say({
+              kind: 'continuation-reply',
+              text: result.text,
+              anim: choice === 'resume' ? 'jumping' : 'waving',
+              animMs: 1800,
+            });
+          }
+        })
+        .catch(() => {
+          clear();
+        });
+    } else {
+      clear();
+    }
   }
 
   function answerMemoryOffer(action, accepted) {
@@ -526,6 +582,8 @@
         text:
           '[' + event.projectName + ']\nSesi AI butuh keputusanmu:\n' + (event.summary || '(tanpa detail)'),
         sessionId: event.sessionId,
+        anim: 'waiting',
+        animMs: 3000,
       });
       return;
     }
@@ -670,6 +728,23 @@
         say({ kind: 'timer-done', text: payload.text, anim: 'jumping', animMs: 2400 });
       });
     }
+    if (typeof window.aemeath.onQuestDone === 'function') {
+      window.aemeath.onQuestDone((quest) => {
+        if (!quest) return;
+        say({
+          kind: 'quest-done',
+          text: 'Hore! Daily quest "' + quest.text + '" selesai! Fokusmu mantap, Rover~',
+          anim: 'jumping',
+          animMs: 2200,
+        });
+      });
+    }
+    if (typeof window.aemeath.onWorkSessionFinished === 'function') {
+      window.aemeath.onWorkSessionFinished((finished) => {
+        if (!finished || !finished.summaryText) return;
+        say({ kind: 'session-finished', text: finished.summaryText, anim: 'review', animMs: 3200 });
+      });
+    }
     if (typeof window.aemeath.onPresence === 'function') {
       window.aemeath.onPresence((state) => {
         if (!state || !director) return;
@@ -681,11 +756,19 @@
     if (typeof window.aemeath.onMemoryOffer === 'function') {
       window.aemeath.onMemoryOffer((offer) => {
         if (!offer || !offer.text) return;
+        const isResume = offer.offerType === 'continuation';
         say({
           kind: 'memory-offer',
           category: offer.actionable ? 'memory:offer' : 'memory:continuation',
           text: offer.text,
-          action: offer.actionable && offer.id ? { id: offer.id, label: 'Simpan' } : null,
+          anim: isResume ? 'waving' : 'waiting',
+          animMs: 2500,
+          action: offer.actionable && offer.id ? {
+            id: offer.id,
+            label: offer.actionLabel || 'Simpan',
+            actions: offer.actions || null,
+            offerType: offer.offerType || null,
+          } : null,
         });
       });
     }

@@ -8,6 +8,8 @@
   'use strict';
 
   const MAX_TEXT = 260;
+  const VALID_STATUS = ['verified', 'unverified'];
+  const VALID_KIND = ['canon', 'interpretation', 'evolving'];
 
   // data = { sources: { id: { title, url, license, licenseUrl, accessed } }, entries: [...] }
   // Returns a list of problems; empty means the lorebook is well formed.
@@ -47,6 +49,16 @@
       }
       if (!sources[entry.source]) problems.push(label + ' cites an unknown source');
       else used.add(entry.source);
+
+      if (!entry.status || !VALID_STATUS.includes(entry.status)) {
+        problems.push(label + ' has invalid or missing status (must be "verified" or "unverified")');
+      }
+      if (!entry.kind || !VALID_KIND.includes(entry.kind)) {
+        problems.push(label + ' has invalid or missing kind (must be "canon", "interpretation", or "evolving")');
+      }
+      if (typeof entry.checkedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.checkedAt)) {
+        problems.push(label + ' has invalid or missing checkedAt date (must be YYYY-MM-DD)');
+      }
     }
 
     for (const id of Object.keys(sources)) {
@@ -82,6 +94,9 @@
         id: entry.id,
         topic: entry.topic,
         text: entry.text,
+        status: entry.status || 'verified',
+        kind: entry.kind || 'canon',
+        checkedAt: entry.checkedAt || (source && source.accessed) || null,
         credit: { title: source.title, url: source.url, license: source.license },
       };
     }

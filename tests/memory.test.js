@@ -8,11 +8,14 @@ const path = require('node:path');
 
 const {
   createMemoryStore,
+  createMemoryBuiltin,
+  splitSummaryAndNextStep,
   FILE_NAME,
   MAX_CONTEXT_CHARS,
   MAX_TEXT,
   OFFER_TTL_MS,
   CONTINUATION_GAP_MS,
+  PREFERENCE_OFFER_GAP_MS,
 } = require('../src/memory/memory-store');
 const { createBehaviorDirector } = require('../src/behavior/behavior-director');
 const { createChatService } = require('../src/chat/chat-service');
@@ -26,7 +29,7 @@ function tempDir() {
 }
 
 function storeIn(dir, nowMs, extra) {
-  return createMemoryStore(Object.assign({ dir: dir, now: () => nowMs }, extra));
+  return createMemoryStore(Object.assign({ dir: dir, now: typeof nowMs === 'function' ? nowMs : () => nowMs }, extra));
 }
 
 function readRaw(dir) {
@@ -174,6 +177,7 @@ test('retention only removes old AI summaries, never what Rover wrote', () => {
   assert.equal(list.length, 1);
   assert.equal(list[0].source, 'user');
   assert.equal(reopened.status().prunedAtLoad, 1);
+  assert.equal(reopened.status().retentionScope, 'assistant-only');
 });
 
 test('the cap refuses new memories instead of deleting old ones', () => {
@@ -253,6 +257,105 @@ test('a session summary is only stored after Rover accepts the offer', () => {
   assert.match(accepted.text, /Sudah kusimpan/);
   assert.equal(store.list().length, 1);
   assert.equal(store.acceptOffer(offer.id).ok, false, 'the same offer cannot be stored twice');
+});
+
+test('accepting a session offer with a next step creates two distinct entries that can be forgotten separately', () => {
+  const dir = tempDir();
+  const store = storeIn(dir, 5000);
+
+  // 1. Next step parsed from summary marker
+  const offerWithMarker = store.proposeSession({
+    project: 'aemeath-ai-agent',
+    summary: 'Menyelesaikan modul auth dan token. Langkah berikutnya: tambahkan verifikasi email.',
+  });
+  assert.ok(offerWithMarker);
+  const acceptedWithMarker = store.acceptOffer(offerWithMarker.id);
+  assert.equal(acceptedWithMarker.ok, true);
+  assert.equal(acceptedWithMarker.memories.length, 2);
+
+  const list = store.list();
+  assert.equal(list.length, 2);
+  const contextMem = list.find((m) => m.kind === 'context');
+  const nextStepMem = list.find((m) => m.kind === 'next-step');
+
+  assert.ok(contextMem, 'context entry exists');
+  assert.ok(nextStepMem, 'next-step entry exists');
+  assert.equal(contextMem.source, 'assistant');
+  assert.equal(nextStepMem.source, 'assistant');
+  assert.equal(contextMem.project, 'aemeath-ai-agent');
+  assert.equal(nextStepMem.project, 'aemeath-ai-agent');
+  assert.match(contextMem.text, /Menyelesaikan modul auth/);
+  assert.match(nextStepMem.text, /tambahkan verifikasi email/);
+
+  // Both can be deleted separately
+  assert.equal(store.forget(contextMem.id), true);
+  assert.equal(store.list().length, 1);
+  assert.equal(store.list()[0].id, nextStepMem.id);
+  assert.equal(store.forget(nextStepMem.id), true);
+  assert.equal(store.list().length, 0);
+
+  // 2. Explicit nextStep provided in input
+  const offerExplicit = store.proposeSession({
+    project: 'aemeath-ai-agent',
+    summary: 'Sesi refactor arsitektur selesai.',
+    nextStep: 'Tulis unit test tambahan.',
+  });
+  assert.ok(offerExplicit);
+  const acceptedExplicit = store.acceptOffer(offerExplicit.id);
+  assert.equal(acceptedExplicit.ok, true);
+  assert.equal(acceptedExplicit.memories.length, 2);
+  assert.equal(store.list().length, 2);
+  assert.equal(store.list().filter((m) => m.kind === 'context').length, 1);
+  assert.equal(store.list().filter((m) => m.kind === 'next-step').length, 1);
+  assert.ok(store.list().every((m) => m.source === 'assistant'));
+  assert.ok(store.list().every((m) => m.project === 'aemeath-ai-agent'));
+
+  // 3. Summary without next step creates only one entry and does not invent anything
+  const offerPlain = store.proposeSession({
+    project: 'aemeath-ai-agent',
+    summary: 'Pekerjaan selesai dan semua commit sudah rapi.',
+  });
+  const acceptedPlain = store.acceptOffer(offerPlain.id);
+  assert.equal(acceptedPlain.ok, true);
+  assert.equal(acceptedPlain.memories.length, 1);
+  assert.equal(acceptedPlain.memories[0].kind, 'context');
+});
+
+test('splitSummaryAndNextStep correctly separates next steps or leaves plain summaries intact', () => {
+  // Various Indonesian markers
+  const id1 = splitSummaryAndNextStep('Pekerjaan selesai. Langkah berikutnya: jalankan migrasi database.');
+  assert.equal(id1.summary, 'Pekerjaan selesai');
+  assert.equal(id1.nextStep, 'jalankan migrasi database.');
+
+  const id2 = splitSummaryAndNextStep('Fitur login beres; langkah selanjutnya: buat form registrasi.');
+  assert.equal(id2.summary, 'Fitur login beres');
+  assert.equal(id2.nextStep, 'buat form registrasi.');
+
+  const id3 = splitSummaryAndNextStep('Refactor selesai - rencana berikutnya: audit performa');
+  assert.equal(id3.summary, 'Refactor selesai');
+  assert.equal(id3.nextStep, 'audit performa');
+
+  // English markers
+  const en1 = splitSummaryAndNextStep('Refactored router module. Next step: write integration tests.');
+  assert.equal(en1.summary, 'Refactored router module');
+  assert.equal(en1.nextStep, 'write integration tests.');
+
+  const en2 = splitSummaryAndNextStep('Cleaned up dependencies; TODO: update lockfile.');
+  assert.equal(en2.summary, 'Cleaned up dependencies');
+  assert.equal(en2.nextStep, 'update lockfile.');
+
+  // Plain summary without marker
+  const plain = splitSummaryAndNextStep('Menambahkan modul memori companion beserta tesnya; semua tes lulus.');
+  assert.equal(plain.summary, 'Menambahkan modul memori companion beserta tesnya; semua tes lulus.');
+  assert.equal(plain.nextStep, null);
+
+  // Short prefix does not get butchered
+  const shortPrefix = splitSummaryAndNextStep('Langkah berikutnya: lakukan hal ini');
+  assert.equal(shortPrefix.nextStep, null);
+
+  // Non-string or empty input
+  assert.equal(splitSummaryAndNextStep(null).summary, '');
+  assert.equal(splitSummaryAndNextStep(null).nextStep, null);
 });
 
 test('an unanswered offer expires and can be dismissed', () => {
@@ -437,3 +540,116 @@ test('the director keeps the buttons a memory offer carries', () => {
   const plain = createBehaviorDirector({ mode: 'medium' }).submit({ kind: 'chatter', text: 'halo' }, 1000);
   assert.equal(plain.item.action, null);
 });
+
+test('chatter preference offer respects mode, cooldown, and never modifies settings without user acceptance', () => {
+  const dir = tempDir();
+  let clock = 1000;
+  const store = storeIn(dir, () => clock);
+
+  // 1. Unrelated preference does not trigger a chatter interval offer
+  store.remember({ text: 'Suka penjelasan ringkas', kind: 'preference' });
+  assert.equal(store.preferenceOffer('medium', 3.5), null);
+
+  // 2. Add greeting frequency preference
+  store.remember({ text: 'Jangan terlalu sering menyapa ya, kurangi frekuensi', kind: 'preference' });
+
+  // Low mode and disabled store never propose proactive offers
+  assert.equal(store.preferenceOffer('low', 3.5), null, 'Low mode stays quiet');
+  store.setDisabled(true);
+  assert.equal(store.preferenceOffer('medium', 3.5), null, 'Disabled store stays quiet');
+  store.setDisabled(false);
+
+  // If already at maximum interval (15), no further reduction needed
+  assert.equal(store.preferenceOffer('medium', 15), null);
+
+  // In Medium or Full with standard interval (3.5), proposes an adjustment
+  const offer = store.preferenceOffer('medium', 3.5);
+  assert.ok(offer, 'offer should be generated');
+  assert.equal(offer.actionable, true);
+  assert.equal(offer.actionLabel, 'Ubah');
+  assert.equal(typeof offer.suggestedInterval, 'number');
+  assert.ok(offer.suggestedInterval > 3.5, 'suggested interval should be larger for rarer greeting preference');
+  assert.match(offer.text, /preferensi/i);
+
+  // Cooldown check: within the cooldown window, returns null
+  assert.equal(store.preferenceOffer('medium', 3.5), null, 'must respect cooldown window');
+
+  // Cooldown expires: offer can be made again
+  clock += PREFERENCE_OFFER_GAP_MS + 10;
+  const offer2 = store.preferenceOffer('full', 3.5);
+  assert.ok(offer2, 'offer returns after cooldown');
+
+  // Dismissing the offer removes it without any settings patch
+  assert.equal(store.dismissOffer(offer2.id), true);
+
+  // Make another offer to test acceptOffer
+  clock += PREFERENCE_OFFER_GAP_MS + 10;
+  const offer3 = store.preferenceOffer('medium', 3.5);
+  assert.ok(offer3);
+
+  // Accepting the offer returns settingsPatch with suggested interval and confirmation text
+  const accepted = store.acceptOffer(offer3.id);
+  assert.equal(accepted.ok, true);
+  assert.deepEqual(accepted.settingsPatch, { chatterIntervalMin: offer3.suggestedInterval });
+  assert.match(accepted.text, /interval sapaan/i);
+
+  // Stale/expired offer cannot be accepted
+  clock += PREFERENCE_OFFER_GAP_MS + 10;
+  const staleOffer = store.preferenceOffer('medium', 3.5);
+  assert.ok(staleOffer);
+  clock += OFFER_TTL_MS + 10;
+  assert.equal(store.acceptOffer(staleOffer.id).ok, false, 'expired offer rejected');
+});
+
+test('/memory builtin command lists, disables/enables, and safely deletes with valid numbers only', async () => {
+  const dir = tempDir();
+  const store = storeIn(dir, 1000);
+  const builtin = createMemoryBuiltin(store);
+
+  // 1. Empty list
+  const emptyRes = await builtin.run('');
+  assert.equal(emptyRes.ok, true);
+  assert.match(emptyRes.text, /belum ada memori/i);
+
+  // 2. Add memories
+  store.remember({ text: 'proyek aemeath', kind: 'project' });
+  store.remember({ text: 'selesaikan p1 roadmap', kind: 'task' });
+
+  // 3. List memories
+  const listRes = await builtin.run('');
+  assert.equal(listRes.ok, true);
+  assert.match(listRes.text, /Daftar memori \(2\)/);
+  assert.match(listRes.text, /1\./);
+  assert.match(listRes.text, /2\./);
+
+  // 4. Disable and enable
+  const disableRes = await builtin.run('nonaktif');
+  assert.equal(disableRes.ok, true);
+  assert.equal(store.disabled, true);
+  const disabledListRes = await builtin.run('');
+  assert.match(disabledListRes.text, /nonaktif/i);
+
+  const enableRes = await builtin.run('aktif');
+  assert.equal(enableRes.ok, true);
+  assert.equal(store.disabled, false);
+
+  // 5. Deleting with invalid numbers does NOT delete anything
+  const noNum = await builtin.run('hapus');
+  assert.equal(noNum.ok, false);
+  assert.equal(store.list().length, 2);
+
+  const invalidNum = await builtin.run('hapus abc');
+  assert.equal(invalidNum.ok, false);
+  assert.equal(store.list().length, 2);
+
+  const outOfRange = await builtin.run('hapus 99');
+  assert.equal(outOfRange.ok, false);
+  assert.equal(store.list().length, 2);
+
+  // 6. Deleting with valid number (1) deletes target memory
+  const delRes = await builtin.run('hapus 1');
+  assert.equal(delRes.ok, true);
+  assert.equal(store.list().length, 1);
+  assert.match(delRes.text, /sudah kuhapus/i);
+});
+

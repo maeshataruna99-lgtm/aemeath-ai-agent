@@ -34,6 +34,18 @@ const DEFAULTS = {
   proactiveMaxPerHour: 6,
   proactiveCooldownMin: 10,
   doomscrollLimitMin: 20,
+  dailyChronicleEnabled: false,
+  quietHoursEnabled: false,
+  quietHoursStart: '23:00',
+  quietHoursEnd: '07:00',
+  notificationPriorities: {
+    decision: 1,
+    failure: 2,
+    direct: 3,
+    productivity: 4,
+    activity: 5,
+    chatter: 6,
+  },
   x: null,
   y: null,
 };
@@ -91,6 +103,8 @@ function keepFlags(data) {
     'transparentMode',
     'fullConsent',
     'proactivePaused',
+    'dailyChronicleEnabled',
+    'quietHoursEnabled',
   ]) {
     if (typeof data[key] !== 'boolean') data[key] = DEFAULTS[key];
   }
@@ -119,6 +133,31 @@ function clampWhole(value, fallback, min, max) {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+const NOTIFICATION_CATEGORIES = ['decision', 'failure', 'direct', 'productivity', 'activity', 'chatter'];
+
+function keepPriorities(data) {
+  const current = Object.assign({}, DEFAULTS.notificationPriorities);
+  if (data.notificationPriorities && typeof data.notificationPriorities === 'object') {
+    for (const cat of NOTIFICATION_CATEGORIES) {
+      const val = data.notificationPriorities[cat];
+      if (typeof val === 'number' && Number.isFinite(val) && val >= 1 && val <= 6) {
+        current[cat] = Math.round(val);
+      }
+    }
+  }
+  data.notificationPriorities = current;
+}
+
+function keepQuietHours(data) {
+  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (typeof data.quietHoursStart !== 'string' || !timeRegex.test(data.quietHoursStart)) {
+    data.quietHoursStart = DEFAULTS.quietHoursStart;
+  }
+  if (typeof data.quietHoursEnd !== 'string' || !timeRegex.test(data.quietHoursEnd)) {
+    data.quietHoursEnd = DEFAULTS.quietHoursEnd;
+  }
+}
+
 // The behavior director's limits: how often she may interrupt, and how long a
 // category stays quiet after it spoke.
 function keepProactive(data) {
@@ -134,6 +173,8 @@ function keepProactive(data) {
     MIN_PROACTIVE_COOLDOWN,
     MAX_PROACTIVE_COOLDOWN,
   );
+  keepPriorities(data);
+  keepQuietHours(data);
 }
 
 // The app was renamed Aemeth -> Aemeath, which moved its userData directory.
@@ -221,4 +262,5 @@ module.exports = {
   MAX_PROACTIVE_COOLDOWN,
   INTERACTIVE_MODES,
   CHAT_SHORTCUTS,
+  NOTIFICATION_CATEGORIES,
 };
