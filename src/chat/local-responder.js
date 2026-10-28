@@ -5,6 +5,8 @@
 // points Rover to the internet or to the API key setting.
 
 const { normalize, keywords } = require('./text');
+const { detectJourneyWell, getJourneyWellReply } = require('./journey-well');
+const { resolveTravelIntent, getTravelDialogue } = require('./travel-intent');
 
 const MIN_SCORE = 2;
 const SECOND_RATIO = 0.6;
@@ -93,6 +95,34 @@ function createLocalResponder(options) {
 
   // reason: 'no-key' | 'offline'. Returns { text, sources, matched }.
   function respond(text, reason) {
+    const jw = detectJourneyWell(text);
+    if (jw.isDirectFarewell) {
+      return {
+        text: getJourneyWellReply({ text, rng: rng }),
+        sources: [],
+        matched: true,
+        anim: jw.animation || 'waving',
+        animMs: jw.animMs || 3000,
+        event: 'journey-well-farewell',
+        emotion: jw.emotion,
+      };
+    }
+
+    const travel = resolveTravelIntent(text);
+    if (travel.intent !== 'none' && travel.confidence >= 0.7) {
+      const includeChecklist = travel.intent === 'adventure' || travel.intent === 'travel-risk';
+      return {
+        text: getTravelDialogue(travel, { rng: rng, includeChecklist: includeChecklist }),
+        sources: [],
+        matched: true,
+        anim: travel.animation || 'waving',
+        animMs: 2500,
+        event: 'travel-farewell',
+        emotion: travel.emotion,
+        travelIntent: travel.intent,
+      };
+    }
+
     const message = normalize(text);
     for (const talk of SMALL_TALK) {
       if (talk.test.test(message)) return { text: pick(talk.replies), sources: [], matched: false };

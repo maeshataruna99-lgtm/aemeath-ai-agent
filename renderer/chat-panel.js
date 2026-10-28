@@ -429,6 +429,7 @@
             pending.remove();
             add('bot', result.text, result.sources, memoryNote(result));
           }
+          if (options.onReply) options.onReply(result);
         } else {
           pending.remove();
           add('err', result.error || 'Terjadi kesalahan.');

@@ -142,5 +142,14 @@
     "status": "verified",
     "kind": "canon",
     "checkedAt": "2026-10-27"
+  },
+  {
+    "id": "aemeath-journey-well-lore",
+    "topic": "Journey Well",
+    "source": "wiki-the-star-that-voyages-far",
+    "text": "Dalam The Star That Voyages Far, 'Journey well' adalah salam perpisahan Aemeath agar Rover bangga padanya dan selamat di perjalanan.",
+    "status": "verified",
+    "kind": "canon",
+    "checkedAt": "2026-10-28"
   }
 ]

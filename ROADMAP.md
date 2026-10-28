@@ -16,10 +16,11 @@ Terakhir diperbarui: 28 Oktober 2026, di atas commit `8e84ac9`.
 | P1 | Companion Memory | **Selesai penuh** — `src/memory/memory-store.js` |
 | P2 | Focus Companion 2.0 | **Selesai penuh** — `src/productivity/productivity-hub.js` |
 | P3 | Perapian lore & pengalaman visual | **Selesai penuh** — `src/feature-guide/` & persona pass |
-| P4 | Tema & personalisasi tampilan | **Baru ditambahkan (P4.1 - P4.6)** — rujukan `docs/design/theme-system-spec.md` |
+| P4 | Tema & personalisasi tampilan | **Selesai penuh** — `src/theme/` |
+| P5 | Journey Well Protocol & Travel-Aware Context | **Selesai penuh** — `src/chat/journey-well.js`, `src/chat/travel-intent.js`, `src/commands/smart-shutdown.js` |
 
-Bukti: `npm test` → 279 lulus, 0 gagal. Verifikasi visual `npx electron . --selfie` → tangkapan di
-`.verify/` (termasuk `settings-memory.png` dan `memory-offer.png`).
+Bukti: `npm test` → 363 lulus, 0 gagal. `node scripts/verify.js` → 61 berkas valid. Verifikasi visual `npx electron . --selfie` → Exit code 0, tangkapan di
+`.verify/` (termasuk `settings-memory.png`, `settings-appearance.png`, `chat-panel.png`, dll.).
 
 Yang **sudah** ada dan tidak perlu dibuat ulang:
 
@@ -193,6 +194,24 @@ Ukuran: S (kecil), M (sedang), L (besar). Rujukan desain: `docs/design/theme-sys
 - [x] **4.6 Impor/ekspor dan menu tray (S)**
   Ekspor tema ke berkas JSON dan impor kembali (melewati validasi skema ketat); submenu "Tema" di tray untuk berganti preset cepat.
   - Selesai bila: berkas impor yang berisi nilai di luar rentang atau kunci asing ditolak atau dibersihkan, bukan diterapkan. Submenu tray terintegrasi di `menuTemplate()` dan teruji. Seluruh 334 test repo lulus.
+
+---
+
+## P5 — Journey Well Protocol & Travel-Aware Context
+
+Rujukan: `docs/JOURNEY_WELL_ROADMAP.md` dan `docs/JOURNEY_WELL_IMPLEMENTATION_PLAN.md`.
+
+- [x] **5.1 Protokol "Journey well"**
+  Deteksi deterministik frasa *"Journey well, Aemeath/Rover"* dan padanan Bahasa Indonesianya sebelum memanggil model/jaringan. Memisahkan obrolan yang membahas arti frasa (lore) dari ucapan perpisahan langsung. Terhubung ke animasi atlas `waving` dan dialog perpisahan yang konsisten dengan canon Startorch Academy. Diuji di `tests/journey-well.test.js`.
+- [x] **5.2 Resolver Konteks Perjalanan & Petualangan**
+  Klasifikasi intent perjalanan (`travel-plan`, `adventure`, `departure`, `return`, `travel-risk`). Resolusi konteks pesan singkat (mis. *"besok jadi berangkat"*) dari riwayat obrolan terkini. Menyediakan tawaran checklist opsional untuk petualangan/risiko tinggi tanpa mengarang bahaya palsu atau rasa bersalah. Diuji di `tests/travel-intent.test.js`.
+- [x] **5.3 Smart Shutdown & Keamanan Perintah**
+  State machine shutdown yang aman (`idle` -> `confirming` -> `countdown` -> `executed` / `cancelled`) dengan hitung mundur minimal 60 detik yang bisa dibatalkan seketika (`/batal`). Perlindungan absolut: AI tidak pernah bisa mengeksekusi perintah shell/OS, perintah `/matikan` hanya ada sebagai template opsional di pengaturan, dan eksekusi nyata dicegah/di-mock secara aman. Diuji di `tests/smart-shutdown.test.js`.
+- [x] **5.4 Paritas Offline & Indeks Konteks**
+  Deteksi intent lokal berjalan sebelum dependensi jaringan/provider, paritas offline di `local-responder.js`, penanganan timeout provider tanpa duplikasi entri riwayat, dan verifikasi bahwa entri canon bersumber valid. Diuji di `tests/chat-offline.test.js` dan `tests/lorebook-verification.test.js`.
+- [x] **5.5 Regresi, UX, dan Dokumentasi**
+  Dokumentasi diperbarui di `README.md` dan `ROADMAP.md`. Seluruh 363 unit test lulus, 61 berkas JS tervalidasi via `node scripts/verify.js`, dan visual verification `npx electron . --selfie` sukses dengan exit code 0.
+
 
 ---
 

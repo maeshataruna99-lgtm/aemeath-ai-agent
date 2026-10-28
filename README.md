@@ -116,6 +116,7 @@ tidak dikenal dianggap browser biasa). Mode ini tidak membaca isi halaman, alama
   disimpan, dan `/change-mode-search off` (atau ketik perintahnya lagi) mengembalikan mode wiki.
 - **Mode offline.** Tanpa API key atau saat internet putus, Aemeath tetap menjawab dari
   lorebook. Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
+- **Protokol "Journey well" & Konteks Perjalanan.** Aemeath mengenali frasa khas *"Journey well, Aemeath"* / *"Journey well, Rover"* (serta padanan Bahasa Indonesianya *"Perjalanan yang baik"*) secara deterministik di awal obrolan, baik online maupun offline. Saat terpicu, Aemeath membalas dengan rasa peduli yang hangat, dialog bernada perpisahan yang konsisten dengan canon Startorch Academy, dan animasi lambaian tangan (`waving`). Jika pengguna mendiskusikan arti frasanya (mis. *"Apa arti journey well?"*), Aemeath menjelaskan maknanya sebagai ucapan selamat jalan penuh harapan tanpa memicu perpisahan. Selain itu, Aemeath cerdas memahami konteks perjalanan: membedakan jalan santai biasa, petualangan/ekspedisi (dengan tawaran checklist perlengkapan opsional), keberangkatan, dan kepulangan selamat tanpa mengarang bahaya palsu atau rasa bersalah.
 - **Penyedia chat bisa ditambah.** Cukup satu berkas di `src/chat/providers/`.
 
 ### Perintah kustom dan produktivitas
@@ -146,9 +147,13 @@ Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sa
 **Perintah Shell (PowerShell di Windows / Bash di Linux Mint)** diatur di Pengaturan,
 tab *Perintah*, pilih jenis "Jalankan perintah PowerShell" (atau "Jalankan perintah Shell (Bash)" saat berjalan di Linux Mint) atau mulai dari contoh siap pakai yang menyesuaikan OS:
 matikan atau restart dengan hitung mundur 60 detik, `/batal` untuk membatalkannya, kunci layar (`LockWorkStation` di Windows atau `cinnamon-screensaver-command` / `xdg-screensaver` di Linux Mint), lima proses terberat, dan cek pembaruan paket APT di Linux Mint. Jalur tujuan juga mendukung variabel lingkungan Windows (`%USERPROFILE%`) maupun Linux (`~/...`, `$HOME/...`). Perintahnya satu baris, berjalan sebagai kamu (bukan admin/root), dihentikan setelah
-30 detik, dan keluarannya tampil di kotak chat. Aemeath selalu bertanya "ya" dulu (batas 30 detik) untuk
-perintah yang bisa mematikan, menghapus, memformat, atau mengunduh lalu menjalankan sesuatu. Pertanyaan
-itu tidak bisa dimatikan untuk perintah berisiko, dan untuk perintah lain tersedia kotak "Tanya dulu".
+30 detik, dan keluarannya tampil di kotak chat.
+
+**Prinsip Keamanan Perintah & Shutdown Opsional**:
+- **Tidak ada eksekusi otomatis oleh AI**: AI chatbot, hasil pencarian, memori, atau deteksi konteks perjalanan **TIDAK PERNAH** dapat mengeksekusi perintah shell atau perintah shutdown sistem.
+- **Murni Opsional**: Perintah seperti `/matikan` hanya ada sebagai template opsional di pengaturan perintah kustom jika pengguna memilih untuk menyimpannya.
+- **Konfirmasi Wajib & Animasi Perpisahan**: Aemeath selalu bertanya "ya" dulu (batas 30 detik) untuk perintah berisiko (mematikan, menghapus, memformat). Saat pengguna mengonfirmasikan `/matikan`, Aemeath menampilkan animasi lambaian tangan (`waving`) dan salam perpisahan *"Journey well, Rover..."* di atas desktop pet.
+- **Hitung Mundur yang Bisa Dibatalkan**: Perintah shutdown selalu menggunakan hitung mundur minimal 60 detik (bukan instan) dan dapat dibatalkan seketika dengan mengetik `/batal` (`shutdown /a` di Windows atau `shutdown -c` di Linux).
 
 ### Memori companion
 

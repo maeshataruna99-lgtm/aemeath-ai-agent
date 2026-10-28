@@ -23,6 +23,7 @@ function createCommandHandler(options) {
   const getCommands = options.getCommands;
   const run = options.run;
   const builtins = options.builtins || {};
+  const smartShutdown = options.smartShutdown || null;
   const now = options.now || Date.now;
 
   let pending = null; // { name, until }: a command waiting for Rover to say yes
@@ -50,6 +51,19 @@ function createCommandHandler(options) {
   }
 
   async function execute(command) {
+    const isShutdown =
+      command.name === 'matikan' ||
+      command.name === 'shutdown' ||
+      /\b(shutdown|poweroff|stop-computer)\b/i.test(command.script || '');
+
+    if (isShutdown && options.onFarewell) {
+      options.onFarewell({
+        text: 'Journey well, Rover... Sampai jumpa lagi ya!',
+        anim: 'waving',
+        animMs: 3500,
+      });
+    }
+
     const label = labelOf(command);
     const result = await run(command);
     const base = { isCommand: true, output: trimOutput(result.output) };
@@ -100,6 +114,12 @@ function createCommandHandler(options) {
   // and awaitConfirm: true when it is waiting for a yes).
   async function handle(rawText) {
     const text = String(rawText == null ? '' : rawText).trim();
+
+    if (smartShutdown && smartShutdown.isConfirming()) {
+      const answered = smartShutdown.answerConfirm(text);
+      if (answered) return answered;
+    }
+
     if (pending) {
       const answered = await answerPending(text);
       if (answered) return answered;
@@ -110,12 +130,24 @@ function createCommandHandler(options) {
 
     const name = match[1].toLowerCase();
     const arg = (match[2] || '').trim();
+
+    // Cancellation shortcut: /batal or /cancel clears pending custom commands
+    if (name === 'batal' || name === 'cancel') {
+      if (pending) {
+        const cancelledName = pending.name;
+        pending = null;
+        if (smartShutdown) smartShutdown.cancel();
+        return { isCommand: true, ok: true, text: 'Oke, /' + cancelledName + ' dibatalkan.' };
+      }
+    }
+
     const commands = getCommands();
     if (Object.prototype.hasOwnProperty.call(builtins, name)) {
       const result = await builtins[name].run(arg, text);
       const out = { isCommand: true, ok: result.ok, text: result.text, mode: result.mode, cwd: result.cwd };
       if (result.output) out.output = trimOutput(result.output);
       if (result.sources) out.sources = result.sources;
+      if (result.awaitConfirm) out.awaitConfirm = result.awaitConfirm;
       return out;
     }
     if (name === '' || RESERVED.has(name)) {

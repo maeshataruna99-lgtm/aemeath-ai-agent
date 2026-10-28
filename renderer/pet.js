@@ -118,6 +118,11 @@
       }),
       bounds: () => workArea,
       onCommand: () => setTransient('jumping', 1200),
+      onReply: (result) => {
+        if (result && result.anim) {
+          setTransient(result.anim, result.animMs || 2500);
+        }
+      },
     });
 
     sprite = new Image();

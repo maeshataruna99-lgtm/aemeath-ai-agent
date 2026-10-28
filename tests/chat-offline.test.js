@@ -155,3 +155,41 @@ test('a working key keeps using the model, not the lorebook', async () => {
   assert.equal(answer.text, 'jawaban dari model');
   assert.equal(sent.length, 1);
 });
+
+test('Journey Well signature phrase works offline without API key or network', async () => {
+  const { chat, sent } = service({ key: null, fallback: true });
+  const answer = await chat.send('Journey well, Aemeath.');
+  assert.equal(answer.mode, 'local');
+  assert.match(answer.text, /Journey well|Perjalanan yang baik/i);
+  assert.equal(answer.anim, 'waving');
+  assert.equal(answer.event, 'journey-well-farewell');
+  assert.equal(sent.length, 0);
+});
+
+test('Travel departure intent works offline without API key', async () => {
+  const { chat, sent } = service({ key: null, fallback: true });
+  const answer = await chat.send('Aku berangkat dulu ya');
+  assert.equal(answer.mode, 'local');
+  assert.match(answer.text, /hati-hati|selamat sampai tujuan|semoga harimu menyenangkan|jaga diri/i);
+  assert.equal(answer.anim, 'waving');
+  assert.equal(answer.event, 'travel-farewell');
+  assert.equal(sent.length, 0);
+});
+
+test('Provider timeout falls back to local responder without duplicate history entries', async () => {
+  let callCount = 0;
+  const { chat } = service({
+    send: async () => {
+      callCount += 1;
+      throw new ChatError('timeout', 'provider timed out');
+    },
+  });
+  const beforeLen = chat.historyLength;
+  const answer = await chat.send('Apa itu Exostrider?');
+  assert.equal(answer.mode, 'local');
+  assert.match(answer.text, /Exostrider/);
+  // History should not have dangling or duplicate entries from timed-out provider call
+  assert.equal(chat.historyLength, beforeLen);
+  assert.equal(callCount, 1);
+});
+

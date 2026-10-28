@@ -346,10 +346,21 @@ function main() {
       },
     },
   };
+
   const commandHandler = createCommandHandler({
     getCommands: () => (commandStore ? commandStore.list() : []),
     run: commandRunner.run,
     builtins: builtins,
+    onFarewell: (farewell) => {
+      if (win && win.webContents) {
+        win.webContents.send('session:event', {
+          kind: 'journey-well-farewell',
+          text: farewell.text,
+          anim: farewell.anim,
+          animMs: farewell.animMs,
+        });
+      }
+    },
   });
 
   const fromWindow = (event, target) => Boolean(target) && event.sender === target.webContents;
@@ -614,6 +625,10 @@ function main() {
           mode: reply.mode,
           sources: reply.sources,
           searchStatus: reply.searchStatus,
+          anim: reply.anim,
+          animMs: reply.animMs,
+          event: reply.event,
+          emotion: reply.emotion,
         };
       } catch (error) {
         win?.webContents?.send('chat:state', { thinking: false, replied: false });

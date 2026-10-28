@@ -8,6 +8,8 @@ const { ChatError, redact, containsSecret } = require('./chat-error');
 const { buildSystemPrompt } = require('./persona');
 const { isUnsafe, deflection } = require('./safety');
 const { shouldSearch, isRealtimeQuery, formatSearchBlock } = require('./web-search');
+const { detectJourneyWell, getJourneyWellReply } = require('./journey-well');
+const { resolveTravelIntent, getTravelDialogue } = require('./travel-intent');
 
 const MAX_INPUT = 600;
 const MAX_HISTORY = 20; // user + assistant messages kept for context
@@ -56,7 +58,13 @@ function createChatService(options) {
         memoryUsed: markUsed({ entries: [top] }),
       };
     }
-    return { text: answer.text, mode: 'local', sources: answer.sources || [] };
+    const res = { text: answer.text, mode: 'local', sources: answer.sources || [] };
+    if (answer.anim) res.anim = answer.anim;
+    if (answer.animMs) res.animMs = answer.animMs;
+    if (answer.event) res.event = answer.event;
+    if (answer.emotion) res.emotion = answer.emotion;
+    if (answer.travelIntent) res.travelIntent = answer.travelIntent;
+    return res;
   }
 
   // A broken memory store must never break the chat, so every call is guarded.
@@ -103,6 +111,43 @@ function createChatService(options) {
     // Clearly inappropriate input never leaves the machine and is not remembered.
     turns += 1;
     if (isUnsafe(text)) return { text: deflection(turns), mode: 'local', sources: [], filtered: true };
+
+    // Deterministic local triggers (e.g. Journey Well signature phrase) before model/network call
+    let travel = null;
+    if (!explicitSearch) {
+      const jw = detectJourneyWell(text);
+      if (jw.isDirectFarewell) {
+        const replyText = getJourneyWellReply({ text: text, rng: options.rng });
+        history.push({ role: 'user', content: text }, { role: 'assistant', content: replyText });
+        if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
+        return {
+          text: replyText,
+          mode: 'local',
+          sources: [],
+          anim: jw.animation || 'waving',
+          animMs: jw.animMs || 3000,
+          event: 'journey-well-farewell',
+          emotion: jw.emotion,
+        };
+      }
+
+      travel = resolveTravelIntent(text, history);
+      if (travel && travel.intent === 'departure') {
+        const replyText = getTravelDialogue(travel, { rng: options.rng });
+        history.push({ role: 'user', content: text }, { role: 'assistant', content: replyText });
+        if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
+        return {
+          text: replyText,
+          mode: 'local',
+          sources: [],
+          anim: travel.animation || 'waving',
+          animMs: 2500,
+          event: 'travel-farewell',
+          emotion: travel.emotion,
+          travelIntent: travel.intent,
+        };
+      }
+    }
 
     const features = getFeatures();
     const canFallBack = Boolean(features.offlineFallback && localResponder);
@@ -175,6 +220,15 @@ function createChatService(options) {
           searchStatus +
           '. Pencarian web tidak menemukan sumber valid. Jangan menebak atau mengarang fakta, tanggal, atau angka terbaru dari ingatanmu; katakan terus terang kepada Rover bahwa pencarian web belum menemukan sumber yang terverifikasi.]';
       }
+      if (travel && travel.intent !== 'none' && travel.confidence >= 0.7) {
+        content =
+          content +
+          '\n\n[Konteks perjalanan: intent=' +
+          travel.intent +
+          ', subIntent=' +
+          travel.subIntent +
+          '. Tanggapi dengan kepedulian khas Aemeath tanpa mengada-ada bahaya palsu atau guilt-tripping.]';
+      }
       const messages = [
         { role: 'system', content: buildSystemPrompt(getKnowledge(), { companion, memory: picked.block }) },
       ]
@@ -193,6 +247,11 @@ function createChatService(options) {
       history.push({ role: 'user', content: safeText }, { role: 'assistant', content: answer });
       if (history.length > maxHistory) history = history.slice(history.length - maxHistory);
       const result = { text: answer, mode: 'ai', sources: found.map((r) => r.source) };
+      if (travel && travel.intent !== 'none' && travel.animation) {
+        result.anim = travel.animation;
+        result.event = 'travel-response';
+        result.travelIntent = travel.intent;
+      }
       const memoryUsed = markUsed(picked);
       if (memoryUsed > 0) result.memoryUsed = memoryUsed;
       if (searchStatus) result.searchStatus = searchStatus;
