@@ -43,6 +43,8 @@ const { createProductivityHub } = require('./src/productivity/productivity-hub')
 const { createWorkSessionManager } = require('./src/productivity/work-session');
 const { createMemoryStore } = require('./src/memory/memory-store');
 const { detectPlatform, applyLinuxStartup, getLinuxStartupStatus } = require('./src/platform');
+const { getGuideEntries } = require('./src/feature-guide/guide-data');
+const { createSearchIndex } = require('./src/feature-guide/search-index');
 const {
   createSettingsStore,
   migrateLegacySettings,
@@ -67,6 +69,8 @@ function main() {
 
   let win = null;
   let settingsWin = null;
+  let featureWin = null;
+  const guideSearchIndex = createSearchIndex(getGuideEntries());
   let keyStore = null;
   let commandStore = null;
   let productivity = null;
@@ -323,6 +327,13 @@ function main() {
         return res;
       },
     },
+    feature: {
+      description: 'Buka Aemeath Guidebook (buku panduan fitur)',
+      run: async () => {
+        openFeatureWindow();
+        return { ok: true, text: 'Membuka Aemeath Guidebook~' };
+      },
+    },
   };
   const commandHandler = createCommandHandler({
     getCommands: () => (commandStore ? commandStore.list() : []),
@@ -441,6 +452,8 @@ function main() {
       Object.assign(settings, settingsStore.save(patch));
       applyFeatureFlags();
       win?.webContents?.send('settings:updated', settings);
+      settingsWin?.webContents?.send('settings:updated', settings);
+      featureWin?.webContents?.send('settings:updated', settings);
       updateTray();
     });
 
@@ -487,9 +500,16 @@ function main() {
       }
       if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
       if (patch && typeof patch.chatShortcut === 'string') next.chatShortcut = patch.chatShortcut;
+      if (patch && (patch.theme === 'default' || patch.theme === 'glass')) next.theme = patch.theme;
+      if (patch && typeof patch.glassPreset === 'string') next.glassPreset = patch.glassPreset;
+      if (patch && typeof patch.glassHue === 'number') next.glassHue = patch.glassHue;
+      if (patch && typeof patch.glassBlur === 'number') next.glassBlur = patch.glassBlur;
+      if (patch && typeof patch.glassOpacity === 'number') next.glassOpacity = patch.glassOpacity;
       Object.assign(settings, settingsStore.save(next));
       if (settings.transparentMode) win?.setIgnoreMouseEvents(true, { forward: true });
       win?.webContents?.send('settings:updated', settings);
+      settingsWin?.webContents?.send('settings:updated', settings);
+      featureWin?.webContents?.send('settings:updated', settings);
       applyActivityMode();
       applyStartup();
       applyShortcut();
@@ -715,6 +735,24 @@ function main() {
       return memoryStore.dismissOffer(offerId);
     });
 
+    ipcMain.handle('guide:get-entries', (event) =>
+      fromWindow(event, featureWin) ? getGuideEntries() : []
+    );
+    ipcMain.handle('guide:search', (event, query) =>
+      fromWindow(event, featureWin) ? guideSearchIndex.search(query) : []
+    );
+    ipcMain.handle('guide:get-atlas', (event) =>
+      fromWindow(event, featureWin) ? atlasJson : null
+    );
+    ipcMain.handle('guide:get-settings', (event) =>
+      fromWindow(event, featureWin) ? settings : null
+    );
+    ipcMain.on('guide:close', (event) => {
+      if (fromWindow(event, featureWin)) {
+        featureWin?.close();
+      }
+    });
+
     ipcMain.on('app:quit', () => app.quit());
     ipcMain.on('pet:contextmenu', () => {
       if (tray) tray.popUpContextMenu(Menu.buildFromTemplate(menuTemplate()));
@@ -775,6 +813,36 @@ function main() {
       settingsWin = null;
     });
     settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+  }
+
+  function openFeatureWindow() {
+    if (featureWin) {
+      featureWin.show();
+      featureWin.focus();
+      return;
+    }
+    featureWin = new BrowserWindow({
+      width: 880,
+      height: 640,
+      minWidth: 720,
+      minHeight: 520,
+      resizable: true,
+      minimizable: true,
+      maximizable: true,
+      autoHideMenuBar: true,
+      title: 'Aemeath Guidebook',
+      icon: ICON_PATH,
+      webPreferences: {
+        preload: path.join(__dirname, 'feature-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    featureWin.setAlwaysOnTop(true, 'screen-saver');
+    featureWin.on('closed', () => {
+      featureWin = null;
+    });
+    featureWin.loadFile(path.join(__dirname, 'renderer', 'feature-window.html'));
   }
 
   // Starting with Windows. In development the entry must name the app folder too, or
@@ -1019,6 +1087,7 @@ function main() {
         click: () => toggleFeature('proactivePaused'),
       },
       { label: 'Pengaturan...', click: () => openSettingsWindow() },
+      { label: 'Buku Panduan (/feature)...', click: () => openFeatureWindow() },
       { label: 'Atur ulang posisi', click: () => win?.webContents?.send('pet:reset') },
       { type: 'separator' },
       { label: 'Keluar', click: () => app.quit() },

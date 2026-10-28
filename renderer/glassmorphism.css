@@ -1,0 +1,179 @@
+/* Aemeath Glassmorphism Theme Engine */
+
+:root {
+  --theme-hue: 280;
+  --theme-sat: 85%;
+  --glass-blur: 20px;
+  --glass-opacity: 0.18;
+  --glass-card-opacity: 0.25;
+  --glass-border-opacity: 0.28;
+}
+
+/* Body Background when Glass Theme is active */
+body.theme-glass {
+  background: radial-gradient(circle at 15% 20%, hsla(var(--theme-hue), var(--theme-sat), 45%, 0.95), transparent 45%),
+              radial-gradient(circle at 85% 15%, hsla(calc(var(--theme-hue) + 40), 90%, 55%, 0.9), transparent 40%),
+              radial-gradient(circle at 50% 85%, hsla(calc(var(--theme-hue) - 30), 80%, 40%, 0.85), transparent 50%),
+              #0c071e;
+  transition: background 0.4s ease;
+}
+
+/* Glass Shell Container */
+.theme-glass .guide-shell {
+  background: hsla(var(--theme-hue), 25%, 12%, var(--glass-opacity));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(255, 255, 255, var(--glass-border-opacity));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45),
+              inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Glass Header */
+.theme-glass .guide-header {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.7));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.7));
+  border-bottom: 1px solid rgba(255, 255, 255, var(--glass-border-opacity));
+}
+
+.theme-glass .header-icon {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.theme-glass .header-badge {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.theme-glass .mode-pill {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Glass Sidebar */
+.theme-glass .guide-sidebar {
+  background: rgba(255, 255, 255, calc(var(--glass-opacity) * 0.75));
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.8));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.8));
+  border-right: 1px solid rgba(255, 255, 255, var(--glass-border-opacity));
+}
+
+.theme-glass .search-input {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+.theme-glass .search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+.theme-glass .search-input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.theme-glass .nav-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+.theme-glass .nav-item:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+.theme-glass .nav-item.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.theme-glass .nav-item.active .nav-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Glass Content Panel */
+.theme-glass .guide-content-wrap {
+  background: transparent;
+}
+
+/* Nested Glass Cards (Multi-layer elevation) */
+.theme-glass .card-section {
+  background: rgba(255, 255, 255, var(--glass-card-opacity));
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.7));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.7));
+  border: 1px solid rgba(255, 255, 255, calc(var(--glass-border-opacity) * 1.15));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+}
+.theme-glass .card-section:hover {
+  background: rgba(255, 255, 255, calc(var(--glass-card-opacity) + 0.06));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.theme-glass .card-title {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.theme-glass .card-title.pink {
+  color: #fbcfe8;
+}
+.theme-glass .card-text {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.theme-glass .syntax-box {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fef08a;
+}
+
+.theme-glass .example-tag {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.theme-glass .privacy-card {
+  background: rgba(6, 78, 59, 0.35);
+  backdrop-filter: blur(10px);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #a7f3d0;
+}
+
+.theme-glass .dialogue-bubble {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.theme-glass .dialogue-bubble::after {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+.theme-glass .dialogue-header {
+  color: #fdf2f8;
+}
+.theme-glass #dialogueText {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.theme-glass .guide-footer {
+  background: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Reduced Motion Fallback */
+@media (prefers-reduced-motion: reduce) {
+  body.theme-glass {
+    transition: none !important;
+  }
+}

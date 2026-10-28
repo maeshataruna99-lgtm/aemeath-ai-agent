@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file: data:; style-src file: 'unsafe-inline'; script-src file:">
+  <title>Aemeath Guidebook</title>
+  <link rel="stylesheet" href="feature-window.css">
+  <link rel="stylesheet" href="glassmorphism.css">
+</head>
+<body>
+  <div class="guide-shell">
+    
+    <!-- Peeking Cubie Sticker (User-provided transparent asset) -->
+    <img src="../assets/cubie.png" alt="Aemeath Cubie" class="cubie-sticker" id="cubieSticker">
+
+    <!-- Window Header -->
+    <header class="guide-header">
+      <div class="header-left">
+        <div class="header-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <div class="header-titles">
+          <h1>
+            Aemeath Guidebook
+            <span class="header-badge">Companion Handbook</span>
+          </h1>
+          <p class="header-sub">Panduan Fitur Resmi &amp; Referensi Perintah /feature</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Ganti Tema (Default / Glassmorphism)" aria-label="Ganti Tema">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+        </button>
+        <span class="mode-pill">Lokal &amp; Offline</span>
+        <button type="button" class="win-btn close" id="winCloseBtn" title="Tutup Guidebook (Esc)" aria-label="Tutup"></button>
+      </div>
+    </header>
+
+    <!-- Main Two-Column Body -->
+    <div class="guide-body">
+      
+      <!-- Left Sidebar: ~30% -->
+      <aside class="guide-sidebar" aria-label="Daftar Fitur">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="guideSearchInput" 
+            class="search-input" 
+            placeholder="Cari fitur, syntax, atau kata kunci..."
+            aria-label="Cari fitur dalam panduan"
+          >
+          <button type="button" id="searchClearBtn" class="search-clear" style="display: none;" title="Hapus pencarian">&times;</button>
+        </div>
+
+        <div class="nav-header">
+          <span>Daftar Modul</span>
+          <span id="navCountBadge">11 Topik</span>
+        </div>
+
+        <nav class="nav-list" id="navCategoryList" role="tablist" aria-label="Daftar Modul Fitur">
+          <!-- Populated by JS -->
+        </nav>
+
+        <div class="sidebar-footer">
+          <span>Ketik <code>/feature</code> kapan saja</span>
+          <span>v0.1.0</span>
+        </div>
+      </aside>
+
+      <!-- Right Content Panel: ~70% -->
+      <main class="guide-content-wrap">
+        
+        <div class="guide-article-scroll" id="guideArticleArea" role="tabpanel" tabindex="0">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Right Companion Stage (Avatar Canvas & Dynamic Dialogue Bubble) -->
+        <div class="companion-stage">
+          <div class="dialogue-bubble" id="companionBubble" aria-live="polite">
+            <div class="dialogue-header">
+              <span>Aemeath</span>
+              <span class="dialogue-pulse"></span>
+            </div>
+            <p id="dialogueText">Rover~! Pilih topik di sebelah kiri, nanti kujelaskan ya!</p>
+          </div>
+
+          <div class="avatar-wrapper" id="avatarWrapper" title="Klik Aemeath untuk sapaan loncat!" tabindex="0" role="button" aria-label="Aemeath companion sprite">
+            <canvas id="avatarCanvas" width="96" height="104"></canvas>
+            <div class="avatar-shadow"></div>
+          </div>
+          <span class="companion-hint">Klik untuk sapa</span>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- Window Footer -->
+    <footer class="guide-footer">
+      <div class="footer-left">
+        <span class="status-dot"></span>
+        <span>Perintah <code>/help</code> dan <code>/bantuan</code> tetap aktif dan tidak berubah.</span>
+      </div>
+      <div class="footer-right">
+        <span>Gunakan tombol <kbd>Tab</kbd> atau <kbd>Enter</kbd> untuk navigasi</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="../src/atlas.js"></script>
+  <script src="theme-manager.js"></script>
+  <script src="feature-window.js"></script>
+</body>
+</html>

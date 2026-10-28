@@ -46,6 +46,11 @@ const DEFAULTS = {
     activity: 5,
     chatter: 6,
   },
+  theme: 'default',
+  glassPreset: 'violet',
+  glassHue: 280,
+  glassBlur: 20,
+  glassOpacity: 0.18,
   x: null,
   y: null,
 };
@@ -70,6 +75,15 @@ const MAX_PROACTIVE_PER_HOUR = 30;
 // Minutes one remark category stays quiet after it spoke (0 turns the cooldown off).
 const MIN_PROACTIVE_COOLDOWN = 0;
 const MAX_PROACTIVE_COOLDOWN = 60;
+// Glassmorphism theme options and limits
+const THEMES = ['default', 'glass'];
+const GLASS_PRESETS = ['blossom', 'violet', 'azure', 'emerald', 'obsidian', 'custom'];
+const MIN_GLASS_HUE = 0;
+const MAX_GLASS_HUE = 360;
+const MIN_GLASS_BLUR = 6;
+const MAX_GLASS_BLUR = 32;
+const MIN_GLASS_OPACITY = 0.1;
+const MAX_GLASS_OPACITY = 0.45;
 
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
@@ -177,6 +191,18 @@ function keepProactive(data) {
   keepQuietHours(data);
 }
 
+function keepTheme(data) {
+  if (!THEMES.includes(data.theme)) data.theme = DEFAULTS.theme;
+  if (!GLASS_PRESETS.includes(data.glassPreset)) data.glassPreset = DEFAULTS.glassPreset;
+  data.glassHue = clampWhole(data.glassHue, DEFAULTS.glassHue, MIN_GLASS_HUE, MAX_GLASS_HUE);
+  data.glassBlur = clampWhole(data.glassBlur, DEFAULTS.glassBlur, MIN_GLASS_BLUR, MAX_GLASS_BLUR);
+  if (typeof data.glassOpacity !== 'number' || !Number.isFinite(data.glassOpacity)) {
+    data.glassOpacity = DEFAULTS.glassOpacity;
+  } else {
+    data.glassOpacity = Math.round(Math.min(MAX_GLASS_OPACITY, Math.max(MIN_GLASS_OPACITY, data.glassOpacity)) * 100) / 100;
+  }
+}
+
 // The app was renamed Aemeth -> Aemeath, which moved its userData directory.
 // Carries the old settings file over once so position and scale survive.
 function migrateLegacySettings(userDataPath, legacyPath) {
@@ -210,6 +236,7 @@ function createSettingsStore(userDataPath) {
     keepFlags(data);
     keepProactive(data);
     keepActivity(data);
+    keepTheme(data);
     return data;
   }
 
@@ -222,6 +249,7 @@ function createSettingsStore(userDataPath) {
     keepFlags(data);
     keepProactive(data);
     keepActivity(data);
+    keepTheme(data);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;
@@ -263,4 +291,12 @@ module.exports = {
   INTERACTIVE_MODES,
   CHAT_SHORTCUTS,
   NOTIFICATION_CATEGORIES,
+  THEMES,
+  GLASS_PRESETS,
+  MIN_GLASS_HUE,
+  MAX_GLASS_HUE,
+  MIN_GLASS_BLUR,
+  MAX_GLASS_BLUR,
+  MIN_GLASS_OPACITY,
+  MAX_GLASS_OPACITY,
 };

@@ -13,6 +13,7 @@ const ROOT_FILES = [
   path.join(__dirname, '..', 'main.js'),
   path.join(__dirname, '..', 'preload.js'),
   path.join(__dirname, '..', 'settings-preload.js'),
+  path.join(__dirname, '..', 'feature-preload.js'),
 ];
 
 function getJsFiles(dir) {

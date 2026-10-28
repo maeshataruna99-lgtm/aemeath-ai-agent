@@ -139,6 +139,7 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 - `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
 - `/search <kata kunci>` — pemicu pencarian web manual eksplisit dengan sumber tautan terverifikasi (menghentikan jawaban jika tidak ada sumber valid yang ditemukan).
+- `/feature` — buka Aemeath Guidebook interaktif (buku panduan fitur dua kolom 30/70 lengkap dengan pencarian lokal dan animasi pendamping). Bekerja 100% offline dan tidak mengirim data.
 
 Semua nama perintah bawaan dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.
 

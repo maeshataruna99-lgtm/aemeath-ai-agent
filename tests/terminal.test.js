@@ -221,8 +221,8 @@ test('problems with a line are explained, not thrown', async () => {
 // ---- built-in /change-mode ----------------------------------------------------
 
 test('change-mode is reserved so a custom command can never shadow it', () => {
-  assert.deepEqual(BUILTIN_NAMES, ['change-mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle']);
-  for (const name of ['change-mode', '/Change-Mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle', 'HELP', 'bantuan']) {
+  assert.deepEqual(BUILTIN_NAMES, ['change-mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle', 'feature']);
+  for (const name of ['change-mode', '/Change-Mode', 'change-mode-search', 'search', 'timer', 'todo', 'note', 'stats', 'review', 'memory', 'focus', 'quest', 'daily', 'chronicle', 'feature', 'HELP', 'bantuan']) {
     const { commands, errors } = normalizeCommands([{ name, target: os.tmpdir() }]);
     assert.equal(commands.length, 0, name);
     assert.match(errors[0].message, /sudah dipakai/, name);

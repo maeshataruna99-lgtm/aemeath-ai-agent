@@ -332,3 +332,32 @@ test('/memory is reserved and routes to the builtin memory handler', async () =>
   assert.equal(memoryCalled, true);
   assert.equal(receivedArg, 'hapus 1');
 });
+
+test('/feature is reserved and routes to the builtin feature guidebook handler', async () => {
+  // 1. A custom command cannot shadow /feature
+  const dup = normalizeCommands([{ name: 'feature', target: FOLDER }]);
+  assert.equal(dup.commands.length, 0);
+  assert.match(dup.errors[0].message, /sudah dipakai/);
+
+  // 2. Command handler dispatches /feature to builtin
+  let featureCalled = false;
+  const h = createCommandHandler({
+    getCommands: () => [],
+    run: async () => ({ ok: true }),
+    builtins: {
+      feature: {
+        description: 'Buka Aemeath Guidebook (buku panduan fitur)',
+        run: async () => {
+          featureCalled = true;
+          return { ok: true, text: 'Membuka Aemeath Guidebook~' };
+        },
+      },
+    },
+  });
+
+  const res = await h.handle('/feature');
+  assert.equal(res.isCommand, true);
+  assert.equal(res.ok, true);
+  assert.equal(featureCalled, true);
+  assert.match(res.text, /Guidebook/);
+});

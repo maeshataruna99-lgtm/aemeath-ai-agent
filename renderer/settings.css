@@ -237,6 +237,27 @@ button:disabled {
   cursor: default;
 }
 
+.preset-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-btn:hover {
+  background: #fdf2f8;
+  border-color: #f472b6;
+}
+.preset-btn.active {
+  background: #fbcfe8;
+  border-color: #db2777;
+  color: #9d174d;
+  font-weight: 600;
+}
+
 code {
   padding: 0 4px;
   background: #fde7f1;

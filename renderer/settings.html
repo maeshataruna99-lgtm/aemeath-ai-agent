@@ -124,6 +124,54 @@
 
       <hr>
 
+      <section class="row" id="theme-section">
+        <h2>Tema antarmuka</h2>
+        <div class="modes" role="radiogroup" aria-label="Pilihan Tema Antarmuka">
+          <label class="mode-option" for="theme-default">
+            <input type="radio" name="ui-theme" id="theme-default" value="default">
+            <span><strong>Default</strong><br>Tema klasik slate navy dengan aksen lembut.</span>
+          </label>
+          <label class="mode-option" for="theme-glass">
+            <input type="radio" name="ui-theme" id="theme-glass" value="glass">
+            <span><strong>Glassmorphism</strong> <em class="soon">Baru</em><br>Kaca frosted transparan dengan pantulan specular &amp; skema warna kustom.</span>
+          </label>
+        </div>
+
+        <div id="glass-controls" class="hidden" style="margin-top: 12px; padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08);">
+          <label class="field" style="margin-bottom:6px;"><strong>Preset Warna Kaca</strong></label>
+          <div class="glass-presets-row" id="glass-presets-container" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+            <button type="button" class="preset-btn" data-preset="violet">🔮 Cyber Violet</button>
+            <button type="button" class="preset-btn" data-preset="blossom">🌸 Blossom</button>
+            <button type="button" class="preset-btn" data-preset="azure">❄️ Frost Azure</button>
+            <button type="button" class="preset-btn" data-preset="emerald">🌿 Aurora</button>
+            <button type="button" class="preset-btn" data-preset="obsidian">🌑 Obsidian</button>
+            <button type="button" class="preset-btn" data-preset="custom">🎨 Kustom</button>
+          </div>
+
+          <div id="glass-sliders">
+            <div class="head">
+              <label for="glass-hue">Hue Warna Kustom (0° - 360°)</label>
+              <output id="glass-hue-value">280°</output>
+            </div>
+            <input type="range" id="glass-hue" min="0" max="360" step="1">
+
+            <div class="head" style="margin-top: 10px;">
+              <label for="glass-blur">Blur Radius Kaca (Kerapatan Frosted)</label>
+              <output id="glass-blur-value">20px</output>
+            </div>
+            <input type="range" id="glass-blur" min="6" max="32" step="1">
+
+            <div class="head" style="margin-top: 10px;">
+              <label for="glass-opacity">Transparansi Kaca (Opacity)</label>
+              <output id="glass-opacity-value">18%</output>
+            </div>
+            <input type="range" id="glass-opacity" min="10" max="45" step="1">
+          </div>
+        </div>
+      </section>
+
+      <hr>
+
       <section class="row" id="shortcut-section">
         <h2>Pintasan keyboard</h2>
         <label class="field" for="shortcut">Panggil atau tutup kotak chat dari mana saja</label>

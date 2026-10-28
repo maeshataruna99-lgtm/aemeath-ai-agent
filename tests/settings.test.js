@@ -228,3 +228,50 @@ test('quietHoursEnabled defaults to false and start/end validate HH:MM format', 
   assert.equal(reloaded.quietHoursStart, '23:00');
   assert.equal(reloaded.quietHoursEnd, '07:00');
 });
+
+test('theme settings default to default/violet and validate glassmorphism parameters', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aemeath-settings-test-'));
+  const store = createSettingsStore(dir);
+  const initial = store.load();
+
+  assert.equal(initial.theme, 'default');
+  assert.equal(initial.glassPreset, 'violet');
+  assert.equal(initial.glassHue, 280);
+  assert.equal(initial.glassBlur, 20);
+  assert.equal(initial.glassOpacity, 0.18);
+
+  // Valid updates
+  const saved = store.save({
+    theme: 'glass',
+    glassPreset: 'blossom',
+    glassHue: 335,
+    glassBlur: 24,
+    glassOpacity: 0.25,
+  });
+  assert.equal(saved.theme, 'glass');
+  assert.equal(saved.glassPreset, 'blossom');
+  assert.equal(saved.glassHue, 335);
+  assert.equal(saved.glassBlur, 24);
+  assert.equal(saved.glassOpacity, 0.25);
+
+  // Clamping and invalid fallback
+  const clamped = store.save({
+    theme: 'invalid-theme',
+    glassPreset: 'unknown-preset',
+    glassHue: 999, // clamped to 360
+    glassBlur: 100, // clamped to 32
+    glassOpacity: 0.99, // clamped to 0.45
+  });
+  assert.equal(clamped.theme, 'default');
+  assert.equal(clamped.glassPreset, 'violet');
+  assert.equal(clamped.glassHue, 360);
+  assert.equal(clamped.glassBlur, 32);
+  assert.equal(clamped.glassOpacity, 0.45);
+
+  // Survives reload
+  const reloaded = createSettingsStore(dir).load();
+  assert.equal(reloaded.theme, 'default');
+  assert.equal(reloaded.glassHue, 360);
+  assert.equal(reloaded.glassBlur, 32);
+  assert.equal(reloaded.glassOpacity, 0.45);
+});
