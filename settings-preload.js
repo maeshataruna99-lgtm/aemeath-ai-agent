@@ -1,10 +1,15 @@
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
+const { defaultCatalogs, SUPPORTED_LOCALES, DEFAULT_LOCALE } = require('./src/i18n');
 
 contextBridge.exposeInMainWorld('aemeathSettings', {
   get: () => ipcRenderer.invoke('settings-window:get'),
+  getCatalogs: () => defaultCatalogs,
+  supportedLocales: SUPPORTED_LOCALES,
+  defaultLocale: DEFAULT_LOCALE,
   set: (patch) => ipcRenderer.send('settings-window:set', patch),
+  onSettingsUpdated: (fn) => ipcRenderer.on('settings:updated', (_e, s) => fn(s)),
   chatStatus: () => ipcRenderer.invoke('chat:status'),
   setChatConfig: (config) => ipcRenderer.invoke('chat:set-config', config),
   // The key goes one way: renderer to main. There is no call that returns it.

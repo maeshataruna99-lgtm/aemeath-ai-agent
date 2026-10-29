@@ -13,13 +13,19 @@ const SECOND_RATIO = 0.6;
 const MAX_REPLY = 460;
 const TOPIC_WEIGHT = 2.5;
 
-const INTROS = [
+const INTROS_ID = [
   'Dari ingatanku, Rover:',
   'Oh, yang itu aku ingat!',
   'Hmm, kalau soal itu begini:',
 ];
 
-const NO_MATCH = {
+const INTROS_EN = [
+  'From what I remember, Rover:',
+  'Oh, I remember that one!',
+  "Hmm, regarding that, here's what I know:",
+];
+
+const NO_MATCH_ID = {
   'no-key': [
     'Hmm, yang itu belum ada di ingatanku, Rover. Coba cari di internet, atau isi API key chatbot di Pengaturan supaya aku bisa menjawab lebih lengkap!',
     'Wah, aku belum tahu soal itu. Cari dulu di internet ya, atau isi API key di Pengaturan, nanti aku bisa bantu lebih banyak~',
@@ -29,7 +35,17 @@ const NO_MATCH = {
   ],
 };
 
-const SMALL_TALK = [
+const NO_MATCH_EN = {
+  'no-key': [
+    "Hmm, that's not in my recollections yet, Rover. Try searching the web, or add a chatbot API key in Settings so I can answer more thoroughly!",
+    "Whoa, I don't know about that one yet. Look it up online first, or add an API key in Settings, and I'll be able to help with much more~",
+  ],
+  offline: [
+    "The internet is disconnected and that's not in my recollections yet, Rover. Try searching online once connected, or add an API key in Settings.",
+  ],
+};
+
+const SMALL_TALK_ID = [
   { test: /^(halo|hai|hi|hei|hey|hallo|pagi|siang|sore|malam|selamat)\b/, replies: [
     'Hai, Rover! Aku ada di sini. Mau tanya soal dunia Wuthering Waves?',
     'Halo, Rover! Kamu datang tepat waktu, aku lagi bosan melayang-layang, haha.',
@@ -45,10 +61,31 @@ const SMALL_TALK = [
   ] },
 ];
 
+const SMALL_TALK_EN = [
+  { test: /^(hello|hi|hey|hallo|morning|afternoon|evening|good\s+(morning|afternoon|evening))\b/i, replies: [
+    "Hi, Rover! I'm right here. Want to ask about the world of Wuthering Waves?",
+    "Hello Rover! You arrived right on time, I was getting bored floating around, haha.",
+  ] },
+  { test: /\b(thank\s+you|thanks|thx|appreciate\s+it)\b/i, replies: [
+    "You're welcome, Rover! If you need anything at all, just call me.",
+  ] },
+  { test: /\b(how\s+are\s+you|how\s+is\s+it\s+going|what\s+are\s+you\s+doing|doing\s+what)\b/i, replies: [
+    "I'm doing great! In prime condition and full of energy, happy you dropped by!",
+  ] },
+  { test: /\b(who\s+are\s+you|what\s+is\s+your\s+name|introduce\s+yourself)\b/i, replies: [
+    "I'm Aemeath, the digital ghost who was once a Synchronist at Startorch Academy. Only you can see me, Rover!",
+  ] },
+];
+
+const INTROS = INTROS_ID;
+const NO_MATCH = NO_MATCH_ID;
+const SMALL_TALK = SMALL_TALK_ID;
+
 // getEntries() -> [{ id, topic, text, credit: { title, url, license } }]
 function createLocalResponder(options) {
   const getEntries = options.getEntries;
   const rng = options.rng || Math.random;
+  const getLocale = typeof options.getLocale === 'function' ? options.getLocale : () => (options.locale || 'id-ID');
   const pick = (list) => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 
   function index() {
@@ -94,7 +131,13 @@ function createLocalResponder(options) {
   }
 
   // reason: 'no-key' | 'offline'. Returns { text, sources, matched }.
-  function respond(text, reason) {
+  function respond(text, reason, callOptions) {
+    const loc = (callOptions && callOptions.locale) || getLocale();
+    const isEn = loc === 'en-US';
+    const activeIntros = isEn ? INTROS_EN : INTROS_ID;
+    const activeNoMatch = isEn ? NO_MATCH_EN : NO_MATCH_ID;
+    const activeSmallTalk = isEn ? SMALL_TALK_EN : SMALL_TALK_ID;
+
     const jw = detectJourneyWell(text);
     if (jw.isDirectFarewell) {
       return {
@@ -124,13 +167,13 @@ function createLocalResponder(options) {
     }
 
     const message = normalize(text);
-    for (const talk of SMALL_TALK) {
+    for (const talk of activeSmallTalk) {
       if (talk.test.test(message)) return { text: pick(talk.replies), sources: [], matched: false };
     }
 
     const hits = search(text);
     if (hits.length === 0) {
-      const lines = NO_MATCH[reason] || NO_MATCH['no-key'];
+      const lines = activeNoMatch[reason] || activeNoMatch['no-key'];
       return { text: pick(lines), sources: [], matched: false };
     }
 
@@ -140,8 +183,8 @@ function createLocalResponder(options) {
       if (combined <= MAX_REPLY) chosen.push(hits[1]);
     }
     const lead = reason === 'offline'
-      ? 'Internetnya lagi putus, jadi aku jawab dari ingatanku saja ya~'
-      : pick(INTROS);
+      ? (isEn ? "The internet is down right now, so I'll answer from what I remember~" : 'Internetnya lagi putus, jadi aku jawab dari ingatanku saja ya~')
+      : pick(activeIntros);
     const body = chosen.map((hit) => hit.entry.text).join('\n\n');
     const seen = new Set();
     const sources = [];

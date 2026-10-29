@@ -47,6 +47,7 @@ const DEFAULTS = {
     chatter: 6,
   },
   theme: 'default',
+  locale: 'id-ID',
   glassPreset: 'violet',
   glassHue: 280,
   glassBlur: 20,
@@ -84,6 +85,15 @@ const MIN_GLASS_BLUR = 6;
 const MAX_GLASS_BLUR = 32;
 const MIN_GLASS_OPACITY = 0.1;
 const MAX_GLASS_OPACITY = 0.45;
+
+const SUPPORTED_LOCALES = ['id-ID', 'en-US'];
+const DEFAULT_LOCALE = 'id-ID';
+
+function keepLocale(data) {
+  if (typeof data.locale !== 'string' || !SUPPORTED_LOCALES.includes(data.locale)) {
+    data.locale = DEFAULT_LOCALE;
+  }
+}
 
 function clampInterval(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULTS.chatterIntervalMin;
@@ -237,6 +247,7 @@ function createSettingsStore(userDataPath) {
     keepProactive(data);
     keepActivity(data);
     keepTheme(data);
+    keepLocale(data);
     return data;
   }
 
@@ -250,6 +261,7 @@ function createSettingsStore(userDataPath) {
     keepProactive(data);
     keepActivity(data);
     keepTheme(data);
+    keepLocale(data);
     if (typeof data.speed !== 'number' || data.speed <= 0) data.speed = DEFAULTS.speed;
     if (typeof data.musicEnabled !== 'boolean') data.musicEnabled = DEFAULTS.musicEnabled;
     if (typeof data.watcherEnabled !== 'boolean') data.watcherEnabled = DEFAULTS.watcherEnabled;
@@ -292,6 +304,8 @@ module.exports = {
   CHAT_SHORTCUTS,
   NOTIFICATION_CATEGORIES,
   THEMES,
+  SUPPORTED_LOCALES,
+  DEFAULT_LOCALE,
   GLASS_PRESETS,
   MIN_GLASS_HUE,
   MAX_GLASS_HUE,

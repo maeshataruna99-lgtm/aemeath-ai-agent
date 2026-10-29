@@ -94,6 +94,9 @@
     workArea = init.workArea;
     AemeathAtlas.validateAtlas(atlas);
     lorebook = AemeathLorebook.createLorebook(init.lorebook);
+    if (typeof dialogue.setLocale === 'function' && settings.locale) {
+      dialogue.setLocale(settings.locale);
+    }
     director = createDirector();
     applyDirectorSettings();
     applyScale();
@@ -110,6 +113,8 @@
 
     chatPanel = AemeathChatPanel.create({
       api: window.aemeath,
+      locale: settings.locale || 'id-ID',
+      catalogs: typeof window.aemeath?.getCatalogs === 'function' ? window.aemeath.getCatalogs() : null,
       anchor: () => ({
         left: walker.x,
         right: walker.x + petWidth(),
@@ -793,12 +798,17 @@
     window.aemeath.onSettingsUpdated((next) => {
       const scaleChanged = next.scale !== settings.scale;
       const intervalChanged = next.chatterIntervalMin !== settings.chatterIntervalMin;
+      const localeChanged = next.locale && next.locale !== settings.locale;
       settings = Object.assign({}, settings, next);
       if (walker) walker.speed = settings.speed;
       if (scaleChanged) applyScale();
       applyTransparency();
       applyDirectorSettings();
       if (intervalChanged) scheduleChat(performance.now());
+      if (localeChanged) {
+        if (typeof dialogue.setLocale === 'function') dialogue.setLocale(settings.locale);
+        if (chatPanel && typeof chatPanel.setLocale === 'function') chatPanel.setLocale(settings.locale);
+      }
     });
     window.aemeath.onChatState((state) => {
       chatThinking = Boolean(state && state.thinking);

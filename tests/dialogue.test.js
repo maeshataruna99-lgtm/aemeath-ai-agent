@@ -65,3 +65,26 @@ test('chatIntervalRange spreads 60%-140% around the average', () => {
   const fast = chatIntervalRange(1);
   assert.ok(fast.minMs < fast.maxMs && fast.minMs >= 30000);
 });
+
+test('dialogue supports en-US and setLocale dynamically', () => {
+  const { LINES_BY_LOCALE } = require('../src/dialogue');
+  assert.ok(LINES_BY_LOCALE['id-ID'], 'id-ID lines exist');
+  assert.ok(LINES_BY_LOCALE['en-US'], 'en-US lines exist');
+
+  for (const [cat, pool] of Object.entries(LINES_BY_LOCALE['en-US'])) {
+    assert.ok(pool.length >= 2, cat + ' in en-US needs at least 2 lines');
+    for (const line of pool) {
+      assert.ok(line.length > 0 && line.length <= 200, cat + ': ' + line);
+    }
+  }
+
+  const dialogue = createDialogue({ rng: seededRng(7), locale: 'en-US' });
+  assert.equal(dialogue.getLocale(), 'en-US');
+  const enLine = dialogue.next({ decisionPending: true });
+  assert.ok(LINES_BY_LOCALE['en-US'].decision.includes(enLine));
+
+  dialogue.setLocale('id-ID');
+  assert.equal(dialogue.getLocale(), 'id-ID');
+  const idLine = dialogue.next({ decisionPending: true });
+  assert.ok(LINES_BY_LOCALE['id-ID'].decision.includes(idLine));
+});

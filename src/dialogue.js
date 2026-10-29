@@ -6,7 +6,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const LINES = {
+  const LINES_ID = {
     general: [
       'Rover, jangan kaget ya. Ini cuma aku, hantu digitalmu. Boo!',
       'Cuma kamu yang bisa melihatku. Jadi setiap kamu menoleh ke sini, aku senang sekali.',
@@ -48,6 +48,55 @@
     ],
   };
 
+  const LINES_EN = {
+    general: [
+      "Rover, don't be startled. It's just me, your digital ghost. Boo!",
+      'Only you can see me. So every time you look over here, I feel so happy.',
+      'The name Fleet Snowfluff just popped into my head when I registered the domain. Random, but cute right?',
+      "I don't need to eat anymore. But whenever there's viral food, I still get curious, haha.",
+      "You used to tell stories on stormy nights. Now it's my turn to keep you company.",
+      'I want to walk alongside you, Rover. Not just follow behind.',
+      "Exostrider self-diagnosis: all green. I'm completely fine too, don't worry.",
+      "Ghosts can't feel physical pain. But if you're exhausted, I still worry.",
+      'If the title of savior feels heavy, share some of it with me. I will help carry it.',
+      "It's been a while since I saw snow in Frostlands. Sometime, come accompany me there.",
+      "Have you drunk any water today? I can't pour it for you, so I can only remind you.",
+    ],
+    flying: [
+      'Did you see that? I can fly sideways! The perks of being a digital ghost.',
+      'Up, down, diagonal. A screen this big is my very own sky!',
+      'Rover, did you see me floating just now? Please say it looked cool.',
+    ],
+    working: [
+      "Your AI session is working hard. I'm standing watch right here, Rover.",
+      "Shh, the agents are typing. I'll just float quietly.",
+      "Hope all tests pass. I'm holding my breath—even though I don't breathe, haha.",
+    ],
+    decision: [
+      "Rover, your AI session is waiting for your decision! I'm puzzled, so you answer it.",
+      "There's an unanswered question waiting. Don't leave it waiting all alone.",
+    ],
+    music: [
+      "Nice song. I'm humming along, but only you can hear me, haha.",
+      'I used to love performing on the digital stage. Want me to sing a song? Ah, your ears might get tired.',
+    ],
+    morning: [
+      'Good morning, Rover! Where are we flying today?',
+      'Morning! Hope today feels a little lighter for you.',
+    ],
+    lateNight: [
+      "It's getting late, Rover. You used to tell me sleep is important, remember?",
+      "Nights like this remind me of the old storms. Rest up, I'll keep watch here.",
+    ],
+  };
+
+  const LINES_BY_LOCALE = {
+    'id-ID': LINES_ID,
+    'en-US': LINES_EN,
+  };
+
+  const LINES = LINES_ID;
+
   const RECENT_LIMIT = 4;
   // Remarks come at random between 60% and 140% of the configured average.
   const SPREAD_LOW = 0.6;
@@ -60,10 +109,20 @@
 
   function createDialogue(options) {
     const rng = (options && options.rng) || Math.random;
+    let currentLocale = (options && options.locale === 'en-US') ? 'en-US' : 'id-ID';
     const recent = new Map(); // category -> recently used indexes
 
+    function setLocale(loc) {
+      currentLocale = loc === 'en-US' ? 'en-US' : 'id-ID';
+    }
+
+    function getLocale() {
+      return currentLocale;
+    }
+
     function pickFrom(category) {
-      const pool = LINES[category];
+      const activeLines = LINES_BY_LOCALE[currentLocale] || LINES;
+      const pool = activeLines[category] || LINES[category];
       const seen = recent.get(category) || [];
       const fresh = [];
       for (let i = 0; i < pool.length; i++) if (!seen.includes(i)) fresh.push(i);
@@ -91,8 +150,15 @@
 
     return {
       next: (context) => pickFrom(categoryFor(context)),
+      setLocale: setLocale,
+      getLocale: getLocale,
     };
   }
 
-  return { createDialogue: createDialogue, chatIntervalRange: chatIntervalRange, LINES: LINES };
+  return {
+    createDialogue: createDialogue,
+    chatIntervalRange: chatIntervalRange,
+    LINES: LINES,
+    LINES_BY_LOCALE: LINES_BY_LOCALE,
+  };
 });

@@ -48,8 +48,10 @@
   let frameIndex = 0;
   let lastFrameTime = performance.now();
   let jumpTimer = null;
+  let i18n = null;
   let currentSettings = {
     theme: 'default',
+    locale: 'id-ID',
     glassPreset: 'violet',
     glassHue: 280,
     glassBlur: 20,
@@ -67,10 +69,24 @@
       allEntries = [];
     }
 
+    const catalogs = typeof guideApi.getCatalogs === 'function' ? guideApi.getCatalogs() : null;
+    if (window.AemeathI18n) {
+      i18n = window.AemeathI18n.createI18n({
+        locale: currentSettings.locale || 'id-ID',
+        catalogs: catalogs || {},
+      });
+      i18n.applyDom(document);
+    }
+
     if (guideApi.onSettingsUpdated) {
       guideApi.onSettingsUpdated((updated) => {
         if (updated) {
+          const localeChanged = updated.locale && updated.locale !== currentSettings.locale;
           currentSettings = Object.assign({}, currentSettings, updated);
+          if (localeChanged && i18n) {
+            i18n.setLocale(updated.locale);
+            i18n.applyDom(document);
+          }
         }
       });
     }

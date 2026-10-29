@@ -186,6 +186,7 @@ function main() {
     providers,
     getKey: (id) => (keyStore ? keyStore.get(id) : null),
     getConfig: chatConfig,
+    getLocale: () => settings.locale || 'id-ID',
     getKnowledge: () => lorebookData.entries.map((e) => ({ topic: e.topic, text: e.text })),
     getFeatures: () => ({
       webSearch: settings.chatWebSearch === true,
@@ -193,7 +194,7 @@ function main() {
       companion: companionMode.active(),
     }),
     search: isSelfie ? selfieSearch : createWebSearch(),
-    localResponder: createLocalResponder({ getEntries: loreEntries }),
+    localResponder: createLocalResponder({ getEntries: loreEntries, getLocale: () => settings.locale || 'id-ID' }),
     // Companion memory: the store only ever hands over the few entries that match
     // this message, and the chat service reports how many it attached.
     memory: {
@@ -526,6 +527,7 @@ function main() {
       }
       if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
       if (patch && typeof patch.chatShortcut === 'string') next.chatShortcut = patch.chatShortcut;
+      if (patch && (patch.locale === 'id-ID' || patch.locale === 'en-US')) next.locale = patch.locale;
       if (patch && (patch.theme === 'default' || patch.theme === 'glass')) next.theme = patch.theme;
       if (patch && typeof patch.glassPreset === 'string') next.glassPreset = patch.glassPreset;
       if (patch && typeof patch.glassHue === 'number') next.glassHue = patch.glassHue;
@@ -619,7 +621,7 @@ function main() {
       try {
         const reply = await chatService.send(input, streaming ? (chunk) => {
           win?.webContents?.send('chat:chunk', { requestId, delta: chunk });
-        } : undefined);
+        } : undefined, { locale: settings.locale || 'id-ID' });
         win?.webContents?.send('chat:state', { thinking: false, replied: true });
         return {
           ok: true,

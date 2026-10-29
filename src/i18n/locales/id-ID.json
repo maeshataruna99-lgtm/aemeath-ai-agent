@@ -1,0 +1,165 @@
+{
+  "locale": "id-ID",
+  "common": {
+    "ok": "OK",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "delete": "Hapus",
+    "close": "Tutup",
+    "retry": "Coba lagi",
+    "back": "Kembali",
+    "loading": "Memuat...",
+    "error": "Kesalahan",
+    "success": "Berhasil",
+    "warning": "Peringatan"
+  },
+  "settings": {
+    "title": "Pengaturan Aemeath",
+    "os_badge": "Lingkungan sistem: {os}",
+    "tabs": {
+      "general": "Umum",
+      "chatbot": "Chatbot",
+      "commands": "Perintah",
+      "memory": "Memori",
+      "appearance": "Tampilan"
+    },
+    "language": {
+      "title": "Bahasa",
+      "label": "Bahasa antarmuka & asisten",
+      "hint": "Pilih bahasa untuk antarmuka Aemeath dan tanggapan asisten.",
+      "id": "Bahasa Indonesia",
+      "en": "English"
+    },
+    "interactive": {
+      "title": "Mode interaktif",
+      "low_title": "Low",
+      "low_desc": "Aemeath mengajakmu mengobrol dan berbicara seperti biasa.",
+      "medium_title": "Medium",
+      "medium_desc": "Aemeath boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling.",
+      "full_title": "Full",
+      "full_badge": "Baru",
+      "full_desc": "Lebih intens dari Medium: Aemeath mendeteksi program yang kamu buka, media sosial, bahasa pemrograman & berkas test saat ngoding, berpindah-pindah jendela, serta menilai pekerjaanmu (/review) tanpa menangkap layar.",
+      "medium_consent_title": "Sebelum menyalakan Medium, ini yang terjadi:",
+      "medium_consent_1": "Setiap beberapa detik Aemeath membaca nama aplikasi dan judul jendela yang sedang aktif.",
+      "medium_consent_2": "Judul langsung dibuang setelah dipakai menebak jenis kegiatan (medsos, game, ngoding, dan seterusnya). Yang diingat hanya kategori dan nama aplikasi atau game, dan hanya di memori.",
+      "medium_consent_3": "Tidak ada yang disimpan ke disk atau dikirim ke internet, termasuk ke chatbot.",
+      "medium_consent_4": "Jendela pribadi (incognito, InPrivate), pengelola kata sandi, dan layar kunci tidak dibaca.",
+      "medium_consent_5": "Kamu bisa kembali ke Low kapan saja, dan pembacaannya langsung berhenti.",
+      "medium_accept": "Aktifkan Medium",
+      "medium_cancel": "Batal",
+      "full_consent_title": "Sebelum menyalakan Full, ini yang terjadi:",
+      "full_consent_1": "Mencakup semua pembacaan Medium (mendeteksi program yang dibuka dan media sosial), ditambah deteksi bahasa pemrograman dan berkas test saat kamu ngoding, serta pengingat bila kamu terlalu sering berpindah jendela.",
+      "full_consent_2": "Tidak pernah menangkap atau merekam layar (ringan di CPU/RAM).",
+      "full_consent_3": "Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tetap dilewati dan tidak pernah dibaca.",
+      "full_consent_4": "Perintah /review memeriksa status git diff 100% secara lokal di komputer ini dan mendeteksi bila ada potensi kebocoran API key atau berkas .env. Tidak ada data aktivitas atau kodingan yang pernah dikirim ke internet.",
+      "full_accept": "Aktifkan Full",
+      "full_cancel": "Batal",
+      "doom_label": "Ingatkan kalau scroll medsos",
+      "doom_unit": "{minutes} menit"
+    },
+    "startup": {
+      "title": "Startup",
+      "toggle": "Jalankan Aemeath otomatis saat Windows menyala",
+      "hint": "Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer. Matikan di sini kalau tidak mau; entri startup-nya langsung dihapus."
+    },
+    "movement": {
+      "title": "Gerak & tampilan",
+      "stay_still": "Diam di tempat (tidak berjalan atau melayang)",
+      "transparent": "Mode tembus pandang (klik mouse menembus pet)",
+      "transparent_hint": "Klik mouse akan menembus Aemeath ke jendela di belakangnya. Berguna kalau kamu sering salah klik saat dia lewat di atas tombol atau teks. Gunakan menu tray untuk mematikannya kembali.",
+      "opacity": "Transparansi pet"
+    },
+    "chatter": {
+      "title": "Celoteh",
+      "toggle": "Izinkan Aemeath berceloteh sesekali",
+      "interval": "Jeda rata-rata celoteh",
+      "interval_unit": "{minutes} menit",
+      "proactive_pause": "Jeda sementara semua celoteh proaktif",
+      "max_per_hour": "Batas celoteh per jam",
+      "cooldown": "Jeda kategori yang sama",
+      "cooldown_unit": "{minutes} menit",
+      "quiet_hours": "Jam tenang (tanpa celoteh spontan)",
+      "quiet_hours_start": "Mulai",
+      "quiet_hours_end": "Selesai"
+    },
+    "chatbot": {
+      "title": "Chatbot & Model",
+      "provider": "Penyedia model",
+      "model": "Pilihan model",
+      "streaming": "Tampilkan jawaban kata demi kata (streaming)",
+      "web_search": "Boleh cari info di web jika diperlukan",
+      "offline_fallback": "Gunakan jawaban lokal jika internet/kunci bermasalah",
+      "shortcut": "Pintasan buka chat",
+      "api_key": "Kunci API",
+      "api_key_placeholder": "Masukkan kunci API...",
+      "save_key": "Simpan kunci",
+      "clear_key": "Hapus kunci",
+      "key_saved": "Kunci API tersimpan dengan aman.",
+      "key_cleared": "Kunci API dihapus."
+    },
+    "commands": {
+      "title": "Perintah kustom",
+      "hint": "Buat pintasan perintah sendiri untuk membuka aplikasi, URL, atau menjalankan skrip.",
+      "add": "Tambah perintah",
+      "table_name": "Nama",
+      "table_type": "Jenis",
+      "table_target": "Target / Skrip",
+      "table_actions": "Aksi"
+    },
+    "memory": {
+      "title": "Memori pendamping",
+      "description": "Hal-hal yang diizinkan untuk diingat oleh Aemeath saat mengobrol bersamamu.",
+      "clear_all": "Hapus semua memori",
+      "empty": "Belum ada catatan memori tersimpan."
+    },
+    "appearance": {
+      "title": "Tampilan & Tema",
+      "theme_label": "Pilihan tema",
+      "preset_label": "Preset kaca",
+      "blur_label": "Efek blur",
+      "opacity_label": "Opasitas kaca",
+      "hue_label": "Warna aksen (Hue)"
+    }
+  },
+  "chat": {
+    "placeholder": "Tulis pesan untuk Aemeath...",
+    "send": "Kirim",
+    "retry": "Coba lagi",
+    "reset": "Reset obrolan",
+    "settings": "Pengaturan",
+    "empty": "Tulis pesan untuk memulai obrolan dengan Aemeath.",
+    "thinking": "Aemeath sedang berpikir...",
+    "searching": "Aemeath sedang mencari di web...",
+    "local_badge": "Lokal",
+    "search_sources": "Sumber:",
+    "attach_image": "Lampirkan gambar",
+    "remove_image": "Hapus gambar",
+    "uploading": "Mengunggah...",
+    "unsupported_format": "Format gambar tidak didukung.",
+    "offline_notice": "Mode offline: menggunakan catatan lore lokal.",
+    "companion_mode": "Mode Pendamping Aktif",
+    "wiki_mode": "Mode Wiki Wuthering Waves"
+  },
+  "feature_guide": {
+    "title": "Buku Panduan Aemeath",
+    "search_placeholder": "Cari fitur, perintah, atau tips...",
+    "no_results": "Tidak ada hasil yang cocok.",
+    "dialogue_default": "Rover~! Aku di sini menemanimu membaca panduan.",
+    "category_all": "Semua"
+  },
+  "errors": {
+    "network": "Koneksi jaringan terputus. Memeriksa kembali...",
+    "timeout": "Waktu tunggu habis. Coba ulangi pertanyaanmu.",
+    "busy": "Aemeath masih memikirkan pesan sebelumnya.",
+    "empty_input": "Tulis sesuatu dulu, Rover.",
+    "empty_search": "Tulis kata kunci setelah /search ya, Rover.",
+    "too_long": "Pesannya terlalu panjang (maksimal {max} karakter).",
+    "no_key": "Belum ada kunci API {provider}. Atur dulu di Pengaturan.",
+    "provider_unknown": "Penyedia chatbot tidak dikenal.",
+    "unsupported_vision": "Penyedia {provider} ({model}) tidak mendukung input gambar.",
+    "search_failed": "Maaf Rover, pencarian web gagal karena kendala jaringan atau batas waktu. Aku tidak mau menebak tanpa rujukan—coba lagi sebentar ya.",
+    "search_empty": "Aku sudah mencari di web, tapi tidak menemukan sumber yang valid untuk \"{query}\", Rover. Aku tidak akan mengarang jawaban tanpa bukti—coba kata kunci yang lebih spesifik ya.",
+    "search_secret": "Maaf Rover, pencarian web tidak dapat dijalankan untuk pesan ini.",
+    "unknown": "Terjadi kesalahan."
+  }
+}

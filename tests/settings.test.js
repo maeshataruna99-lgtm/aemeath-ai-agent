@@ -275,3 +275,24 @@ test('theme settings default to default/violet and validate glassmorphism parame
   assert.equal(reloaded.glassBlur, 32);
   assert.equal(reloaded.glassOpacity, 0.45);
 });
+
+test('locale defaults to id-ID and accepts supported locales', () => {
+  const dir = tempDir('locale');
+  const store = createSettingsStore(dir);
+  assert.equal(store.load().locale, 'id-ID');
+
+  assert.equal(store.save({ locale: 'en-US' }).locale, 'en-US');
+  assert.equal(createSettingsStore(dir).load().locale, 'en-US', 'persists across reload');
+
+  assert.equal(store.save({ locale: 'id-ID' }).locale, 'id-ID');
+  assert.equal(createSettingsStore(dir).load().locale, 'id-ID');
+
+  for (const bad of ['fr-FR', 'en', 'ID', 'ja-JP', '', null, undefined, 123, {}]) {
+    assert.equal(store.save({ locale: bad }).locale, 'id-ID', 'bad value: ' + String(bad));
+  }
+
+  fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ locale: 'invalid-locale', scale: 1.5 }));
+  const reloaded = createSettingsStore(dir).load();
+  assert.equal(reloaded.locale, 'id-ID');
+  assert.equal(reloaded.scale, 1.5, 'preserves other settings');
+});

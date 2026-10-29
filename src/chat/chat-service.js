@@ -34,6 +34,7 @@ function createChatService(options) {
   const providers = options.providers;
   const getKey = options.getKey;
   const getConfig = options.getConfig;
+  const getLocale = typeof options.getLocale === 'function' ? options.getLocale : () => (options.locale || 'id-ID');
   const getKnowledge = options.getKnowledge || (() => []);
   const memory = options.memory || null;
   const getFeatures = options.getFeatures || (() => ({ webSearch: false, offlineFallback: false }));
@@ -46,14 +47,16 @@ function createChatService(options) {
   let busy = false;
   let turns = 0;
 
-  function localAnswer(text, reason, picked) {
-    const answer = localResponder.respond(text, reason);
+  function localAnswer(text, reason, picked, locale) {
+    const loc = locale || getLocale();
+    const answer = localResponder.respond(text, reason, { locale: loc });
     const entries = (picked && picked.entries) || [];
     // Without a key or a connection a relevant note still beats "I don't know".
     if (!answer.matched && entries.length > 0) {
       const top = entries[0];
+      const fromNotePrefix = loc === 'en-US' ? 'From my notes: ' : 'Dari catatanku: ';
       return {
-        text: answer.text + '\n\nDari catatanku: ' + top.text,
+        text: answer.text + '\n\n' + fromNotePrefix + top.text,
         mode: 'local',
         sources: answer.sources || [],
         memoryUsed: markUsed({ entries: [top] }),
@@ -94,6 +97,7 @@ function createChatService(options) {
   }
 
   async function send(rawInput, onChunk, callOptions) {
+    const activeLocale = (callOptions && callOptions.locale) || getLocale();
     let rawText = '';
     let rawAttachments = [];
 
@@ -113,20 +117,28 @@ function createChatService(options) {
     let text = searchCmd ? (searchCmd[1] || '').trim() : rawTrimmed;
     if (!text) {
       if (attachments.length > 0) {
-        text = attachments.length > 1
-          ? 'Tolong bandingkan gambar-gambar ini dan jelaskan apa yang kamu lihat.'
-          : 'Tolong jelaskan gambar ini.';
+        text = activeLocale === 'en-US'
+          ? (attachments.length > 1 ? 'Please compare these images and explain what you see.' : 'Please describe this image.')
+          : (attachments.length > 1 ? 'Tolong bandingkan gambar-gambar ini dan jelaskan apa yang kamu lihat.' : 'Tolong jelaskan gambar ini.');
       } else {
-        throw new ChatError(
-          'empty-input',
-          explicitSearch ? 'Tulis kata kunci setelah /search ya, Rover.' : 'Tulis sesuatu dulu, Rover.',
-        );
+        const emptyMsg = activeLocale === 'en-US'
+          ? (explicitSearch ? 'Please write search keywords after /search, Rover.' : 'Please write something first, Rover.')
+          : (explicitSearch ? 'Tulis kata kunci setelah /search ya, Rover.' : 'Tulis sesuatu dulu, Rover.');
+        throw new ChatError('empty-input', emptyMsg);
       }
     }
     if (text.length > MAX_INPUT) {
-      throw new ChatError('too-long', 'Pesannya terlalu panjang (maksimal ' + MAX_INPUT + ' karakter).');
+      const tooLongMsg = activeLocale === 'en-US'
+        ? 'Message is too long (maximum ' + MAX_INPUT + ' characters).'
+        : 'Pesannya terlalu panjang (maksimal ' + MAX_INPUT + ' karakter).';
+      throw new ChatError('too-long', tooLongMsg);
     }
-    if (busy) throw new ChatError('busy', 'Aemeath masih memikirkan pesan sebelumnya.');
+    if (busy) {
+      const busyMsg = activeLocale === 'en-US'
+        ? 'Aemeath is still thinking about the previous message.'
+        : 'Aemeath masih memikirkan pesan sebelumnya.';
+      throw new ChatError('busy', busyMsg);
+    }
 
     // Clearly inappropriate input never leaves the machine and is not remembered.
     turns += 1;
@@ -175,7 +187,9 @@ function createChatService(options) {
     const picked = readMemory(text);
     const config = getConfig();
     const provider = providers.get(config.provider);
-    if (!provider) throw new ChatError('provider', 'Penyedia chatbot tidak dikenal.');
+    if (!provider) {
+      throw new ChatError('provider', activeLocale === 'en-US' ? 'Unknown chatbot provider.' : 'Penyedia chatbot tidak dikenal.');
+    }
 
     const supportsVision =
       typeof provider.supportsVision === 'function'
@@ -185,14 +199,21 @@ function createChatService(options) {
     if (attachments.length > 0 && !supportsVision) {
       throw new ChatError(
         'unsupported-capability',
-        'Penyedia ' + provider.name + ' (' + (config.model || provider.defaultModel) + ') tidak mendukung input gambar.',
+        activeLocale === 'en-US'
+          ? 'Provider ' + provider.name + ' (' + (config.model || provider.defaultModel) + ') does not support image input.'
+          : 'Penyedia ' + provider.name + ' (' + (config.model || provider.defaultModel) + ') tidak mendukung input gambar.',
       );
     }
 
     const apiKey = getKey(provider.id);
     if (!apiKey) {
-      if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key', picked);
-      throw new ChatError('no-key', 'Belum ada kunci API ' + provider.name + '. Atur dulu di Pengaturan.');
+      if (canFallBack && !explicitSearch) return localAnswer(text, 'no-key', picked, activeLocale);
+      throw new ChatError(
+        'no-key',
+        activeLocale === 'en-US'
+          ? 'No API key for ' + provider.name + ' yet. Set it in Settings.'
+          : 'Belum ada kunci API ' + provider.name + '. Atur dulu di Pengaturan.',
+      );
     }
 
     busy = true;
@@ -206,7 +227,9 @@ function createChatService(options) {
       let searchStatus = null;
       if (explicitSearch && (!search || containsSecret(text, apiKey))) {
         return {
-          text: 'Maaf Rover, pencarian web tidak dapat dijalankan untuk pesan ini.',
+          text: activeLocale === 'en-US'
+            ? 'Sorry Rover, web search cannot be performed for this message.'
+            : 'Maaf Rover, pencarian web tidak dapat dijalankan untuk pesan ini.',
           mode: 'local',
           sources: [],
           searchStatus: 'error',
@@ -225,7 +248,9 @@ function createChatService(options) {
 
         if (explicitSearch && searchStatus === 'error') {
           return {
-            text: 'Maaf Rover, pencarian web gagal karena kendala jaringan atau batas waktu. Aku tidak mau menebak tanpa rujukan—coba lagi sebentar ya.',
+            text: activeLocale === 'en-US'
+              ? "Sorry Rover, web search failed due to network issues or timeout. I won't guess without sources—please try again shortly."
+              : 'Maaf Rover, pencarian web gagal karena kendala jaringan atau batas waktu. Aku tidak mau menebak tanpa rujukan—coba lagi sebentar ya.',
             mode: 'local',
             sources: [],
             searchStatus: 'error',
@@ -233,10 +258,13 @@ function createChatService(options) {
         }
         if (explicitSearch && searchStatus === 'empty') {
           return {
-            text:
-              'Aku sudah mencari di web, tapi tidak menemukan sumber yang valid untuk "' +
-              safeText +
-              '", Rover. Aku tidak akan mengarang jawaban tanpa bukti—coba kata kunci yang lebih spesifik ya.',
+            text: activeLocale === 'en-US'
+              ? 'I searched the web, but couldn\'t find valid sources for "' +
+                safeText +
+                '", Rover. I won\'t invent answers without proof—please try more specific keywords.'
+              : 'Aku sudah mencari di web, tapi tidak menemukan sumber yang valid untuk "' +
+                safeText +
+                '", Rover. Aku tidak akan mengarang jawaban tanpa bukti—coba kata kunci yang lebih spesifik ya.',
             mode: 'local',
             sources: [],
             searchStatus: 'empty',
@@ -271,6 +299,7 @@ function createChatService(options) {
             companion,
             memory: picked.block,
             vision: hasVisionContext,
+            locale: activeLocale,
           }),
         },
       ]
@@ -319,7 +348,7 @@ function createChatService(options) {
               ? new ChatError(error.code, redact(error.message, apiKey))
               : error)
           : new ChatError('unknown', redact(error && error.message, apiKey) || 'Terjadi kesalahan.');
-      if (OFFLINE_CODES.has(failure.code) && canFallBack) return localAnswer(text, 'offline', picked);
+      if (OFFLINE_CODES.has(failure.code) && canFallBack) return localAnswer(text, 'offline', picked, activeLocale);
       throw failure;
     } finally {
       clearTimeout(timer);
@@ -337,6 +366,9 @@ function createChatService(options) {
     },
     get historyLength() {
       return history.length;
+    },
+    get history() {
+      return history.slice();
     },
   };
 }

@@ -1,0 +1,165 @@
+{
+  "locale": "en-US",
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "retry": "Retry",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning"
+  },
+  "settings": {
+    "title": "Aemeath Settings",
+    "os_badge": "System environment: {os}",
+    "tabs": {
+      "general": "General",
+      "chatbot": "Chatbot",
+      "commands": "Commands",
+      "memory": "Memory",
+      "appearance": "Appearance"
+    },
+    "language": {
+      "title": "Language",
+      "label": "Interface & assistant language",
+      "hint": "Select language for Aemeath's interface and assistant responses.",
+      "id": "Bahasa Indonesia",
+      "en": "English"
+    },
+    "interactive": {
+      "title": "Interactive mode",
+      "low_title": "Low",
+      "low_desc": "Aemeath chats and talks with you normally.",
+      "medium_title": "Medium",
+      "medium_desc": "Aemeath can observe active applications (browsing, gaming, etc.) and warn you when doomscrolling too long.",
+      "full_title": "Full",
+      "full_badge": "New",
+      "full_desc": "More intensive than Medium: Aemeath detects open programs, social media, programming languages & test files while coding, window switching, and evaluates your work (/review) without screen capture.",
+      "medium_consent_title": "Before enabling Medium, here is what happens:",
+      "medium_consent_1": "Every few seconds Aemeath reads the active application name and window title.",
+      "medium_consent_2": "Titles are discarded immediately after categorizing activity. Only category and app/game names are kept, and only in memory.",
+      "medium_consent_3": "Nothing is saved to disk or sent to the internet, including to the chatbot.",
+      "medium_consent_4": "Private windows (incognito, InPrivate), password managers, and lock screens are never read.",
+      "medium_consent_5": "You can return to Low at any time, and reading stops immediately.",
+      "medium_accept": "Enable Medium",
+      "medium_cancel": "Cancel",
+      "full_consent_title": "Before enabling Full, here is what happens:",
+      "full_consent_1": "Includes all Medium tracking, plus programming language and test file detection while coding, and reminders if you switch windows too frequently.",
+      "full_consent_2": "Never captures or records the screen (lightweight on CPU/RAM).",
+      "full_consent_3": "Private windows, password managers, lock screen, and UAC prompts are always skipped and never read.",
+      "full_consent_4": "The /review command checks git diff status 100% locally on this computer and detects potential API key or .env leaks. No activity or code data is ever sent to the internet.",
+      "full_accept": "Enable Full",
+      "full_cancel": "Cancel",
+      "doom_label": "Remind when scrolling social media",
+      "doom_unit": "{minutes} minutes"
+    },
+    "startup": {
+      "title": "Startup",
+      "toggle": "Launch Aemeath automatically on startup",
+      "hint": "Enabled by default, so Aemeath appears every time you turn on your computer. Disable here to remove the startup entry."
+    },
+    "movement": {
+      "title": "Movement & display",
+      "stay_still": "Stay still (do not walk or fly)",
+      "transparent": "Click-through transparent mode",
+      "transparent_hint": "Mouse clicks pass through Aemeath to windows behind. Useful if you accidentally click her over buttons. Use tray menu to toggle off.",
+      "opacity": "Pet opacity"
+    },
+    "chatter": {
+      "title": "Chatter",
+      "toggle": "Allow Aemeath to chatter occasionally",
+      "interval": "Average chatter interval",
+      "interval_unit": "{minutes} minutes",
+      "proactive_pause": "Temporarily pause all proactive chatter",
+      "max_per_hour": "Maximum remarks per hour",
+      "cooldown": "Same category cooldown",
+      "cooldown_unit": "{minutes} minutes",
+      "quiet_hours": "Quiet hours (no spontaneous chatter)",
+      "quiet_hours_start": "Start",
+      "quiet_hours_end": "End"
+    },
+    "chatbot": {
+      "title": "Chatbot & Model",
+      "provider": "Model provider",
+      "model": "Model selection",
+      "streaming": "Display response word by word (streaming)",
+      "web_search": "Allow web search when necessary",
+      "offline_fallback": "Use local answers if internet or API key is unavailable",
+      "shortcut": "Chat open shortcut",
+      "api_key": "API Key",
+      "api_key_placeholder": "Enter API key...",
+      "save_key": "Save key",
+      "clear_key": "Clear key",
+      "key_saved": "API key securely saved.",
+      "key_cleared": "API key cleared."
+    },
+    "commands": {
+      "title": "Custom commands",
+      "hint": "Create custom command shortcuts to launch applications, URLs, or run scripts.",
+      "add": "Add command",
+      "table_name": "Name",
+      "table_type": "Type",
+      "table_target": "Target / Script",
+      "table_actions": "Actions"
+    },
+    "memory": {
+      "title": "Companion memory",
+      "description": "Things Aemeath is allowed to remember while chatting with you.",
+      "clear_all": "Clear all memory",
+      "empty": "No saved memory notes yet."
+    },
+    "appearance": {
+      "title": "Appearance & Theme",
+      "theme_label": "Theme selection",
+      "preset_label": "Glass preset",
+      "blur_label": "Blur effect",
+      "opacity_label": "Glass opacity",
+      "hue_label": "Accent color (Hue)"
+    }
+  },
+  "chat": {
+    "placeholder": "Type a message for Aemeath...",
+    "send": "Send",
+    "retry": "Retry",
+    "reset": "Reset chat",
+    "settings": "Settings",
+    "empty": "Type a message to start chatting with Aemeath.",
+    "thinking": "Aemeath is thinking...",
+    "searching": "Aemeath is searching the web...",
+    "local_badge": "Local",
+    "search_sources": "Sources:",
+    "attach_image": "Attach image",
+    "remove_image": "Remove image",
+    "uploading": "Uploading...",
+    "unsupported_format": "Image format not supported.",
+    "offline_notice": "Offline mode: using local lore notes.",
+    "companion_mode": "Companion Mode Active",
+    "wiki_mode": "Wuthering Waves Wiki Mode"
+  },
+  "feature_guide": {
+    "title": "Aemeath Guidebook",
+    "search_placeholder": "Search features, commands, or tips...",
+    "no_results": "No matching results found.",
+    "dialogue_default": "Rover~! I'm here accompanying you through the guidebook.",
+    "category_all": "All"
+  },
+  "errors": {
+    "network": "Network connection lost. Checking again...",
+    "timeout": "Request timed out. Please try asking again.",
+    "busy": "Aemeath is still thinking about the previous message.",
+    "empty_input": "Please write something first, Rover.",
+    "empty_search": "Please write search keywords after /search, Rover.",
+    "too_long": "Message is too long (maximum {max} characters).",
+    "no_key": "No API key for {provider} yet. Set it in Settings.",
+    "provider_unknown": "Unknown chatbot provider.",
+    "unsupported_vision": "Provider {provider} ({model}) does not support image input.",
+    "search_failed": "Sorry Rover, web search failed due to network issues or timeout. I won't guess without sources—please try again shortly.",
+    "search_empty": "I searched the web, but couldn't find valid sources for \"{query}\", Rover. I won't invent answers without proof—please try more specific keywords.",
+    "search_secret": "Sorry Rover, web search cannot be performed for this message.",
+    "unknown": "An error occurred."
+  }
+}

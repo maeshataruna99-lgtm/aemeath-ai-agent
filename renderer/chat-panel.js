@@ -58,6 +58,47 @@
     let cwd = '';
     let requestCounter = 0;
     let pendingAttachments = [];
+    let currentLocale = (options && options.locale === 'en-US') ? 'en-US' : 'id-ID';
+
+    function updateLocalizedUI() {
+      const isEn = currentLocale === 'en-US';
+      if (input) {
+        input.placeholder = mode === 'terminal'
+          ? (isEn ? 'Type a PowerShell command... (exit to leave)' : 'Ketik perintah PowerShell... (exit untuk keluar)')
+          : (isEn ? 'Type a message, or / for commands...' : 'Tulis pesan, atau / untuk perintah...');
+      }
+      if (send) {
+        send.textContent = isEn ? 'Send' : 'Kirim';
+        send.title = isEn ? 'Send' : 'Kirim';
+        send.setAttribute('aria-label', isEn ? 'Send' : 'Kirim');
+      }
+      if (resetButton) {
+        resetButton.title = isEn ? 'Start new conversation' : 'Mulai percakapan baru';
+        resetButton.setAttribute('aria-label', isEn ? 'Start new conversation' : 'Mulai percakapan baru');
+      }
+      if (closeButton) {
+        closeButton.title = isEn ? 'Close (Esc)' : 'Tutup (Esc)';
+        closeButton.setAttribute('aria-label', isEn ? 'Close (Esc)' : 'Tutup (Esc)');
+      }
+      if (sizeButton) {
+        sizeButton.title = isEn ? 'Resize box' : 'Perbesar kotak';
+        sizeButton.setAttribute('aria-label', isEn ? 'Resize box' : 'Perbesar kotak');
+      }
+      if (settingsButton) {
+        settingsButton.textContent = isEn ? 'Open Settings' : 'Buka Pengaturan';
+        settingsButton.title = isEn ? 'Open Settings' : 'Buka Pengaturan';
+        settingsButton.setAttribute('aria-label', isEn ? 'Open Settings' : 'Buka Pengaturan');
+      }
+      if (attachButton) {
+        attachButton.title = isEn ? 'Attach image (PNG, JPEG, WebP)' : 'Lampirkan gambar (PNG, JPEG, WebP)';
+        attachButton.setAttribute('aria-label', isEn ? 'Attach image (PNG, JPEG, WebP)' : 'Lampirkan gambar (PNG, JPEG, WebP)');
+      }
+      if (attachmentsDisclosure) {
+        attachmentsDisclosure.textContent = isEn
+          ? 'Images will be sent to the AI provider for analysis.'
+          : 'Gambar akan dikirim ke penyedia AI untuk dianalisis.';
+      }
+    }
 
     function isSafeHttpUrl(url) {
       if (typeof url !== 'string') return false;
@@ -363,10 +404,7 @@
         pendingAttachments = [];
         renderPendingAttachments();
       }
-      input.placeholder =
-        mode === 'terminal'
-          ? 'Ketik perintah PowerShell... (exit untuk keluar)'
-          : 'Tulis pesan, atau / untuk perintah...';
+      updateLocalizedUI();
       notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
       hideSuggestions();
       controls();
@@ -382,9 +420,14 @@
       noticeNeeded = !hasKey;
       notice.classList.toggle('hidden', hasKey || mode === 'terminal');
       if (!hasKey) {
+        const isEn = currentLocale === 'en-US';
         noticeText.textContent = offlineMode
-          ? 'Mode offline: aku hanya menjawab dari ingatanku (lorebook). Isi API key di Pengaturan untuk jawaban lengkap.'
-          : 'Belum ada kunci API' + (provider ? ' ' + provider.name : '') + '. Atur dulu di Pengaturan.';
+          ? (isEn
+              ? 'Offline mode: I can only answer from my memories (lorebook). Add an API key in Settings for full answers.'
+              : 'Mode offline: aku hanya menjawab dari ingatanku (lorebook). Isi API key di Pengaturan untuk jawaban lengkap.')
+          : (isEn
+              ? 'No API key for' + (provider ? ' ' + provider.name : '') + ' yet. Set it in Settings.'
+              : 'Belum ada kunci API' + (provider ? ' ' + provider.name : '') + '. Atur dulu di Pengaturan.');
       }
       controls();
       reposition();
@@ -528,18 +571,20 @@
 
       if (!shown) add('user', text, null, null, attachmentPreviews || attachments);
       if (!ready) {
-        add('err', 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
+        const isEn = currentLocale === 'en-US';
+        add('err', isEn
+          ? 'No API key yet. Set it in Settings, or use commands like /help.'
+          : 'Belum ada kunci API. Atur dulu di Pengaturan, atau pakai perintah seperti /help.');
         return;
       }
       const isExplicitSearch = /^\/search(?:\s|$)/i.test(text);
-      const pending = add(
-        'bot pending',
-        isExplicitSearch
-          ? 'Aemeath sedang mencari di web...'
-          : attachments.length > 0
-            ? 'Aemeath sedang melihat gambar...'
-            : 'Aemeath sedang berpikir...',
-      );
+      const isEn = currentLocale === 'en-US';
+      const pendingMsg = isExplicitSearch
+        ? (isEn ? 'Aemeath is searching the web...' : 'Aemeath sedang mencari di web...')
+        : attachments.length > 0
+          ? (isEn ? 'Aemeath is looking at the image...' : 'Aemeath sedang melihat gambar...')
+          : (isEn ? 'Aemeath is thinking...' : 'Aemeath sedang berpikir...');
+      const pending = add('bot pending', pendingMsg);
       const requestId = 'req-' + Date.now() + '-' + (++requestCounter);
       let streamedText = '';
       let isStreaming = false;
@@ -679,12 +724,20 @@
       // no stored choice
     }
 
+    updateLocalizedUI();
+
     return {
       toggle: () => (isOpen ? close() : open()),
       open: open,
       close: close,
       isOpen: () => isOpen,
       reposition: reposition,
+      setLocale: (loc) => {
+        if (loc === 'id-ID' || loc === 'en-US') {
+          currentLocale = loc;
+          updateLocalizedUI();
+        }
+      },
       contains: (node) => el.contains(node),
     };
   }

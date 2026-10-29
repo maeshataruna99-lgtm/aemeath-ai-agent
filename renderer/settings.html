@@ -9,18 +9,34 @@
 </head>
 <body>
   <main>
-    <h1>Pengaturan Aemeath</h1>
+    <h1 data-i18n="settings.title">Pengaturan Aemeath</h1>
     <p id="os-badge" class="hint tight">Lingkungan sistem: mendeteksi...</p>
 
     <div class="tabs" role="tablist" aria-label="Bagian pengaturan">
-      <button type="button" role="tab" id="tab-general" class="tab" aria-controls="panel-general" aria-selected="true">Umum</button>
-      <button type="button" role="tab" id="tab-chatbot" class="tab" aria-controls="panel-chatbot" aria-selected="false" tabindex="-1">Chatbot</button>
-      <button type="button" role="tab" id="tab-commands" class="tab" aria-controls="panel-commands" aria-selected="false" tabindex="-1">Perintah</button>
-      <button type="button" role="tab" id="tab-memory" class="tab" aria-controls="panel-memory" aria-selected="false" tabindex="-1">Memori</button>
-      <button type="button" role="tab" id="tab-appearance" class="tab" aria-controls="theme-section" aria-selected="false" tabindex="-1">Tampilan</button>
+      <button type="button" role="tab" id="tab-general" class="tab" aria-controls="panel-general" aria-selected="true" data-i18n="settings.tabs.general">Umum</button>
+      <button type="button" role="tab" id="tab-chatbot" class="tab" aria-controls="panel-chatbot" aria-selected="false" tabindex="-1" data-i18n="settings.tabs.chatbot">Chatbot</button>
+      <button type="button" role="tab" id="tab-commands" class="tab" aria-controls="panel-commands" aria-selected="false" tabindex="-1" data-i18n="settings.tabs.commands">Perintah</button>
+      <button type="button" role="tab" id="tab-memory" class="tab" aria-controls="panel-memory" aria-selected="false" tabindex="-1" data-i18n="settings.tabs.memory">Memori</button>
+      <button type="button" role="tab" id="tab-appearance" class="tab" aria-controls="theme-section" aria-selected="false" tabindex="-1" data-i18n="settings.tabs.appearance">Tampilan</button>
     </div>
 
     <div class="panel" role="tabpanel" id="panel-general" aria-labelledby="tab-general">
+      <section class="row" id="language">
+        <h2 data-i18n="settings.language.title">Bahasa</h2>
+        <div class="field select-row">
+          <label for="language-select" data-i18n="settings.language.label">Bahasa antarmuka &amp; asisten</label>
+          <select id="language-select">
+            <option value="id-ID" data-i18n="settings.language.id">Bahasa Indonesia</option>
+            <option value="en-US" data-i18n="settings.language.en">English</option>
+          </select>
+        </div>
+        <p class="hint tight" data-i18n="settings.language.hint">
+          Pilih bahasa untuk antarmuka Aemeath dan tanggapan asisten.
+        </p>
+      </section>
+
+      <hr>
+
       <section class="row" id="interactive">
         <h2>Mode interaktif</h2>
         <div class="modes" role="radiogroup" aria-label="Mode interaktif">
@@ -706,6 +722,7 @@
   <script src="theme-apply.js"></script>
   <script src="appearance.js"></script>
   <script src="../src/dialogue.js"></script>
+  <script src="../src/i18n/index.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

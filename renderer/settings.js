@@ -28,8 +28,9 @@
     document.getElementById('provider-name'),
     document.getElementById('provider-name-2'),
   ];
+  const languageSelect = document.getElementById('language-select');
 
-
+  let i18n = null;
   let status = null;
   let currentPlatform = {
     id: 'win32',
@@ -163,6 +164,17 @@
 
   async function boot() {
     const settings = await window.aemeathSettings.get();
+    const catalogs = typeof window.aemeathSettings?.getCatalogs === 'function' ? window.aemeathSettings.getCatalogs() : null;
+    if (window.AemeathI18n) {
+      i18n = window.AemeathI18n.createI18n({
+        locale: (settings && settings.locale) || 'id-ID',
+        catalogs: catalogs || {},
+      });
+      i18n.applyDom(document);
+    }
+    if (languageSelect && settings) {
+      languageSelect.value = settings.locale || 'id-ID';
+    }
     if (settings && settings.platform) {
       applyPlatformUI(settings.platform);
     } else if (typeof window.aemeathSettings.getPlatform === 'function') {
@@ -211,6 +223,31 @@
     await loadCommands();
     await refreshMemory();
     renderChat(await window.aemeathSettings.chatStatus());
+  }
+
+  if (languageSelect) {
+    languageSelect.addEventListener('change', () => {
+      const nextLocale = languageSelect.value;
+      if (i18n) {
+        i18n.setLocale(nextLocale);
+        i18n.applyDom(document);
+      }
+      window.aemeathSettings.set({ locale: nextLocale });
+    });
+  }
+
+  if (typeof window.aemeathSettings?.onSettingsUpdated === 'function') {
+    window.aemeathSettings.onSettingsUpdated((updated) => {
+      if (updated && updated.locale) {
+        if (languageSelect && languageSelect.value !== updated.locale) {
+          languageSelect.value = updated.locale;
+        }
+        if (i18n && i18n.getLocale() !== updated.locale) {
+          i18n.setLocale(updated.locale);
+          i18n.applyDom(document);
+        }
+      }
+    });
   }
 
   chatter.addEventListener('change', () => {
