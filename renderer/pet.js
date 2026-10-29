@@ -93,7 +93,7 @@
     settings = Object.assign({}, settings, init.settings);
     workArea = init.workArea;
     AemeathAtlas.validateAtlas(atlas);
-    lorebook = AemeathLorebook.createLorebook(init.lorebook);
+    lorebook = AemeathLorebook.createLorebook(init.lorebook, { locale: settings.locale || 'id-ID' });
     if (typeof dialogue.setLocale === 'function' && settings.locale) {
       dialogue.setLocale(settings.locale);
     }
@@ -114,7 +114,7 @@
     chatPanel = AemeathChatPanel.create({
       api: window.aemeath,
       locale: settings.locale || 'id-ID',
-      catalogs: typeof window.aemeath?.getCatalogs === 'function' ? window.aemeath.getCatalogs() : null,
+      catalogs: (window.AemeathI18n && window.AemeathI18n.defaultCatalogs) || (typeof window.aemeath?.getCatalogs === 'function' ? window.aemeath.getCatalogs() : null),
       anchor: () => ({
         left: walker.x,
         right: walker.x + petWidth(),
@@ -133,13 +133,14 @@
     sprite = new Image();
     sprite.onload = () => requestAnimationFrame(tick);
     sprite.onerror = () => {
-      showBubble('Sprite gagal dimuat: ' + init.spriteUrl);
+      const isEn = settings && settings.locale === 'en-US';
+      showBubble((isEn ? 'Failed to load sprite: ' : 'Sprite gagal dimuat: ') + init.spriteUrl);
       requestAnimationFrame(tick);
     };
     sprite.src = init.spriteUrl;
 
     setTransient('waving', 2200);
-    say({ kind: 'greeting', text: 'Aemeath hadir! Aku akan berjalan-jalan sambil menunggui sesi AI-mu.' });
+    say({ kind: 'greeting', text: "Let's go save the world!" });
 
     nextChatAt = performance.now() + CHAT_FIRST_MS;
     wireEvents();
@@ -416,7 +417,8 @@
     if (item.credit) {
       const credit = document.createElement('div');
       credit.className = 'credit';
-      credit.textContent = 'Sumber: ' + item.credit.title + ' (' + item.credit.license + ')';
+      const sourceLabel = settings && settings.locale === 'en-US' ? 'Source: ' : 'Sumber: ';
+      credit.textContent = sourceLabel + item.credit.title + ' (' + item.credit.license + ')';
       bubble.appendChild(credit);
     }
     if (item.action) bubble.appendChild(bubbleActions(item.action));
@@ -510,13 +512,14 @@
         } else {
           say({
             kind: 'memory-refused',
-            text: (result && result.error) || 'Memori itu tidak bisa Kusimpan, Rover.',
+            text: (result && result.error) || (settings && settings.locale === 'en-US' ? "I couldn't save that memory, Rover." : 'Memori itu tidak bisa Kusimpan, Rover.'),
           });
         }
       })
       .catch(() => {
         clear();
-        say({ kind: 'memory-refused', text: 'Memori itu tidak bisa Kusimpan, Rover.' });
+        const refusedText = settings && settings.locale === 'en-US' ? "I couldn't save that memory, Rover." : 'Memori itu tidak bisa Kusimpan, Rover.';
+        say({ kind: 'memory-refused', text: refusedText });
       });
   }
 
@@ -741,9 +744,13 @@
     if (typeof window.aemeath.onQuestDone === 'function') {
       window.aemeath.onQuestDone((quest) => {
         if (!quest) return;
+        const isEn = settings && settings.locale === 'en-US';
+        const questDoneText = isEn
+          ? 'Yay! Daily quest "' + quest.text + '" completed! Amazing focus, Rover~'
+          : 'Hore! Daily quest "' + quest.text + '" selesai! Fokusmu mantap, Rover~';
         say({
           kind: 'quest-done',
-          text: 'Hore! Daily quest "' + quest.text + '" selesai! Fokusmu mantap, Rover~',
+          text: questDoneText,
           anim: 'jumping',
           animMs: 2200,
         });
@@ -785,7 +792,7 @@
     if (typeof window.aemeath.onLorebookUpdated === 'function') {
       window.aemeath.onLorebookUpdated((nextData) => {
         if (!nextData) return;
-        lorebook = AemeathLorebook.createLorebook(nextData);
+        lorebook = AemeathLorebook.createLorebook(nextData, { locale: settings.locale || 'id-ID' });
       });
     }
     window.aemeath.onMediaStatus((status) => {
@@ -808,6 +815,7 @@
       if (localeChanged) {
         if (typeof dialogue.setLocale === 'function') dialogue.setLocale(settings.locale);
         if (chatPanel && typeof chatPanel.setLocale === 'function') chatPanel.setLocale(settings.locale);
+        if (lorebook && typeof lorebook.setLocale === 'function') lorebook.setLocale(settings.locale);
       }
     });
     window.aemeath.onChatState((state) => {

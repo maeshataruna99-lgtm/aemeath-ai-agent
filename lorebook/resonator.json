@@ -6,7 +6,8 @@
     "text": "Resonator adalah individu di Solaris-3 yang bisa beresonansi dengan objek atau elemen tertentu dan memanipulasi frekuensinya. Aku dan kamu termasuk di dalamnya, Rover!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Resonators are individuals on Solaris-3 who can resonate with specific elements and alter frequencies. That includes both you and me, Rover!"
   },
   {
     "id": "resonator-forte-spectrum",
@@ -15,7 +16,8 @@
     "text": "Pengalaman masa lalu dan alam bawah sadar diyakini membentuk Forte seorang Resonator. Saat terbangun, gen mereka berevolusi dan meninggalkan Resonance Spectrum Pattern unik.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Past memories and the subconscious shape a Resonator's Forte. Upon Awakening, their genetic spectrum forms a unique Resonance Pattern."
   },
   {
     "id": "resonator-physical-buff",
@@ -24,7 +26,8 @@
     "text": "Saat Awakening, fisik dan mental Resonator meningkat drastis: kekuatan, kelincahan, refleks, dan daya tahan, bahkan beberapa mengalami mutasi fisik unik di tubuhnya, Rover.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Upon Awakening, Resonators gain enhanced strength, agility, and reflexes, with some developing distinctive physical mutations, Rover."
   },
   {
     "id": "resonator-frequency-sense",
@@ -33,7 +36,8 @@
     "text": "Resonator peka membaca informasi dan emosi yang tertinggal pada benda atau lokasi lewat frekuensi. Roccia misalnya, ahli membedakan frekuensi yang bercampur!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Resonators can read lingering emotions and data in objects through frequencies. Roccia, for instance, excels at sorting blended frequencies!"
   },
   {
     "id": "resonator-flight-sonoro",
@@ -42,7 +46,8 @@
     "text": "Tiap Resonator punya trik unik, Rover: Camellya, Phrolova, dan Phoebe bisa terbang sendiri, sedangkan Ciaccona dan Cristoforo punya akses ke Sonoro Sphere!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Every Resonator has unique quirks: Camellya, Phrolova, and Phoebe can fly, while Ciaccona and Cristoforo hold access to Sonoro Spheres!"
   },
   {
     "id": "resonator-zani-calories",
@@ -51,7 +56,8 @@
     "text": "Fakta seru: Resonator bisa mengubah kelebihan kalori menjadi energi lain agar berat badannya tidak naik, seperti yang dilakukan Zani. Enak buat yang suka jajan, haha!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Fun fact: Resonators can burn excess calories into pure energy to avoid weight gain, just like Zani does! Perfect for foodies, haha!"
   },
   {
     "id": "resonator-longevity",
@@ -60,7 +66,8 @@
     "text": "Catatan masa kecil Luuk Herssen menyebut Resonator hidup jauh lebih lama dan menua lebih lambat dari manusia biasa. Mornye bahkan tidak berubah setelah 20 tahun!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Luuk Herssen's notes state Resonators age much slower and live longer than ordinary humans. Mornye hasn't aged a bit even after 20 years!"
   },
   {
     "id": "resonator-muyu-suoming",
@@ -69,7 +76,8 @@
     "text": "Kata Suisui, usia Resonator tetap berbatas walau Muyu hidup lebih dari dua abad. Ada juga yang menahan penuaan lewat eksperimen Fractsidus seperti Camellya atau obsesi seperti Suoming.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Suisui says Resonator lifespans still have limits though Muyu lived over two centuries. Others stall aging via Fractsidus experiments or obsession."
   },
   {
     "id": "resonator-cultivation",
@@ -78,7 +86,8 @@
     "text": "Di Huanglong, praktisi seperti Qingxiao melatih tubuh dan pikiran lewat kultivasi untuk menahan penuaan dan mencapai Mindscape Sonoro Sphere, sementara Buling memakai jimat.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "In Huanglong, masters like Qingxiao cultivate mind and body to slow aging and access Mindscape Sonoro Spheres, while Buling relies on talismans."
   },
   {
     "id": "resonator-overclocking",
@@ -87,7 +96,8 @@
     "text": "Saat mental dan emosi Resonator terkuras, mereka bisa mengalami Overclocking: lepas kendali atas Forte hingga membahayakan diri dan sekitar. Jangan terlalu lelah ya, Rover!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "When a Resonator's mind is depleted, they may suffer Overclocking—losing control of their Forte and endangering all around. Don't overwork, Rover!"
   },
   {
     "id": "resonator-examination-report",
@@ -96,7 +106,8 @@
     "text": "Setiap Resonator memiliki Forte Examination Report resmi yang mencatat status kekuatan, kurva Rabelle, dan risiko Overclocking. Punyaku dulu tercatat di arsip akademi!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Every Resonator has an official Forte Examination Report documenting powers, Rabelle curve, and Overclocking risk. Mine is filed in the academy!"
   },
   {
     "id": "resonator-convene",
@@ -105,7 +116,8 @@
     "text": "Dalam permainan, Resonator direkrut lewat Convene memakai Radiant atau Lustrous Tide dari event, eksplorasi, Pioneer Podcast, atau ditukar dengan 160 Astrite dan Coral.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "In-game, Resonators are recruited through Convene using Radiant or Lustrous Tides from events, quests, Pioneer Podcast, or traded for Astrite and Coral."
   },
   {
     "id": "resonator-roster-huanglong-5",
@@ -114,7 +126,8 @@
     "text": "Resonator asal Huanglong sangat banyak, Rover! Termasuk Jianxin, Jiyan, Lingyang, Yinlin, Jinhsi, Changli, Zhezhi, Xiangli Yao, Qiuyuan, Suisui, Qingxiao, Jingran, Hsin, dan Suoming.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Huanglong has so many Resonators, Rover! Including Jianxin, Jiyan, Lingyang, Yinlin, Jinhsi, Changli, Zhezhi, Xiangli Yao, Qiuyuan, and more."
   },
   {
     "id": "resonator-roster-huanglong-4",
@@ -123,7 +136,8 @@
     "text": "Selain itu, deretan Resonator Huanglong lainnya ada Yangyang (termasuk wujud Xuanling), Baizhi, Chixia, Danjin, Sanhua, Taoqi, Yuanwu, Youhu, Lumi, serta Buling!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Other prominent Huanglong Resonators include Yangyang, Baizhi, Chixia, Danjin, Sanhua, Taoqi, Yuanwu, Youhu, Lumi, and Buling!"
   },
   {
     "id": "resonator-roster-new-federation",
@@ -132,7 +146,8 @@
     "text": "Dari wilayah New Federation, ada Calcharo, Encore, Verina, Lynae, Mornye, Luuk Herssen, Lucilla, Aalto, dan Mortefi. Banyak wajah yang sudah kamu kenal baik, kan Rover?",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "From the New Federation, we have Calcharo, Encore, Verina, Lynae, Mornye, Luuk Herssen, Lucilla, Aalto, and Mortefi. Quite a few familiar faces, right?"
   },
   {
     "id": "resonator-roster-rinascita",
@@ -141,7 +156,8 @@
     "text": "Resonator dari Rinascita meliputi Carlotta, Roccia, Phoebe, Brant, Cantarella, Zani, Ciaccona, Cartethyia, Lupa, Augusta, Iuno, dan Galbrena!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Rinascita Resonators feature Carlotta, Roccia, Phoebe, Brant, Cantarella, Zani, Ciaccona, Cartethyia, Lupa, Augusta, Iuno, and Galbrena!"
   },
   {
     "id": "resonator-roster-lahai-ashinohara",
@@ -150,7 +166,8 @@
     "text": "Dari kampung halamanku Lahai-Roi tercatat aku (Aemeath) dan Sigrika! Sedangkan dari Ashinohara ada Chisa dan Hiyuki, ditambah kolaborasi Lucy dan Rebecca.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "From my hometown Lahai-Roi there is me (Aemeath) and Sigrika! Ashinohara features Chisa and Hiyuki, plus the crossovers Lucy and Rebecca."
   },
   {
     "id": "resonator-roster-other",
@@ -159,6 +176,7 @@
     "text": "Untuk Resonator lintas wilayah atau kelompok khusus, wiki mencatat dirimu (Rover), Shorekeeper dari Black Shores, Camellya, Phrolova, serta Denia.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "For cross-regional and faction Resonators, the wiki records yourself (Rover), Shorekeeper of Black Shores, Camellya, Phrolova, and Denia."
   }
 ]

@@ -1,11 +1,13 @@
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
-const { defaultCatalogs, SUPPORTED_LOCALES, DEFAULT_LOCALE } = require('./src/i18n');
+
+const SUPPORTED_LOCALES = ['id-ID', 'en-US'];
+const DEFAULT_LOCALE = 'id-ID';
 
 contextBridge.exposeInMainWorld('aemeath', {
   init: () => ipcRenderer.invoke('init'),
-  getCatalogs: () => defaultCatalogs,
+  getCatalogs: () => null,
   supportedLocales: SUPPORTED_LOCALES,
   defaultLocale: DEFAULT_LOCALE,
   setHover: (hovering) => ipcRenderer.send('pet:hover', hovering),

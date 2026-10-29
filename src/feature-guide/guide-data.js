@@ -4,7 +4,7 @@
 // Pure offline data: no remote calls or live LLM generation.
 // Every entry is tied to actual code and verified mechanisms.
 
-const GUIDE_ENTRIES = [
+const GUIDE_ENTRIES_ID = [
   {
     id: 'getting-started',
     title: 'Getting Started',
@@ -226,17 +226,246 @@ const GUIDE_ENTRIES = [
   },
 ];
 
-function getGuideEntries() {
-  return GUIDE_ENTRIES.slice();
+const GUIDE_ENTRIES_EN = [
+  {
+    id: 'getting-started',
+    title: 'Getting Started',
+    category: 'Basics',
+    summary: 'Basics of using Aemeath AI Agent, desktop interaction, and opening the chat panel.',
+    purpose: 'Introduces core controls for Aemeath Mini on your desktop, opening chat, and common navigation shortcuts.',
+    usage: 'Left-click pet / Press Alt+Space / Type a message in the chat panel',
+    examples: [
+      'Hello Aemeath!',
+      'What can you help me with?',
+      '/feature',
+    ],
+    requirements: 'Does not require an internet connection for built-in local commands and wiki encyclopedia.',
+    modeAvailability: 'Available across all modes (Low, Medium, Full).',
+    privacyNotes: 'Aemeath runs 100% locally on your computer without uploading basic chats to external servers.',
+    relatedIds: ['interactive-modes', 'settings', 'custom-commands'],
+    searchTerms: ['start', 'basics', 'shortcut', 'alt+space', 'help', 'intro', 'chat', 'begin'],
+    aemeathDialogue: "Rover~! First time opening the Guidebook? Pick a topic on the left and I'll explore with you!",
+    verificationSource: 'renderer/pet.js, renderer/chat-panel.js, README.md',
+  },
+  {
+    id: 'interactive-modes',
+    title: 'Interactive Modes',
+    category: 'System & Security',
+    summary: 'Three levels of interactive modes: Low, Medium, and Full with transparent permission boundaries.',
+    purpose: 'Provides transparency and complete control over when and how Aemeath observes active workspaces.',
+    usage: 'Open Settings -> General Tab -> Select Mode (Low, Medium, or Full)',
+    examples: [
+      'Low: Casual chat without reading active application window titles',
+      'Medium: Game detection and doomscrolling break reminders',
+      'Full: Local coding detection, test context, and git review without screen capture',
+    ],
+    requirements: 'Medium and Full modes require explicit consent through a confirmation dialog.',
+    modeAvailability: 'Can be switched anytime by Rover in the Settings window.',
+    privacyNotes: 'Incognito/private windows, password managers, lock screen, and UAC prompts are always skipped.',
+    relatedIds: ['privacy-safety', 'settings', 'developer-tools'],
+    searchTerms: ['mode', 'low', 'medium', 'full', 'consent', 'permission', 'interactive', 'doomscroll'],
+    aemeathDialogue: 'Your permission comes first, Rover! I only observe active applications if you allow Medium or Full.',
+    verificationSource: 'src/activity/activity-monitor.js, src/settings.js, renderer/settings.html',
+  },
+  {
+    id: 'chat-ai',
+    title: 'Chat & AI Provider',
+    category: 'Chatbot',
+    summary: 'AI model configuration (DeepSeek, Claude Code, Gemini, etc.) and interactive responses.',
+    purpose: 'Connects the companion with external AI models to answer broader topics and assist with coding.',
+    usage: 'Settings -> Chatbot Tab -> Enter API Key & select model',
+    examples: [
+      '/change-mode-search on',
+      'Explain the asynchronous event loop in JavaScript',
+    ],
+    requirements: 'Requires a valid API key for external/paid AI models.',
+    modeAvailability: 'Companion mode can be enabled once an API key is saved.',
+    privacyNotes: 'API keys are stored securely in local OS Credential Store (safeStorage).',
+    relatedIds: ['web-search', 'getting-started'],
+    searchTerms: ['chat', 'ai', 'deepseek', 'claude', 'model', 'api key', 'provider', 'llm', 'gemini'],
+    aemeathDialogue: 'If you need help beyond the wiki, connect an API key in Settings, Rover!',
+    verificationSource: 'src/chat/providers.js, src/chat/chat-service.js, src/chat/key-store.js',
+  },
+  {
+    id: 'web-search',
+    title: 'Web Search',
+    category: 'Search',
+    summary: 'Direct online searches with verified citations and source links.',
+    purpose: 'Searches real-time web information and includes citations from reputable sources.',
+    usage: '/search <search query>',
+    examples: [
+      '/search latest Wuthering Waves patch',
+      '/search Node.js LTS release 2026',
+      '/search F1 race schedule this week',
+    ],
+    requirements: 'Requires an active internet connection.',
+    modeAvailability: 'Can be run anytime with the /search command prefix.',
+    privacyNotes: 'Only the search query text is sent to verified search providers.',
+    relatedIds: ['chat-ai', 'custom-commands'],
+    searchTerms: ['search', 'web', 'internet', 'browsing', 'google', 'sources', 'citation'],
+    aemeathDialogue: "Looking for fresh info on the web? Type /search and I'll find sources you can trust!",
+    verificationSource: 'src/chat/web-search.js, main.js',
+  },
+  {
+    id: 'productivity',
+    title: 'Productivity & Timer',
+    category: 'Productivity',
+    summary: 'Focus timers, pomodoro intervals, local to-do lists, daily quests, and work sessions.',
+    purpose: 'Balances work and rest rhythms for Rover through smart reminders and local task management.',
+    usage: '/timer <minutes> [label] | /todo [add/done/list] | /focus <minutes> | /quest',
+    examples: [
+      '/timer 25 Pomodoro',
+      '/todo add Write guidebook tests',
+      '/focus 45',
+      '/quest',
+    ],
+    requirements: 'Fully available locally without requiring an internet connection.',
+    modeAvailability: 'All modes. Timer alerts still trigger upon completion.',
+    privacyNotes: 'All task lists and productivity records remain exclusively in local user data.',
+    relatedIds: ['memory-notes', 'settings'],
+    searchTerms: ['timer', 'todo', 'focus', 'quest', 'daily', 'chronicle', 'tasks', 'pomodoro', 'stats'],
+    aemeathDialogue: 'One step at a time, Rover! /todo organizes your tasks, and /focus keeps your mind sharp.',
+    verificationSource: 'src/productivity/productivity-hub.js, src/productivity/work-session.js',
+  },
+  {
+    id: 'memory-notes',
+    title: 'Memory & Notes',
+    category: 'Memory',
+    summary: 'Persistent companion memory for Rover preferences and notes across sessions.',
+    purpose: 'Maintains workflow continuity so Rover never has to repeat preferences or key notes.',
+    usage: '/note <note> | /memory [list/delete/clear]',
+    examples: [
+      '/note Rover prefers concise, to-the-point answers',
+      '/note Main project directory is in ~/IdeaProjects/app',
+      '/memory',
+    ],
+    requirements: 'Can be managed directly in chat or via Settings -> Memory Tab.',
+    modeAvailability: 'Automatic memory proposals activate in Full mode; manual commands work in all modes.',
+    privacyNotes: 'Rover has full control. Memories can be reviewed, edited, or cleared anytime.',
+    searchTerms: ['memory', 'notes', 'recollections', 'preferences', 'remember'],
+    aemeathDialogue: "Want me to remember something? You're always in complete control of stored memories!",
+    verificationSource: 'src/memory/memory-store.js, main.js',
+  },
+  {
+    id: 'developer-tools',
+    title: 'Developer Tools & Review',
+    category: 'Coding & Git',
+    summary: 'Local git status inspection (/review) and terminal shell integration.',
+    purpose: 'Assists developers in reviewing local code diffs objectively while catching potential secret leaks.',
+    usage: '/review | /change-mode',
+    examples: [
+      '/review (evaluate current local git diff)',
+      '/change-mode (enter PowerShell terminal mode with OS consent)',
+    ],
+    requirements: 'Device must have Git installed and be inside a Git repository.',
+    modeAvailability: 'Git diff review works offline. Terminal mode requests UAC/Polkit elevation.',
+    privacyNotes: 'Git diff is evaluated 100% locally. No code lines or secret files (.env) are sent online.',
+    relatedIds: ['interactive-modes', 'custom-commands', 'privacy-safety'],
+    searchTerms: ['review', 'git', 'diff', 'code', 'coding', 'developer', 'terminal', 'powershell', 'uac'],
+    aemeathDialogue: 'Ready to inspect code? /review audits git changes honestly and locally without sending data out!',
+    verificationSource: 'src/activity/work-reviewer.js, src/terminal/terminal-controller.js',
+  },
+  {
+    id: 'custom-commands',
+    title: 'Custom Commands',
+    category: 'Customization',
+    summary: 'Create custom slash commands to open files, folders, URLs, or automated workflows.',
+    purpose: 'Speeds up daily routines by creating custom shortcuts callable directly from the chat panel.',
+    usage: '/<command-name>',
+    examples: [
+      '/project (open project folder)',
+      '/repo (open GitHub repository page)',
+      '/build (run PowerShell command)',
+    ],
+    requirements: 'Registered through Settings -> Commands Tab.',
+    modeAvailability: 'Available across all modes.',
+    privacyNotes: 'PowerShell commands that could alter system state always require a confirmation before execution.',
+    relatedIds: ['getting-started', 'settings'],
+    searchTerms: ['command', 'custom', 'workflow', 'shortcut', 'powershell', 'open'],
+    aemeathDialogue: 'Have a frequent routine? Register it in Settings and run it with /commandName!',
+    verificationSource: 'src/commands/command-store.js, src/commands/command-runner.js',
+  },
+  {
+    id: 'settings',
+    title: 'Settings & Customization',
+    category: 'Preferences',
+    summary: 'Configure pet scale, transparency, quiet hours, themes, and desktop behavior.',
+    purpose: 'Personalize the visual presence and desktop comfort of your companion to your liking.',
+    usage: 'Right-click Aemeath -> Settings... (or click Open Settings in the chat panel)',
+    examples: [
+      'Change Pet Scale (0.6x - 2.0x)',
+      'Stay Still Mode (remain fixed in place)',
+      'Quiet Hours (mute remarks during sleep hours)',
+    ],
+    requirements: 'Changes are automatically persisted in settings.json.',
+    modeAvailability: 'All modes.',
+    privacyNotes: 'All configurations are saved privately in your local application data folder.',
+    relatedIds: ['getting-started', 'interactive-modes'],
+    searchTerms: ['settings', 'scale', 'quiet hours', 'stay still', 'transparent', 'theme'],
+    aemeathDialogue: "Customize my appearance however you like, Rover! Flying or staying put, it's all in Settings.",
+    verificationSource: 'src/settings.js, renderer/settings.js',
+  },
+  {
+    id: 'privacy-safety',
+    title: 'Privacy & Safety',
+    category: 'Privacy',
+    summary: 'User data protection principles, terminal security guards, and zero hidden telemetry.',
+    purpose: 'Guarantees that the system operates ethically without background screen recording or data harvesting.',
+    usage: 'Always active by default',
+    examples: [
+      'No screen recording or background screenshots',
+      'Automatic bypass for private browser windows (Incognito / InPrivate)',
+      'Admin confirmation gate before launching external shell processes',
+    ],
+    requirements: 'Enforced by internal application architecture.',
+    modeAvailability: 'Active in all modes.',
+    privacyNotes: 'Activity data is processed solely in volatile RAM and is never persisted to any remote server.',
+    relatedIds: ['interactive-modes', 'developer-tools'],
+    searchTerms: ['privacy', 'safety', 'incognito', 'uac', 'telemetry', 'security'],
+    aemeathDialogue: 'Your privacy comes first! Aemeath never takes silent screenshots or sends telemetry logs.',
+    verificationSource: 'src/activity/activity-tracker.js, src/terminal/uac-gate.js',
+  },
+  {
+    id: 'troubleshooting-faq',
+    title: 'Troubleshooting / FAQ',
+    category: 'Help & FAQ',
+    summary: 'Solutions for common issues, missing API keys, unrecognized commands, or resetting the pet.',
+    purpose: 'Provides instant self-help guidance when encountering usage questions or technical errors.',
+    usage: 'Type /help for quick command reference, or /feature for the full guidebook',
+    examples: [
+      'Command /... missing -> Check the command list in /help or Settings',
+      'AI model not replying -> Check API key in Settings -> Chatbot',
+      'Pet offscreen -> Right-click tray icon -> Reset Pet Position',
+    ],
+    requirements: 'Accessible offline whenever needed.',
+    modeAvailability: 'All modes.',
+    privacyNotes: 'Does not send crash reports or diagnostics without permission.',
+    relatedIds: ['getting-started', 'settings', 'custom-commands'],
+    searchTerms: ['faq', 'troubleshoot', 'help', 'error', 'issues', 'reset'],
+    aemeathDialogue: "Ran into a problem? Don't worry, Rover! Check tips here or type /help for quick guidance.",
+    verificationSource: 'src/commands/command-handler.js, main.js',
+  },
+];
+
+const GUIDE_ENTRIES = GUIDE_ENTRIES_ID;
+
+function getGuideEntries(locale) {
+  if (locale === 'en-US') {
+    return GUIDE_ENTRIES_EN.slice();
+  }
+  return GUIDE_ENTRIES_ID.slice();
 }
 
-function getGuideEntryById(id) {
+function getGuideEntryById(id, locale) {
   if (!id) return null;
-  return GUIDE_ENTRIES.find((entry) => entry.id === id) || null;
+  const list = locale === 'en-US' ? GUIDE_ENTRIES_EN : GUIDE_ENTRIES_ID;
+  return list.find((entry) => entry.id === id) || null;
 }
 
 module.exports = {
   GUIDE_ENTRIES: GUIDE_ENTRIES,
+  GUIDE_ENTRIES_ID: GUIDE_ENTRIES_ID,
+  GUIDE_ENTRIES_EN: GUIDE_ENTRIES_EN,
   getGuideEntries: getGuideEntries,
   getGuideEntryById: getGuideEntryById,
 };

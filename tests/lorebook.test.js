@@ -30,8 +30,19 @@ test('the shipped lorebook is well formed and credits every entry', () => {
   assert.ok(data.entries.some((e) => e.id === 'lore-black-shores-terms'));
   for (const entry of data.entries) {
     assert.ok(entry.text.length <= MAX_TEXT, entry.id);
+    if (entry.text_en) {
+      assert.ok(entry.text_en.length <= MAX_TEXT, entry.id + ' text_en');
+    }
     assert.match(data.sources[entry.source].url, /^https:\/\/wutheringwaves\.fandom\.com\/wiki\//);
     assert.equal(data.sources[entry.source].license, 'CC BY-SA');
+  }
+});
+
+test('shipped lorebook has 100% bilingual English coverage', () => {
+  assert.equal(data.entries.length, 75);
+  for (const entry of data.entries) {
+    assert.equal(typeof entry.text_en, 'string', entry.id + ' must have text_en');
+    assert.ok(entry.text_en.length > 0 && entry.text_en.length <= MAX_TEXT, entry.id + ' text_en length');
   }
 });
 
@@ -46,6 +57,8 @@ test('validateLorebook reports each kind of problem', () => {
       { id: 'one', topic: 'T', source: 'a', text: 'dup' },
       { id: 'two', topic: 'T', source: 'missing', text: 'x' },
       { id: 'three', topic: 'T', source: 'a', text: 'y'.repeat(MAX_TEXT + 1) },
+      { id: 'four', topic: 'T', source: 'a', text: 'ok', text_en: 'z'.repeat(MAX_TEXT + 1) },
+      { id: 'five', topic: 'T', source: 'a', text: 'ok', text_en: 123 },
     ],
   };
   const problems = validateLorebook(bad).join('\n');
@@ -54,6 +67,35 @@ test('validateLorebook reports each kind of problem', () => {
   assert.match(problems, /unknown source/);
   assert.match(problems, /longer than/);
   assert.match(problems, /"unused" is not used/);
+  assert.match(problems, /text_en is longer than/);
+  assert.match(problems, /has invalid text_en/);
+});
+
+test('createLorebook supports locale switching between id-ID and en-US', () => {
+  const sample = {
+    sources: { s1: { title: 'T', url: 'https://wutheringwaves.fandom.com/wiki/X', license: 'CC BY-SA', licenseUrl: 'https://l', accessed: '2026-10-27' } },
+    entries: [{
+      id: 'e1',
+      topic: 'Topic',
+      source: 's1',
+      text: 'Halo Dunia',
+      text_en: 'Hello World',
+      status: 'verified',
+      kind: 'canon',
+      checkedAt: '2026-10-27'
+    }]
+  };
+  const bookDefault = createLorebook(sample);
+  assert.equal(bookDefault.next().text, 'Halo Dunia');
+
+  const bookEn = createLorebook(sample, { locale: 'en-US' });
+  assert.equal(bookEn.next().text, 'Hello World');
+
+  bookEn.setLocale('id-ID');
+  assert.equal(bookEn.next().text, 'Halo Dunia');
+
+  bookEn.setLocale('en-US');
+  assert.equal(bookEn.next().text, 'Hello World');
 });
 
 test('every entry is told once before any repeats, and carries its credit', () => {

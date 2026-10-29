@@ -24,7 +24,7 @@ const DEFAULT_LIMIT_MIN = 20;
 
 const MINUTE = 60 * 1000;
 
-const CATEGORY_LABELS = {
+const CATEGORY_LABELS_ID = {
   coding: 'ngoding',
   work: 'kerja',
   browser: 'web',
@@ -37,6 +37,21 @@ const CATEGORY_LABELS = {
   other: 'lainnya',
 };
 
+const CATEGORY_LABELS_EN = {
+  coding: 'coding',
+  work: 'work',
+  browser: 'web',
+  video: 'video',
+  chat: 'chat',
+  media: 'music',
+  game: 'game',
+  social: 'medsos',
+  launcher: 'launcher',
+  other: 'other',
+};
+
+const CATEGORY_LABELS = CATEGORY_LABELS_ID;
+
 function pick(list, rng) {
   return list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 }
@@ -45,11 +60,14 @@ function minutes(ms) {
   return Math.round(ms / MINUTE);
 }
 
-// options: { getLimitMin(): number, getMode?(): 'low'|'medium'|'full', rng?: () => number }
+// options: { getLimitMin(): number, getMode?(): 'low'|'medium'|'full', getLocale?(): string, rng?: () => number }
 function createActivityTracker(options) {
-  const getLimitMin = options.getLimitMin || (() => DEFAULT_LIMIT_MIN);
-  const getMode = options.getMode || (() => 'medium');
-  const rng = options.rng || Math.random;
+  const opts = options || {};
+  const getLimitMin = opts.getLimitMin || (() => DEFAULT_LIMIT_MIN);
+  const getMode = opts.getMode || (() => 'medium');
+  const rng = opts.rng || Math.random;
+  let manualLocale = null;
+  const getLocale = () => manualLocale || (typeof opts.getLocale === 'function' ? opts.getLocale() : (opts.locale || 'id-ID'));
 
   let last = null;
   let socialMs = 0;
@@ -106,47 +124,75 @@ function createActivityTracker(options) {
   }
 
   function doomscrollText(level, spent) {
+    const isEn = getLocale() === 'en-US';
     const n = minutes(spent);
     if (level === 1) {
       return pick(
-        [
-          'Rover, kamu sudah ' + n + ' menit di media sosial. Scroll tanpa ujung itu jebakan, lho. Berdiri dulu, minum, lihat yang jauh sebentar~',
-          n + ' menit di medsos, Rover! Jempolmu belum capek? Istirahat sebentar yuk, aku temani.',
-        ],
+        isEn
+          ? [
+              'Rover, you have been on social media for ' + n + ' minutes. Endless scrolling is a trap, you know! Stand up, drink some water, and look away for a moment~',
+              n + " minutes on social media, Rover! Aren't your thumbs tired? Let's take a short break together, I will keep you company.",
+            ]
+          : [
+              'Rover, kamu sudah ' + n + ' menit di media sosial. Scroll tanpa ujung itu jebakan, lho. Berdiri dulu, minum, lihat yang jauh sebentar~',
+              n + ' menit di medsos, Rover! Jempolmu belum capek? Istirahat sebentar yuk, aku temani.',
+            ],
         rng,
       );
     }
     if (level === 2) {
-      return 'Sudah ' + n + ' menit, Rover! Aku mulai khawatir. Dunia ini masih ada di luar layar, dan aku mau kamu melihatnya juga.';
+      return isEn
+        ? 'It has been ' + n + ' minutes, Rover! I am starting to worry. There is a whole world beyond the screen, and I want you to see it too.'
+        : 'Sudah ' + n + ' menit, Rover! Aku mulai khawatir. Dunia ini masih ada di luar layar, dan aku mau kamu melihatnya juga.';
     }
-    return 'Rover... sudah lewat ' + n + ' menit. Tutup tabnya dulu, ya? Aku tidak akan ke mana-mana, kita jalan-jalan sebentar.';
+    return isEn
+      ? 'Rover... it has been over ' + n + ' minutes. Close the tab for a bit, okay? I will not go anywhere, let us take a short walk.'
+      : 'Rover... sudah lewat ' + n + ' menit. Tutup tabnya dulu, ya? Aku tidak akan ke mana-mana, kita jalan-jalan sebentar.';
   }
 
   function gameStartText(name) {
+    const isEn = getLocale() === 'en-US';
     if (name === 'Wuthering Waves') {
-      return 'Itu duniaku! Semangat mainnya, Rover. Jangan lupa istirahat ya~';
+      return isEn
+        ? "That's my world! Have fun playing, Rover. Don't forget to take breaks~"
+        : 'Itu duniaku! Semangat mainnya, Rover. Jangan lupa istirahat ya~';
     }
     return pick(
-      [
-        'Wah, kamu main ' + name + '! Semangat, Rover. Jangan lupa minum dan istirahat ya~',
-        name + ' ya? Seru! Aku ikut menonton dari sini. Jangan sampai lupa waktu, ya.',
-      ],
+      isEn
+        ? [
+            'Ooh, you are playing ' + name + '! Have fun, Rover. Remember to stay hydrated and rest up~',
+            name + ', huh? Exciting! I will watch from right here. Do not lose track of time~',
+          ]
+        : [
+            'Wah, kamu main ' + name + '! Semangat, Rover. Jangan lupa minum dan istirahat ya~',
+            name + ' ya? Seru! Aku ikut menonton dari sini. Jangan sampai lupa waktu, ya.',
+          ],
       rng,
     );
   }
 
   function gameReminderText(name, spent) {
-    return 'Sudah ' + minutes(spent) + ' menit main ' + name + ', Rover. Peregangan dulu sebentar, lalu lanjut lagi~';
+    const isEn = getLocale() === 'en-US';
+    return isEn
+      ? "You've been playing " + name + ' for ' + minutes(spent) + ' minutes, Rover. Do a quick stretch, then back to it~'
+      : 'Sudah ' + minutes(spent) + ' menit main ' + name + ', Rover. Peregangan dulu sebentar, lalu lanjut lagi~';
   }
 
   function codingStartText(app, ctx) {
+    const isEn = getLocale() === 'en-US';
     if (ctx && ctx.testing) {
-      return 'Lagi nulis atau menjalankan unit test di ' + app + ' ya, Rover? Mantap, biar kodenya makin tahan banting!~';
+      return isEn
+        ? 'Writing or running unit tests in ' + app + ', Rover? Awesome, keeping the code rock solid!~'
+        : 'Lagi nulis atau menjalankan unit test di ' + app + ' ya, Rover? Mantap, biar kodenya makin tahan banting!~';
     }
     if (ctx && ctx.language) {
-      return 'Mulai ngoding ' + ctx.language + ' di ' + app + ' ya, Rover? Fokus terus, aku ikut memperhatikan dari sini~';
+      return isEn
+        ? 'Starting to code ' + ctx.language + ' in ' + app + ', Rover? Stay focused, I will be watching from here~'
+        : 'Mulai ngoding ' + ctx.language + ' di ' + app + ' ya, Rover? Fokus terus, aku ikut memperhatikan dari sini~';
     }
-    return 'Mulai sesi ngoding di ' + app + ' ya, Rover? Semangat, semoga lancar tanpa bug aneh!~';
+    return isEn
+      ? 'Starting a coding session in ' + app + ', Rover? Best of luck, hope it goes smoothly without weird bugs!~'
+      : 'Mulai sesi ngoding di ' + app + ' ya, Rover? Semangat, semoga lancar tanpa bug aneh!~';
   }
 
   // sample: classifier output. context: optional { language, testing, screen, hour } for Full mode.
@@ -255,6 +301,7 @@ function createActivityTracker(options) {
       nextGameReminder += GAME_NEXT_REMINDER_MS;
       emit('game-long', gameReminderText(info.game, gameMs));
     } else if (isFull) {
+      const isEn = getLocale() === 'en-US';
       if (
         switchTimes.length >= SWITCH_THRESHOLD &&
         nowMs - lastSwitchWarnAt >= SWITCH_COOLDOWN_MS
@@ -263,7 +310,9 @@ function createActivityTracker(options) {
         switchTimes = [];
         emit(
           'context-switch',
-          'Loh, pindah-pindah jendela terus dari tadi, Rover? Lagi nyari referensi atau lagi terdistraksi nih? Tarik napas dulu yuk~',
+          isEn
+            ? 'Whoa, hopping between windows a lot, Rover? Looking up references or getting distracted? Take a deep breath first~'
+            : 'Loh, pindah-pindah jendela terus dari tadi, Rover? Lagi nyari referensi atau lagi terdistraksi nih? Tarik napas dulu yuk~',
         );
       } else if (info.category === 'coding' && codingApp !== info.app) {
         codingApp = info.app;
@@ -273,25 +322,43 @@ function createActivityTracker(options) {
         emit('coding-start', codingStartText(info.app, ctx));
       } else if (info.category === 'coding' && ctx.testing && !codingTested) {
         codingTested = true;
-        emit('coding-test', 'Waktunya menguji kode dengan unit test! Semoga langsung hijau semua ya, Rover~');
+        emit(
+          'coding-test',
+          isEn
+            ? 'Time to test the code with unit tests! May they all turn green right away, Rover~'
+            : 'Waktunya menguji kode dengan unit test! Semoga langsung hijau semua ya, Rover~',
+        );
       } else if (info.category === 'coding' && codingMs >= nextCodingReminder) {
         nextCodingReminder += CODING_REMINDER_MS;
         emit(
           'coding-focus',
-          'Sudah ' +
-            minutes(codingMs) +
-            ' menit fokus ngoding, Rover! Keren banget, tapi istirahatkan mata 20 detik dan minum air dulu yuk~',
+          isEn
+            ? 'You have been coding intensely for ' +
+              minutes(codingMs) +
+              ' minutes, Rover! Super cool, but rest your eyes for 20 seconds and drink some water~'
+            : 'Sudah ' +
+              minutes(codingMs) +
+              ' menit fokus ngoding, Rover! Keren banget, tapi istirahatkan mata 20 detik dan minum air dulu yuk~',
         );
       } else if (info.category === 'work' && workApp !== info.app) {
         workApp = info.app;
-        emit('work-start', 'Lagi fokus kerja di ' + info.app + ' ya, Rover? Semangat merapikannya!~');
+        emit(
+          'work-start',
+          isEn
+            ? 'Focusing on work in ' + info.app + ', Rover? You got this, let us get it sorted out!~'
+            : 'Lagi fokus kerja di ' + info.app + ' ya, Rover? Semangat merapikannya!~',
+        );
       } else if (info.category === 'video' && videoMs >= nextVideoReminder) {
         nextVideoReminder += VIDEO_REMINDER_MS;
         emit(
           'video-long',
-          'Sudah ' +
-            minutes(videoMs) +
-            ' menit nonton video nih, Rover. Jangan sampai lupa tugas utamamu hari ini ya~',
+          isEn
+            ? 'You have been watching videos for ' +
+              minutes(videoMs) +
+              ' minutes now, Rover. Do not forget your main goals for today~'
+            : 'Sudah ' +
+              minutes(videoMs) +
+              ' menit nonton video nih, Rover. Jangan sampai lupa tugas utamamu hari ini ya~',
         );
       }
     }
@@ -299,23 +366,34 @@ function createActivityTracker(options) {
   }
 
   function summary() {
+    const isEn = getLocale() === 'en-US';
+    const labels = isEn ? CATEGORY_LABELS_EN : CATEGORY_LABELS_ID;
     const entries = Object.entries(categoryMs)
       .filter(([, ms]) => ms >= 3000)
       .sort((a, b) => b[1] - a[1]);
     if (entries.length === 0) return null;
     return entries
       .map(([cat, ms]) => {
-        const label = CATEGORY_LABELS[cat] || 'lainnya';
+        const label = labels[cat] || (isEn ? 'other' : 'lainnya');
         const mins = Math.floor(ms / MINUTE);
+        if (isEn) {
+          return label + ' ' + (mins >= 1 ? mins + ' min' + (mins > 1 ? 's' : '') : '<1 min');
+        }
         return label + ' ' + (mins >= 1 ? mins + ' menit' : '<1 menit');
       })
       .join(', ');
+  }
+
+  function setLocale(loc) {
+    if (typeof loc === 'string') manualLocale = loc;
   }
 
   return {
     feed: feed,
     reset: reset,
     summary: summary,
+    setLocale: setLocale,
+    getLocale: getLocale,
     get socialMinutes() {
       return minutes(socialMs);
     },

@@ -152,6 +152,10 @@ test('localResponder responds in English when locale is en-US', () => {
   assert.equal(hello.matched, false);
   assert.match(hello.text, /Hi, Rover!|Hello Rover!/);
 
+  const hai = responder.respond('hai aemeath');
+  assert.equal(hai.matched, false);
+  assert.match(hai.text, /Hi, Rover!|Hello Rover!/);
+
   const unknown = responder.respond('What is the secret recipe for quantum cakes?', 'no-key');
   assert.equal(unknown.matched, false);
   assert.match(unknown.text, /recollections|Settings|API key/);
@@ -159,4 +163,39 @@ test('localResponder responds in English when locale is en-US', () => {
   assert.doesNotMatch(unknown.text, /\bsistem\b/i);
   assert.doesNotMatch(unknown.text, /\bdatabase\b/i);
   assert.doesNotMatch(unknown.text, /\bmemori\b/i);
+});
+
+test('localResponder responds with English lore when en-US is set', () => {
+  const sampleEntries = [
+    {
+      id: 'solaris-3-nations-lahai-roi',
+      topic: 'Solaris-3: Lahai-Roi',
+      source: 'wiki-solaris-3',
+      text: 'Di wilayah Lahai-Roi (Roya Frostlands), kepemimpinan dipegang oleh Heliodic Six...',
+      text_en: 'In Lahai-Roi (Roya Frostlands), leadership is held by the Heliodic Six and Director Chase...',
+      status: 'verified',
+      kind: 'canon',
+      checkedAt: '2026-10-27',
+      credit: { title: 'Wuthering Waves Wiki: Solaris-3', url: 'https://wutheringwaves.fandom.com/wiki/Solaris-3', license: 'CC BY-SA' },
+    },
+  ];
+
+  const responderEn = createLocalResponder({
+    getEntries: () => sampleEntries,
+    locale: 'en-US',
+  });
+
+  const resEn = responderEn.respond('Tell me about Lahai-Roi Heliodic Six', 'offline');
+  assert.equal(resEn.matched, true);
+  assert.match(resEn.text, /In Lahai-Roi/);
+  assert.doesNotMatch(resEn.text, /Di wilayah Lahai-Roi/);
+
+  const responderId = createLocalResponder({
+    getEntries: () => sampleEntries,
+    locale: 'id-ID',
+  });
+
+  const resId = responderId.respond('Lahai-Roi Heliodic Six', 'offline');
+  assert.equal(resId.matched, true);
+  assert.match(resId.text, /Di wilayah Lahai-Roi/);
 });

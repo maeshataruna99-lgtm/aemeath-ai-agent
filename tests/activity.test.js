@@ -461,6 +461,55 @@ test('Full mode remarks on coding start, test files, deep focus, and tab-hopping
   assert.ok(hopped.some((r) => r.kind === 'context-switch'));
 });
 
+test('activity tracker in en-US mode emits English proactive remarks for games, doomscrolling, and full mode', () => {
+  const tracker = createActivityTracker({
+    getLimitMin: () => 20,
+    getMode: () => 'full',
+    getLocale: () => 'en-US',
+    rng: () => 0,
+  });
+  const time = clock();
+
+  // 1. Wuthering Waves game start
+  const wuwaStart = time.run(tracker, WUWA, 1);
+  assert.equal(wuwaStart.length, 1);
+  assert.equal(wuwaStart[0].kind, 'game-start');
+  assert.equal(wuwaStart[0].text, "That's my world! Have fun playing, Rover. Don't forget to take breaks~");
+
+  // 2. Switching to Roblox game
+  const robloxStart = time.run(tracker, ROBLOX, 2);
+  assert.equal(robloxStart.length, 1);
+  assert.match(robloxStart[0].text, /Have fun, Rover|Exciting/);
+
+  // 3. Long game reminder in English
+  time.run(tracker, ROBLOX, 60);
+  const robloxLong = time.run(tracker, ROBLOX, 35);
+  assert.equal(robloxLong.length, 1);
+  assert.match(robloxLong[0].text, /Do a quick stretch/);
+
+  // 4. Doomscrolling in English
+  const socialStart = time.run(tracker, SOCIAL, 21);
+  assert.equal(socialStart.length, 1);
+  assert.match(socialStart[0].text, /Endless scrolling is a trap/);
+
+  // 5. Full mode remarks in English
+  let t = time.now + 65000;
+  const codingStart = tracker.feed(CODE, t, 0, { language: 'Rust', testing: false }).remarks;
+  assert.equal(codingStart.length, 1);
+  assert.match(codingStart[0].text, /Starting to code Rust in VS Code/);
+
+  t += 65000;
+  const testRemark = tracker.feed(CODE, t, 0, { language: 'Rust', testing: true }).remarks;
+  assert.equal(testRemark.length, 1);
+  assert.match(testRemark[0].text, /Time to test the code with unit tests/);
+
+  // 6. Dynamic setLocale
+  tracker.setLocale('id-ID');
+  assert.equal(tracker.getLocale(), 'id-ID');
+  tracker.setLocale('en-US');
+  assert.equal(tracker.getLocale(), 'en-US');
+});
+
 test('analyzeGitOutput and formatLocalEvaluation summarize work 100% locally and strip secrets', async () => {
   const status = [' M src/main.js', ' M tests/activity.test.js', '?? src/new.js'].join('\n');
   const diff = ['+const a = 1;', '+console.log(a);', '+// TODO: clean up', '-const old = 2;'].join('\n');

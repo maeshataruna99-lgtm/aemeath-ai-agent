@@ -44,6 +44,13 @@
       } else if (entry.text.length > MAX_TEXT) {
         problems.push(label + ' is longer than ' + MAX_TEXT + ' characters');
       }
+      if (entry.text_en !== undefined) {
+        if (typeof entry.text_en !== 'string' || entry.text_en.trim() === '') {
+          problems.push(label + ' has invalid text_en');
+        } else if (entry.text_en.length > MAX_TEXT) {
+          problems.push(label + ' text_en is longer than ' + MAX_TEXT + ' characters');
+        }
+      }
       if (typeof entry.topic !== 'string' || entry.topic === '') {
         problems.push(label + ' has no topic');
       }
@@ -70,9 +77,16 @@
   // Shuffle bag: every entry is said once before any entry repeats.
   function createLorebook(data, options) {
     const rng = (options && options.rng) || Math.random;
+    let locale = (options && options.locale) || 'id-ID';
     const sources = (data && data.sources) || {};
     const entries = ((data && data.entries) || []).filter((e) => sources[e.source]);
     let bag = [];
+
+    function setLocale(newLocale) {
+      if (typeof newLocale === 'string') {
+        locale = newLocale;
+      }
+    }
 
     function refill() {
       bag = entries.slice();
@@ -90,10 +104,13 @@
       if (bag.length === 0) refill();
       const entry = bag.pop();
       const source = sources[entry.source];
+      const text = (locale === 'en-US' && entry.text_en) ? entry.text_en : entry.text;
       return {
         id: entry.id,
         topic: entry.topic,
-        text: entry.text,
+        text: text,
+        text_id: entry.text,
+        text_en: entry.text_en || entry.text,
         status: entry.status || 'verified',
         kind: entry.kind || 'canon',
         checkedAt: entry.checkedAt || (source && source.accessed) || null,
@@ -101,7 +118,7 @@
       };
     }
 
-    return { next: next, size: entries.length };
+    return { next: next, size: entries.length, setLocale: setLocale, getLocale: () => locale };
   }
 
   return { createLorebook: createLorebook, validateLorebook: validateLorebook, MAX_TEXT: MAX_TEXT };

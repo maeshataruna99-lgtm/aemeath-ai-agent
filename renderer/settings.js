@@ -54,17 +54,22 @@
 
     const osName = plat.osLabel || (plat.isLinuxMint ? 'Linux Mint' : plat.isLinux ? 'Linux' : 'Windows');
     const shellName = plat.shellName || (plat.isLinux ? 'Bash' : 'PowerShell');
+    const isEn = i18n && i18n.getLocale() === 'en-US';
     if (osBadge) {
-      osBadge.textContent =
-        'Lingkungan sistem terdeteksi: ' +
-        osName +
-        (plat.desktop ? ' (' + plat.desktop + ', shell: ' + shellName + ')' : ' (shell: ' + shellName + ')');
+      const shellDetail = plat.desktop ? ' (' + plat.desktop + ', shell: ' + shellName + ')' : ' (shell: ' + shellName + ')';
+      osBadge.textContent = isEn
+        ? 'System environment detected: ' + osName + shellDetail
+        : 'Lingkungan sistem terdeteksi: ' + osName + shellDetail;
     }
     if (startupLabel) {
-      startupLabel.textContent = 'Jalankan Aemeath otomatis saat ' + osName + ' menyala';
+      startupLabel.textContent = isEn
+        ? 'Launch Aemeath automatically on ' + osName + ' startup'
+        : 'Jalankan Aemeath otomatis saat ' + osName + ' menyala';
     }
     if (changeModeDesc) {
-      changeModeDesc.textContent = 'Ganti kotak chat antara mode obrolan dan terminal ' + shellName + '.';
+      changeModeDesc.textContent = isEn
+        ? 'Switch chat box between chat and ' + shellName + ' terminal mode.'
+        : 'Ganti kotak chat antara mode obrolan dan terminal ' + shellName + '.';
     }
     if (plat.isLinux) {
       if (terminalHint) {
@@ -168,7 +173,7 @@
     if (window.AemeathI18n) {
       i18n = window.AemeathI18n.createI18n({
         locale: (settings && settings.locale) || 'id-ID',
-        catalogs: catalogs || {},
+        catalogs: catalogs || window.AemeathI18n.defaultCatalogs || {},
       });
       i18n.applyDom(document);
     }

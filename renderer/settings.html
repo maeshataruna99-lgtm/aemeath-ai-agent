@@ -38,54 +38,54 @@
       <hr>
 
       <section class="row" id="interactive">
-        <h2>Mode interaktif</h2>
-        <div class="modes" role="radiogroup" aria-label="Mode interaktif">
+        <h2 data-i18n="settings.interactive.title">Mode interaktif</h2>
+        <div class="modes" role="radiogroup" aria-label="Mode interaktif" data-i18n-aria="settings.interactive.title">
           <label class="mode-option" for="mode-low">
             <input type="radio" name="mode" id="mode-low" value="low">
-            <span><strong>Low</strong><br>Aemeath mengajakmu mengobrol dan berbicara seperti biasa.</span>
+            <span><strong data-i18n="settings.interactive.low_title">Low</strong><br><span data-i18n="settings.interactive.low_desc">Aemeath mengajakmu mengobrol dan berbicara seperti biasa.</span></span>
           </label>
           <label class="mode-option" for="mode-medium">
             <input type="radio" name="mode" id="mode-medium" value="medium">
-            <span><strong>Medium</strong><br>Aemeath boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling.</span>
+            <span><strong data-i18n="settings.interactive.medium_title">Medium</strong><br><span data-i18n="settings.interactive.medium_desc">Aemeath boleh melihat aplikasi yang sedang kamu pakai (browsing, main game, dan lain-lain) dan memperingatkanmu kalau kelamaan doomscrolling.</span></span>
           </label>
           <label class="mode-option" for="mode-full">
             <input type="radio" name="mode" id="mode-full" value="full">
-            <span><strong>Full</strong> <em class="soon">Baru</em><br>Lebih intens dari Medium: Aemeath mendeteksi program yang kamu buka, media sosial, bahasa pemrograman &amp; berkas test saat ngoding, berpindah-pindah jendela, serta menilai pekerjaanmu (<code>/review</code>) tanpa menangkap layar.</span>
+            <span><strong data-i18n="settings.interactive.full_title">Full</strong> <em class="soon" data-i18n="settings.interactive.full_badge">Baru</em><br><span data-i18n="settings.interactive.full_desc">Lebih intens dari Medium: Aemeath mendeteksi program yang kamu buka, media sosial, bahasa pemrograman &amp; berkas test saat ngoding, berpindah-pindah jendela, serta menilai pekerjaanmu (<code>/review</code>) tanpa menangkap layar.</span></span>
           </label>
         </div>
 
         <div id="medium-consent" class="consent hidden">
-          <p><strong>Sebelum menyalakan Medium</strong>, ini yang terjadi:</p>
+          <p><strong data-i18n="settings.interactive.medium_consent_title">Sebelum menyalakan Medium, ini yang terjadi:</strong></p>
           <ul>
-            <li>Setiap beberapa detik Aemeath membaca nama aplikasi dan judul jendela yang sedang aktif.</li>
-            <li>Judul langsung dibuang setelah dipakai menebak jenis kegiatan (medsos, game, ngoding, dan seterusnya). Yang diingat hanya kategori dan nama aplikasi atau game, dan hanya di memori.</li>
-            <li>Tidak ada yang disimpan ke disk atau dikirim ke internet, termasuk ke chatbot.</li>
-            <li>Jendela pribadi (incognito, InPrivate), pengelola kata sandi, dan layar kunci tidak dibaca.</li>
-            <li>Kamu bisa kembali ke Low kapan saja, dan pembacaannya langsung berhenti.</li>
+            <li data-i18n="settings.interactive.medium_consent_1">Setiap beberapa detik Aemeath membaca nama aplikasi dan judul jendela yang sedang aktif.</li>
+            <li data-i18n="settings.interactive.medium_consent_2">Judul langsung dibuang setelah dipakai menebak jenis kegiatan (medsos, game, ngoding, dan seterusnya). Yang diingat hanya kategori dan nama aplikasi atau game, dan hanya di memori.</li>
+            <li data-i18n="settings.interactive.medium_consent_3">Tidak ada yang disimpan ke disk atau dikirim ke internet, termasuk ke chatbot.</li>
+            <li data-i18n="settings.interactive.medium_consent_4">Jendela pribadi (incognito, InPrivate), pengelola kata sandi, dan layar kunci tidak dibaca.</li>
+            <li data-i18n="settings.interactive.medium_consent_5">Kamu bisa kembali ke Low kapan saja, dan pembacaannya langsung berhenti.</li>
           </ul>
           <div class="buttons">
-            <button type="button" id="medium-accept">Aktifkan Medium</button>
-            <button type="button" id="medium-cancel">Batal</button>
+            <button type="button" id="medium-accept" data-i18n="settings.interactive.medium_accept">Aktifkan Medium</button>
+            <button type="button" id="medium-cancel" data-i18n="settings.interactive.medium_cancel">Batal</button>
           </div>
         </div>
 
         <div id="full-consent" class="consent hidden">
-          <p><strong>Sebelum menyalakan Full</strong>, ini yang terjadi:</p>
+          <p><strong data-i18n="settings.interactive.full_consent_title">Sebelum menyalakan Full, ini yang terjadi:</strong></p>
           <ul>
-            <li>Mencakup semua pembacaan Medium (mendeteksi program yang dibuka dan media sosial), ditambah deteksi bahasa pemrograman dan berkas test saat kamu ngoding, serta pengingat bila kamu terlalu sering berpindah jendela.</li>
-            <li>Tidak pernah menangkap atau merekam layar (ringan di CPU/RAM).</li>
-            <li>Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tetap dilewati dan tidak pernah dibaca.</li>
-            <li>Perintah <code>/review</code> memeriksa status <code>git diff</code> 100% secara lokal di komputer ini dan mendeteksi bila ada potensi kebocoran API key atau berkas <code>.env</code>. Tidak ada data aktivitas atau kodingan yang pernah dikirim ke internet.</li>
+            <li data-i18n="settings.interactive.full_consent_1">Mencakup semua pembacaan Medium (mendeteksi program yang dibuka dan media sosial), ditambah deteksi bahasa pemrograman dan berkas test saat kamu ngoding, serta pengingat bila kamu terlalu sering berpindah jendela.</li>
+            <li data-i18n="settings.interactive.full_consent_2">Tidak pernah menangkap atau merekam layar (ringan di CPU/RAM).</li>
+            <li data-i18n="settings.interactive.full_consent_3">Jendela pribadi (incognito, InPrivate), pengelola kata sandi, layar kunci, dan prompt UAC tetap dilewati dan tidak pernah dibaca.</li>
+            <li data-i18n="settings.interactive.full_consent_4">Perintah <code>/review</code> memeriksa status <code>git diff</code> 100% secara lokal di komputer ini dan mendeteksi bila ada potensi kebocoran API key atau berkas <code>.env</code>. Tidak ada data aktivitas atau kodingan yang pernah dikirim ke internet.</li>
           </ul>
           <div class="buttons">
-            <button type="button" id="full-accept">Aktifkan Full</button>
-            <button type="button" id="full-cancel">Batal</button>
+            <button type="button" id="full-accept" data-i18n="settings.interactive.full_accept">Aktifkan Full</button>
+            <button type="button" id="full-cancel" data-i18n="settings.interactive.full_cancel">Batal</button>
           </div>
         </div>
 
         <div id="medium-options" class="hidden">
           <div class="head">
-            <label for="doom">Ingatkan kalau scroll medsos</label>
+            <label for="doom" data-i18n="settings.interactive.doom_label">Ingatkan kalau scroll medsos</label>
             <output id="doom-value"></output>
           </div>
           <input type="range" id="doom" min="5" max="120" step="5">
@@ -96,12 +96,12 @@
       <hr>
 
       <section class="row" id="startup">
-        <h2>Startup</h2>
+        <h2 data-i18n="settings.startup.title">Startup</h2>
         <label class="field check" for="startup-toggle">
           <input type="checkbox" id="startup-toggle">
-          <span id="startup-label-text">Jalankan Aemeath otomatis saat Windows menyala</span>
+          <span id="startup-label-text" data-i18n="settings.startup.toggle">Jalankan Aemeath otomatis saat Windows menyala</span>
         </label>
-        <p class="hint tight">
+        <p class="hint tight" data-i18n="settings.startup.hint">
           Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer.
           Matikan di sini kalau tidak mau; entri startup-nya langsung dihapus.
         </p>
@@ -111,42 +111,42 @@
       <hr>
 
       <section class="row" id="movement">
-        <h2>Gerak &amp; tampilan</h2>
+        <h2 data-i18n="settings.movement.title">Gerak &amp; tampilan</h2>
         <label class="field check" for="still-toggle">
           <input type="checkbox" id="still-toggle">
-          <span>Aemeath diam di tempat</span>
+          <span data-i18n="settings.movement.stay_still">Aemeath diam di tempat</span>
         </label>
-        <p class="hint tight">
+        <p class="hint tight" data-i18n="settings.movement.stay_still_hint">
           Aemeath berhenti terbang berkeliling dan tetap di posisinya sekarang. Kamu masih bisa menyeretnya ke
           tempat lain, dan dia tetap berbicara dan bereaksi. Bisa juga diganti dari menu tray.
         </p>
 
         <label class="field check" for="transparent-toggle">
           <input type="checkbox" id="transparent-toggle">
-          <span>Mode transparan (mouse menembus sprite Aemeath)</span>
+          <span data-i18n="settings.movement.transparent">Mode transparan (mouse menembus sprite Aemeath)</span>
         </label>
-        <p class="hint tight">
+        <p class="hint tight" data-i18n="settings.movement.transparent_hint">
           Saat aktif, kursor dan klik mouse menembus sprite dan balon bicara Aemeath sehingga tidak menghalangi
           pekerjaanmu. Kamu tetap bisa membuka chat lewat pintasan keyboard atau menu tray.
         </p>
 
         <div id="opacity-row" class="row">
           <div class="head">
-            <label for="opacity">Opacity sprite saat mode transparan</label>
+            <label for="opacity" data-i18n="settings.movement.opacity_label">Opacity sprite saat mode transparan</label>
             <output id="opacity-value"></output>
           </div>
           <input type="range" id="opacity" min="15" max="100" step="5">
-          <div class="scale"><span>tipis (15%)</span><span>jelas (100%)</span></div>
+          <div class="scale"><span data-i18n="settings.movement.opacity_min">tipis (15%)</span><span data-i18n="settings.movement.opacity_max">jelas (100%)</span></div>
         </div>
       </section>
 
       <hr>
 
       <section class="row" id="theme-section">
-        <h2>Tema antarmuka</h2>
+        <h2 data-i18n="settings.appearance.title">Tema antarmuka</h2>
         <p class="hint tight0">
-          Pilih tema bawaan atau sesuaikan warna, frosted blur, dan transparansi kaca secara langsung.
-          Perubahan diterapkan seketika ke seluruh jendela (companion, chat, pengaturan, dan guidebook).
+          <span data-i18n="settings.appearance.hint">Pilih tema bawaan atau sesuaikan warna, frosted blur, dan transparansi kaca secara langsung.
+          Perubahan diterapkan seketika ke seluruh jendela (companion, chat, pengaturan, dan guidebook).</span>
         </p>
 
         <!-- Pratinjau Kaca Langsung -->
@@ -168,49 +168,49 @@
             <hr class="glass-card__divider" />
             <footer class="glass-card__footer">
               <div>
-                <p class="glass-card__salary">Pratinjau Kaca</p>
+                <p class="glass-card__salary" data-i18n="settings.appearance.preview_title">Pratinjau Kaca</p>
                 <p class="glass-card__location">Live CSS Variables</p>
               </div>
-              <button class="glass-btn" type="button" id="preview-sample-btn">Uji Tombol</button>
+              <button class="glass-btn" type="button" id="preview-sample-btn" data-i18n="settings.appearance.preview_sample_btn">Uji Tombol</button>
             </footer>
           </article>
         </div>
 
         <!-- Penjaga Kontras WCAG AA -->
         <div id="contrast-alert" class="contrast-alert ok hidden" role="status" aria-live="polite">
-          <span id="contrast-text">Kualitas kontras optimal: WCAG AA lolos.</span>
-          <button type="button" id="contrast-autofix" style="display: none;">Perbaiki otomatis</button>
+          <span id="contrast-text" data-i18n="settings.appearance.contrast_optimal">Kualitas kontras optimal: WCAG AA lolos.</span>
+          <button type="button" id="contrast-autofix" style="display: none;" data-i18n="settings.appearance.contrast_autofix">Perbaiki otomatis</button>
         </div>
 
         <!-- Pilihan Mode Tampilan -->
         <div class="modes-container">
-          <label class="field">Mode Dasar</label>
+          <label class="field" data-i18n="settings.appearance.base_mode">Mode Dasar</label>
           <div class="modes" role="radiogroup" aria-label="Mode tampilan">
             <label class="mode-option" for="theme-mode-dark">
               <input type="radio" name="theme-mode" id="theme-mode-dark" value="dark">
-              <span><strong>Gelap</strong><br>Latar tembus pandang malam.</span>
+              <span><strong data-i18n="settings.appearance.dark">Gelap</strong><br><span data-i18n="settings.appearance.dark_desc">Latar tembus pandang malam.</span></span>
             </label>
             <label class="mode-option" for="theme-mode-light">
               <input type="radio" name="theme-mode" id="theme-mode-light" value="light">
-              <span><strong>Terang</strong><br>Latar kaca putih bersinar lembut.</span>
+              <span><strong data-i18n="settings.appearance.light">Terang</strong><br><span data-i18n="settings.appearance.light_desc">Latar kaca putih bersinar lembut.</span></span>
             </label>
             <label class="mode-option" for="theme-mode-system">
               <input type="radio" name="theme-mode" id="theme-mode-system" value="system">
-              <span><strong>Sistem</strong><br>Mengikuti tema Windows / OS.</span>
+              <span><strong data-i18n="settings.appearance.system">Sistem</strong><br><span data-i18n="settings.appearance.system_desc">Mengikuti tema Windows / OS.</span></span>
             </label>
           </div>
         </div>
 
         <label class="switch" for="theme-reduce-effects" style="margin: 14px 0 16px;">
           <input type="checkbox" id="theme-reduce-effects">
-          <span>Kurangi efek visual (tanpa blur, opasitas padat, minim animasi)</span>
+          <span data-i18n="settings.appearance.reduce_effects">Kurangi efek visual (tanpa blur, opasitas padat, minim animasi)</span>
         </label>
 
         <!-- Pilihan Preset Resmi (Sesuai Menu Tray) -->
         <div class="slider-group">
           <div class="slider-group-title">
-            <span>Tema Bawaan (Preset)</span>
-            <button type="button" id="theme-btn-reset" class="btn-subtle" title="Kembalikan slider ke preset aktif">Reset ke Preset</button>
+            <span data-i18n="settings.appearance.presets_title">Tema Bawaan (Preset)</span>
+            <button type="button" id="theme-btn-reset" class="btn-subtle" title="Kembalikan slider ke preset aktif" data-i18n="settings.appearance.reset_preset">Reset ke Preset</button>
           </div>
           <div class="preset-selector" role="group" aria-label="Pilihan Preset Tema">
             <button type="button" class="preset-chip preset-btn active" data-preset="midnight-glass">Midnight Glass</button>
@@ -219,16 +219,16 @@
             <button type="button" class="preset-chip preset-btn" data-preset="aemeath">Aemeath</button>
             <button type="button" class="preset-chip preset-btn" data-preset="classic">Classic</button>
           </div>
-          <p class="hint">Menggeser slider otomatis mengubah tema menjadi <em>Kustom</em>. Klik dua kali pada slider untuk reset ke nilai bawaan.</p>
+          <p class="hint" data-i18n="settings.appearance.preset_hint">Menggeser slider otomatis mengubah tema menjadi <em>Kustom</em>. Klik dua kali pada slider untuk reset ke nilai bawaan.</p>
         </div>
 
         <!-- Pengaturan Warna (OKLCH) -->
         <div class="slider-group">
-          <div class="slider-group-title">Pengaturan Warna Aksen (Ruang OKLCH)</div>
+          <div class="slider-group-title" data-i18n="settings.appearance.color_title">Pengaturan Warna Aksen (Ruang OKLCH)</div>
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-hue">Rona Warna (Hue 0° - 360°)</label>
+              <label for="theme-slider-hue" data-i18n="settings.appearance.hue_label">Rona Warna (Hue 0° - 360°)</label>
               <input type="number" id="theme-num-hue" class="slider-num-input" min="0" max="360" step="1">
             </div>
             <div class="slider-row-control">
@@ -238,7 +238,7 @@
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-chroma">Intensitas Warna (Chroma)</label>
+              <label for="theme-slider-chroma" data-i18n="settings.appearance.chroma_label">Intensitas Warna (Chroma)</label>
               <input type="number" id="theme-num-chroma" class="slider-num-input" min="0" max="0.25" step="0.005">
             </div>
             <div class="slider-row-control">
@@ -248,7 +248,7 @@
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-lightness">Kecerahan Warna (Lightness)</label>
+              <label for="theme-slider-lightness" data-i18n="settings.appearance.lightness_label">Kecerahan Warna (Lightness)</label>
               <input type="number" id="theme-num-lightness" class="slider-num-input" min="0.30" max="0.90" step="0.01">
             </div>
             <div class="slider-row-control">
@@ -259,11 +259,11 @@
 
         <!-- Pengaturan Frosted & Transparansi Kaca -->
         <div class="slider-group">
-          <div class="slider-group-title">Pengaturan Frosted &amp; Transparansi Kaca</div>
+          <div class="slider-group-title" data-i18n="settings.appearance.frosted_title">Pengaturan Frosted &amp; Transparansi Kaca</div>
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-opacity">Transparansi Kaca (Opasitas %)</label>
+              <label for="theme-slider-opacity" data-i18n="settings.appearance.glass_opacity">Transparansi Kaca (Opasitas %)</label>
               <input type="number" id="theme-num-opacity" class="slider-num-input" min="10" max="90" step="1">
             </div>
             <div class="slider-row-control">
@@ -273,7 +273,7 @@
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-blur">Kekaburan Frosted (Blur px)</label>
+              <label for="theme-slider-blur" data-i18n="settings.appearance.blur_label">Kekaburan Frosted (Blur px)</label>
               <input type="number" id="theme-num-blur" class="slider-num-input" min="0" max="40" step="1">
             </div>
             <div class="slider-row-control">
@@ -283,7 +283,7 @@
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-radius">Sudut Membulat (Radius px)</label>
+              <label for="theme-slider-radius" data-i18n="settings.appearance.radius_label">Sudut Membulat (Radius px)</label>
               <input type="number" id="theme-num-radius" class="slider-num-input" min="8" max="40" step="1">
             </div>
             <div class="slider-row-control">
@@ -293,7 +293,7 @@
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-border">Kekuatan Garis Tepi (Border %)</label>
+              <label for="theme-slider-border" data-i18n="settings.appearance.border_label">Kekuatan Garis Tepi (Border %)</label>
               <input type="number" id="theme-num-border" class="slider-num-input" min="0" max="40" step="1">
             </div>
             <div class="slider-row-control">
@@ -304,11 +304,11 @@
 
         <!-- Tipografi -->
         <div class="slider-group">
-          <div class="slider-group-title">Tipografi</div>
+          <div class="slider-group-title" data-i18n="settings.appearance.typography_title">Tipografi</div>
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="theme-slider-scale">Skala Ukuran Teks (%)</label>
+              <label for="theme-slider-scale" data-i18n="settings.appearance.scale_label">Skala Ukuran Teks (%)</label>
               <input type="number" id="theme-num-scale" class="slider-num-input" min="90" max="120" step="1">
             </div>
             <div class="slider-row-control">
@@ -319,18 +319,18 @@
 
         <!-- Ekspor / Impor JSON (P4.6) -->
         <div class="buttons" style="margin-top: 16px;">
-          <button type="button" id="theme-btn-export">Ekspor Tema (JSON)</button>
-          <button type="button" id="theme-btn-import">Impor Tema...</button>
+          <button type="button" id="theme-btn-export" data-i18n="settings.appearance.export_btn">Ekspor Tema (JSON)</button>
+          <button type="button" id="theme-btn-import" data-i18n="settings.appearance.import_btn">Impor Tema...</button>
           <input type="file" id="theme-import-file" accept=".json" class="hidden">
         </div>
-        <p class="hint">Berkas tema yang diekspor berformat JSON aman dan dapat dibagikan atau dipasang kembali kapan saja.</p>
+        <p class="hint" data-i18n="settings.appearance.export_hint">Berkas tema yang diekspor berformat JSON aman dan dapat dibagikan atau dipasang kembali kapan saja.</p>
       </section>
 
       <hr>
 
       <section class="row" id="shortcut-section">
-        <h2>Pintasan keyboard</h2>
-        <label class="field" for="shortcut">Panggil atau tutup kotak chat dari mana saja</label>
+        <h2 data-i18n="settings.shortcut_section.title">Pintasan keyboard</h2>
+        <label class="field" for="shortcut" data-i18n="settings.shortcut_section.label">Panggil atau tutup kotak chat dari mana saja</label>
         <select id="shortcut">
           <option value="Alt+Space">Alt + Space (bawaan)</option>
           <option value="CommandOrControl+Shift+A">Ctrl + Shift + A</option>
@@ -339,7 +339,7 @@
           <option value="">Nonaktif</option>
         </select>
         <p class="hint">
-          Tekan pintasan ini kapan saja untuk langsung mengetik pesan atau menjalankan perintah <code>/nama</code> tanpa mengklik Aemeath.
+          <span data-i18n="settings.shortcut_section.hint">Tekan pintasan ini kapan saja untuk langsung mengetik pesan atau menjalankan perintah <code>/nama</code> tanpa mengklik Aemeath.</span>
         </p>
       </section>
 
@@ -347,41 +347,39 @@
 
       <label class="row check">
         <input type="checkbox" id="chatter">
-        <span>Aemeath boleh mengajakmu bicara</span>
+        <span data-i18n="settings.chatter.toggle_label">Aemeath boleh mengajakmu bicara</span>
       </label>
 
       <section class="row">
         <div class="head">
-          <label for="interval">Jeda antar celetukan</label>
+          <label for="interval" data-i18n="settings.chatter.interval_label">Jeda antar celetukan</label>
           <output id="value"></output>
         </div>
         <input type="range" id="interval" min="1" max="15" step="0.5">
-        <div class="scale"><span>sering</span><span>jarang</span></div>
+        <div class="scale"><span data-i18n="settings.chatter.frequent">sering</span><span data-i18n="settings.chatter.rare">jarang</span></div>
         <p id="range" class="hint"></p>
       </section>
 
       <hr>
 
       <section class="row" id="proactive-section">
-        <h2>Interaksi proaktif</h2>
+        <h2 data-i18n="settings.proactive.title">Interaksi proaktif</h2>
         <label class="field check" for="proactive-pause">
           <input type="checkbox" id="proactive-pause">
-          <span>Jeda semua interaksi proaktif</span>
+          <span data-i18n="settings.proactive.pause">Jeda semua interaksi proaktif</span>
         </label>
         <p class="hint tight">
-          Saat aktif, Aemeath berhenti menyapa dan berkomentar sendiri. Pengingat yang kamu jadwalkan
-          sendiri lewat <code>/timer</code> dan pemberitahuan penting sesi AI tetap muncul. Sakelar yang
-          sama ada di menu tray.
+          <span data-i18n="settings.proactive.pause_hint">Saat aktif, Aemeath berhenti menyapa dan berkomentar sendiri. Pengingat yang kamu jadwalkan sendiri lewat <code>/timer</code> dan pemberitahuan penting sesi AI tetap muncul. Sakelar yang sama ada di menu tray.</span>
         </p>
 
         <div class="head">
-          <label for="proactive-cap">Batas reaksi proaktif per jam</label>
+          <label for="proactive-cap" data-i18n="settings.proactive.cap_label">Batas reaksi proaktif per jam</label>
           <output id="proactive-cap-value"></output>
         </div>
         <input type="range" id="proactive-cap" min="1" max="30" step="1">
         <div class="scale"><span>jarang</span><span>sering</span></div>
 
-        <label class="field" for="proactive-cooldown">Jeda setelah satu jenis reaksi</label>
+        <label class="field" for="proactive-cooldown" data-i18n="settings.proactive.cooldown_label">Jeda setelah satu jenis reaksi</label>
         <select id="proactive-cooldown">
           <option value="0">Tanpa jeda</option>
           <option value="5">5 menit</option>
@@ -391,17 +389,14 @@
           <option value="60">1 jam</option>
         </select>
         <p class="hint">
-          Batas ini berlaku untuk reaksi tentang aktivitasmu, bukan untuk celetukan yang jedanya kamu atur
-          di atas. Yang lebih penting selalu menang: keputusan sesi AI, sesi gagal, permintaanmu, timer
-          selesai, reaksi aktivitas, lalu celetukan. Celetukan ditunda saat kamu mengetik di kotak chat,
-          saat komputer idle, dan saat timer fokus berjalan.
+          <span data-i18n="settings.proactive.cooldown_hint">Batas ini berlaku untuk reaksi tentang aktivitasmu, bukan untuk celetukan yang jedanya kamu atur di atas. Yang lebih penting selalu menang: keputusan sesi AI, sesi gagal, permintaanmu, timer selesai, reaksi aktivitas, lalu celetukan.</span>
         </p>
 
         <div id="priority-ladder" class="row">
-          <label class="field">Urutan prioritas notifikasi (1 = tertinggi, 6 = terendah)</label>
+          <label class="field" data-i18n="settings.proactive.ladder_label">Urutan prioritas notifikasi (1 = tertinggi, 6 = terendah)</label>
           <div class="priority-grid">
             <div class="priority-row">
-              <label for="prio-decision">Keputusan sesi AI</label>
+              <label for="prio-decision" data-i18n="settings.proactive.prio_decision">Keputusan sesi AI</label>
               <select id="prio-decision" data-category="decision" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -412,7 +407,7 @@
               </select>
             </div>
             <div class="priority-row">
-              <label for="prio-failure">Sesi AI gagal / berhenti</label>
+              <label for="prio-failure" data-i18n="settings.proactive.prio_failure">Sesi AI gagal / berhenti</label>
               <select id="prio-failure" data-category="failure" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -423,7 +418,7 @@
               </select>
             </div>
             <div class="priority-row">
-              <label for="prio-direct">Permintaan langsung &amp; memori</label>
+              <label for="prio-direct" data-i18n="settings.proactive.prio_direct">Permintaan langsung &amp; memori</label>
               <select id="prio-direct" data-category="direct" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -434,7 +429,7 @@
               </select>
             </div>
             <div class="priority-row">
-              <label for="prio-productivity">Timer &amp; sesi selesai</label>
+              <label for="prio-productivity" data-i18n="settings.proactive.prio_productivity">Timer &amp; sesi selesai</label>
               <select id="prio-productivity" data-category="productivity" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -445,7 +440,7 @@
               </select>
             </div>
             <div class="priority-row">
-              <label for="prio-activity">Aktivitas &amp; tawaran memori</label>
+              <label for="prio-activity" data-i18n="settings.proactive.prio_activity">Aktivitas &amp; tawaran memori</label>
               <select id="prio-activity" data-category="activity" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -456,7 +451,7 @@
               </select>
             </div>
             <div class="priority-row">
-              <label for="prio-chatter">Obrolan santai &amp; trivia</label>
+              <label for="prio-chatter" data-i18n="settings.proactive.prio_chatter">Obrolan santai &amp; trivia</label>
               <select id="prio-chatter" data-category="chatter" class="prio-select">
                 <option value="1">1 (Tertinggi)</option>
                 <option value="2">2</option>
@@ -468,27 +463,25 @@
             </div>
           </div>
           <p class="hint tight">
-            Ubah urutan ini jika ingin suatu kategori (misalnya timer atau celetukan) lebih diutamakan
-            atau ditunda saat beberapa pesan datang bersamaan.
+            <span data-i18n="settings.proactive.prio_hint">Ubah urutan ini jika ingin suatu kategori (misalnya timer atau celetukan) lebih diutamakan atau ditunda saat beberapa pesan datang bersamaan.</span>
           </p>
         </div>
 
         <div id="quiet-hours-section" class="row">
           <label class="field check" for="quiet-hours-toggle">
             <input type="checkbox" id="quiet-hours-toggle">
-            <span>Aktifkan jam tenang (Do Not Disturb)</span>
+            <span data-i18n="settings.proactive.dnd_toggle">Aktifkan jam tenang (Do Not Disturb)</span>
           </label>
           <div id="quiet-hours-time" class="row">
             <div class="time-range-row">
-              <label for="quiet-hours-start">Mulai</label>
+              <label for="quiet-hours-start" data-i18n="settings.proactive.dnd_start">Mulai</label>
               <input type="time" id="quiet-hours-start" value="23:00">
-              <label for="quiet-hours-end">Sampai</label>
+              <label for="quiet-hours-end" data-i18n="settings.proactive.dnd_end">Sampai</label>
               <input type="time" id="quiet-hours-end" value="07:00">
             </div>
           </div>
           <p class="hint tight">
-            Selama jam tenang, Aemeath tidak akan menyapa atau mengobrol santai.
-            Pemberitahuan penting (seperti keputusan sesi AI dan timer) tetap diizinkan muncul.
+            <span data-i18n="settings.proactive.dnd_hint">Selama jam tenang, Aemeath tidak akan menyapa atau mengobrol santai. Pemberitahuan penting (seperti keputusan sesi AI dan timer) tetap diizinkan muncul.</span>
           </p>
         </div>
       </section>
@@ -496,15 +489,13 @@
       <hr>
 
       <section class="row" id="lorebook-section">
-        <h2>Data Lorebook &amp; Wiki Wuthering Waves</h2>
+        <h2 data-i18n="settings.lorebook.title">Data Lorebook &amp; Wiki Wuthering Waves</h2>
         <p class="hint tight">
-          Aemeath selalu mengobrolkan fakta acak Wuthering Waves dari lorebook lokal yang tersedia.
-          Kamu bisa memperbarui data dari Wuthering Waves Wiki kapan saja (kosongkan kolom untuk
-          memperbarui halaman utama seperti Solaris-3, Lore, dan Resonator, atau isi judul/URL halaman tertentu).
+          <span data-i18n="settings.lorebook.hint">Aemeath selalu mengobrolkan fakta acak Wuthering Waves dari lorebook lokal yang tersedia. Kamu bisa memperbarui data dari Wuthering Waves Wiki kapan saja.</span>
         </p>
         <div class="key-row">
-          <input id="wiki-page" type="text" placeholder="Contoh: Solaris-3, Lore, Rinascita (opsional)" autocomplete="off" spellcheck="false">
-          <button id="update-wiki" type="button">Perbarui Wiki</button>
+          <input id="wiki-page" type="text" placeholder="Contoh: Solaris-3, Lore, Rinascita (opsional)" data-i18n-placeholder="settings.lorebook.placeholder" autocomplete="off" spellcheck="false">
+          <button id="update-wiki" type="button" data-i18n="settings.lorebook.update_btn">Perbarui Wiki</button>
         </div>
         <p id="lorebook-status" class="status"></p>
       </section>
@@ -512,48 +503,44 @@
 
     <div class="panel hidden" role="tabpanel" id="panel-chatbot" aria-labelledby="tab-chatbot">
       <section class="row" id="chatbot">
-        <h2>Chatbot</h2>
+        <h2 data-i18n="settings.chatbot.title">Chatbot</h2>
 
-        <label class="field" for="provider">Penyedia</label>
+        <label class="field" for="provider" data-i18n="settings.chatbot.provider_label">Penyedia</label>
         <select id="provider"></select>
 
-        <label class="field" for="model">Model</label>
+        <label class="field" for="model" data-i18n="settings.chatbot.model_label">Model</label>
         <select id="model"></select>
 
         <label class="field check" for="websearch">
           <input type="checkbox" id="websearch">
-          <span>Cari di web agar jawaban lebih akurat</span>
+          <span data-i18n="settings.chatbot.web_search_label">Cari di web agar jawaban lebih akurat</span>
         </label>
         <p class="hint tight">
-          Memakai Wuthering Waves Wiki untuk pertanyaan game dan Wikipedia untuk topik lain.
-          Kata kunci pertanyaanmu dikirim ke situs itu, lalu hasilnya ikut dijadikan bahan jawaban
-          dengan sumber tertera. Bukan mesin pencari umum.
+          <span data-i18n="settings.chatbot.web_search_hint">Memakai Wuthering Waves Wiki untuk pertanyaan game dan Wikipedia untuk topik lain. Kata kunci pertanyaanmu dikirim ke situs itu, lalu hasilnya ikut dijadikan bahan jawaban dengan sumber tertera. Bukan mesin pencari umum.</span>
         </p>
 
         <label class="field check" for="offline">
           <input type="checkbox" id="offline">
-          <span>Tetap ngobrol tanpa kunci atau internet</span>
+          <span data-i18n="settings.chatbot.offline_label">Tetap ngobrol tanpa kunci atau internet</span>
         </label>
         <p class="hint tight">
-          Saat kunci belum ada atau internet putus, Aemeath menjawab dari lorebook yang tersimpan.
-          Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.
+          <span data-i18n="settings.chatbot.offline_hint">Saat kunci belum ada atau internet putus, Aemeath menjawab dari lorebook yang tersimpan. Kalau dia tidak tahu, dia menyuruhmu mencari di internet atau mengisi API key.</span>
         </p>
 
         <label class="field check" for="streaming">
           <input type="checkbox" id="streaming">
-          <span>Mode streaming teks (muncul kata demi kata)</span>
+          <span data-i18n="settings.chatbot.streaming_label">Mode streaming teks (muncul kata demi kata)</span>
         </label>
         <p class="hint tight">
-          Menampilkan ketikan teks secara langsung (streaming) saat model AI sedang merespons.
-          Matikan jika kamu lebih suka pesan muncul sekaligus setelah selesai.
+          <span data-i18n="settings.chatbot.streaming_hint">Menampilkan ketikan teks secara langsung (streaming) saat model AI sedang merespons. Matikan jika kamu lebih suka pesan muncul sekaligus setelah selesai.</span>
         </p>
 
-        <label class="field" for="apikey">Kunci API</label>
+        <label class="field" for="apikey" data-i18n="settings.chatbot.key_label">Kunci API</label>
         <input type="password" id="apikey" autocomplete="off" spellcheck="false"
-               placeholder="Tempel kunci di sini">
+               placeholder="Tempel kunci di sini" data-i18n-placeholder="settings.chatbot.key_placeholder">
         <div class="buttons">
-          <button type="button" id="save-key">Simpan kunci</button>
-          <button type="button" id="clear-key">Hapus kunci</button>
+          <button type="button" id="save-key" data-i18n="settings.chatbot.key_save">Simpan kunci</button>
+          <button type="button" id="clear-key" data-i18n="settings.chatbot.key_clear">Hapus kunci</button>
         </div>
         <p id="key-status" class="status"></p>
 
@@ -571,10 +558,9 @@
 
     <div class="panel hidden" role="tabpanel" id="panel-commands" aria-labelledby="tab-commands">
       <section class="row" id="builtin">
-        <h2>Perintah bawaan</h2>
+        <h2 data-i18n="settings.commands.builtin_title">Perintah bawaan</h2>
         <p class="hint tight0">
-          Perintah ini sudah tertanam di Aemeath. Namanya dicadangkan, jadi perintah kustom
-          dengan nama yang sama ditolak.
+          <span data-i18n="settings.commands.builtin_hint">Perintah ini sudah tertanam di Aemeath. Namanya dicadangkan, jadi perintah kustom dengan nama yang sama ditolak.</span>
         </p>
         <div class="builtin-row">
           <code>/change-mode</code>
@@ -610,9 +596,9 @@
         </div>
         <label class="field check" for="terminal">
           <input type="checkbox" id="terminal">
-          <span>Izinkan mode terminal</span>
+          <span data-i18n="settings.commands.terminal_toggle">Izinkan mode terminal</span>
         </label>
-        <p id="terminal-hint" class="hint tight">
+        <p id="terminal-hint" class="hint tight" data-i18n="settings.commands.terminal_hint">
           Saat <code>/change-mode</code> dipakai, Windows meminta persetujuan admin (UAC) lebih dulu.
           Setelah disetujui, kotak chat menjadi PowerShell yang berjalan sebagai kamu, bukan sebagai admin,
           dan hanya perintah yang kamu ketik sendiri yang dijalankan. Chatbot tidak ikut campur, dan
@@ -623,8 +609,8 @@
       <hr>
 
       <section class="row" id="commands">
-        <h2>Perintah kustom</h2>
-        <p id="commands-intro-hint" class="hint tight0">
+        <h2 data-i18n="settings.commands.custom_title">Perintah kustom</h2>
+        <p id="commands-intro-hint" class="hint tight0" data-i18n="settings.commands.custom_intro_hint">
           Ketik <code>/nama</code> di kotak chat untuk membuka program, folder, atau tautan, atau menjalankan perintah PowerShell,
           misalnya <code>/invoice</code> untuk folder invoice, <code>/wuwa</code> untuk launcher game,
           atau <code>/matikan</code> untuk mematikan komputer.
@@ -633,20 +619,20 @@
         </p>
         <div id="command-list"></div>
         <div class="buttons">
-          <button type="button" id="add-command">Tambah perintah</button>
+          <button type="button" id="add-command" data-i18n="settings.commands.add_btn">Tambah perintah</button>
         </div>
-        <label class="field" for="preset">Atau mulai dari contoh</label>
+        <label class="field" for="preset" data-i18n="settings.commands.preset_label">Atau mulai dari contoh</label>
         <div class="preset-line">
           <select id="preset"></select>
-          <button type="button" id="add-preset">Tambah contoh</button>
+          <button type="button" id="add-preset" data-i18n="settings.commands.preset_btn">Tambah contoh</button>
         </div>
         <p id="command-status" class="status"></p>
-        <p id="commands-target-hint" class="hint">
+        <p id="commands-target-hint" class="hint" data-i18n="settings.commands.target_hint">
           Tujuan bisa berupa jalur lengkap ke program, berkas, atau folder (boleh memakai
           <code>%USERPROFILE%</code>), atau tautan <code>http://</code> / <code>https://</code>.
           Argumen hanya berlaku untuk program berekstensi .exe.
         </p>
-        <p id="commands-shell-hint" class="hint">
+        <p id="commands-shell-hint" class="hint" data-i18n="settings.commands.shell_hint">
           <strong>Perintah PowerShell</strong> dijalankan sebagai kamu (bukan admin), satu baris, dan dihentikan
           setelah 30 detik. Aemeath selalu bertanya "ya" dulu untuk perintah yang bisa mematikan, menghapus,
           memformat, atau mengunduh lalu menjalankan sesuatu, dan kamu tidak bisa mematikan pertanyaan itu.
@@ -657,23 +643,20 @@
 
     <div class="panel hidden" role="tabpanel" id="panel-memory" aria-labelledby="tab-memory">
       <section class="row" id="memory">
-        <h2>Memori companion</h2>
+        <h2 data-i18n="settings.memory.title">Memori companion</h2>
         <p class="hint tight0">
-          Hal-hal yang kamu izinkan untuk Aemeath ingat: proyek yang sedang kamu kerjakan, tugas yang belum
-          selesai, keputusan desain, dan cara kamu suka diajak bicara. Memori ini terpisah dari lorebook:
-          fakta Wuthering Waves tetap berasal dari wiki, dan memori tidak pernah mengubah canon.
+          <span data-i18n="settings.memory.hint">Hal-hal yang kamu izinkan untuk Aemeath ingat: proyek yang sedang kamu kerjakan, tugas yang belum selesai, keputusan desain, dan cara kamu suka diajak bicara. Memori ini terpisah dari lorebook: fakta Wuthering Waves tetap berasal dari wiki, dan memori tidak pernah mengubah canon.</span>
         </p>
 
         <label class="field check" for="memory-enabled">
           <input type="checkbox" id="memory-enabled">
-          <span>Izinkan Aemeath menyimpan memori</span>
+          <span data-i18n="settings.memory.toggle">Izinkan Aemeath menyimpan memori</span>
         </label>
         <p class="hint tight">
-          Saat dimatikan, tidak ada yang disimpan dan tidak ada memori yang ikut dikirim ke model. Memori yang
-          sudah ada tetap bisa kamu lihat dan hapus di bawah.
+          <span data-i18n="settings.memory.toggle_hint">Saat dimatikan, tidak ada yang disimpan dan tidak ada memori yang ikut dikirim ke model. Memori yang sudah ada tetap bisa kamu lihat dan hapus di bawah.</span>
         </p>
 
-        <label class="field" for="memory-retention">Ringkasan dari AI dibersihkan setelah</label>
+        <label class="field" for="memory-retention" data-i18n="settings.memory.retention_label">Ringkasan dari AI dibersihkan setelah</label>
         <select id="memory-retention">
           <option value="30">30 hari</option>
           <option value="90">90 hari (bawaan)</option>
@@ -682,15 +665,14 @@
           <option value="0">Tidak pernah otomatis</option>
         </select>
         <p class="hint tight">
-          Hanya ringkasan yang Aemeath buat sendiri yang mengikuti aturan ini. Memori yang kamu tulis sendiri
-          tidak pernah dibersihkan otomatis.
+          <span data-i18n="settings.memory.retention_hint">Hanya ringkasan yang Aemeath buat sendiri yang mengikuti aturan ini. Memori yang kamu tulis sendiri tidak pernah dibersihkan otomatis.</span>
         </p>
 
         <p id="memory-status" class="status"></p>
         <div id="memory-list"></div>
 
         <div id="memory-new" class="mem hidden">
-          <textarea id="memory-new-text" rows="2" maxlength="280" placeholder="Misalnya: di aemeath-ai-agent aku sedang menggarap memori companion sebelum Focus Companion 2.0."></textarea>
+          <textarea id="memory-new-text" rows="2" maxlength="280" placeholder="Misalnya: di aemeath-ai-agent aku sedang menggarap memori companion sebelum Focus Companion 2.0." data-i18n-placeholder="settings.memory.new_placeholder"></textarea>
           <div class="mem-line">
             <select id="memory-new-kind">
               <option value="project">Proyek</option>
@@ -700,21 +682,19 @@
               <option value="next-step">Langkah berikutnya</option>
               <option value="context">Konteks</option>
             </select>
-            <button type="button" id="memory-new-save">Simpan</button>
-            <button type="button" id="memory-new-cancel">Batal</button>
+            <button type="button" id="memory-new-save" data-i18n="settings.memory.save_btn">Simpan</button>
+            <button type="button" id="memory-new-cancel" data-i18n="settings.memory.cancel_btn">Batal</button>
           </div>
         </div>
 
         <div class="buttons">
-          <button type="button" id="add-memory">Tambah memori</button>
-          <button type="button" id="clear-memory">Hapus semua</button>
+          <button type="button" id="add-memory" data-i18n="settings.memory.add_btn">Tambah memori</button>
+          <button type="button" id="clear-memory" data-i18n="settings.memory.clear_btn">Hapus semua</button>
         </div>
         <p id="memory-note" class="status"></p>
 
         <p class="hint">
-          Saat kamu mengirim pesan, hanya potongan memori yang berhubungan dengan pesan itu — paling banyak empat
-          baris — yang ikut ke model, bukan seluruh daftar. Semuanya tersimpan di <code>memory.json</code> di
-          folder data aplikasi; berkas itu boleh kamu hapus sendiri kapan saja.
+          <span data-i18n="settings.memory.privacy_hint">Saat kamu mengirim pesan, hanya potongan memori yang berhubungan dengan pesan itu — paling banyak empat baris — yang ikut ke model, bukan seluruh daftar. Semuanya tersimpan di memory.json di folder data aplikasi; berkas itu boleh kamu hapus sendiri kapan saja.</span>
         </p>
       </section>
     </div>

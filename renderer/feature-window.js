@@ -73,7 +73,7 @@
     if (window.AemeathI18n) {
       i18n = window.AemeathI18n.createI18n({
         locale: currentSettings.locale || 'id-ID',
-        catalogs: catalogs || {},
+        catalogs: catalogs || window.AemeathI18n.defaultCatalogs || {},
       });
       i18n.applyDom(document);
     }
@@ -86,6 +86,14 @@
           if (localeChanged && i18n) {
             i18n.setLocale(updated.locale);
             i18n.applyDom(document);
+            guideApi.getEntries().then((entries) => {
+              if (Array.isArray(entries)) {
+                allEntries = entries;
+                currentFiltered = allEntries.slice();
+                renderNav();
+                selectEntry(activeEntryId || (allEntries[0] && allEntries[0].id), true);
+              }
+            });
           }
         }
       });
@@ -189,7 +197,9 @@
 
   function renderNav() {
     navList.innerHTML = '';
-    navCountBadge.textContent = currentFiltered.length + ' Topik';
+    navCountBadge.textContent = i18n
+      ? i18n.t('feature_guide.nav_count', { count: currentFiltered.length })
+      : currentFiltered.length + ' Topik';
 
     if (currentFiltered.length === 0) {
       const empty = document.createElement('div');
@@ -197,7 +207,11 @@
       empty.style.textAlign = 'center';
       empty.style.fontSize = '12px';
       empty.style.color = '#94a3b8';
-      empty.innerHTML = 'Tidak ada topik yang cocok.<br><button type="button" class="copy-btn" style="margin-top:8px;">Reset</button>';
+      empty.innerHTML =
+        (i18n ? i18n.t('feature_guide.no_results') : 'Tidak ada topik yang cocok.') +
+        '<br><button type="button" class="copy-btn" style="margin-top:8px;">' +
+        (i18n ? i18n.t('feature_guide.reset_btn') : 'Reset') +
+        '</button>';
       empty.querySelector('button').addEventListener('click', () => {
         searchInput.value = '';
         searchClearBtn.style.display = 'none';
@@ -278,8 +292,9 @@
     // Purpose card
     const purposeCard = document.createElement('div');
     purposeCard.className = 'card-section';
+    const purposeTitle = i18n ? i18n.t('feature_guide.purpose_title') : 'Tujuan / Fungsi Utama';
     purposeCard.innerHTML = `
-      <div class="card-title">Tujuan / Fungsi Utama</div>
+      <div class="card-title">${escapeHtml(purposeTitle)}</div>
       <div class="card-text">${escapeHtml(entry.purpose)}</div>
     `;
     articleArea.appendChild(purposeCard);
@@ -295,19 +310,22 @@
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.className = 'copy-btn';
-    copyBtn.textContent = 'Salin';
+    const copyLabel = i18n ? i18n.t('feature_guide.copy') : 'Salin';
+    const copiedLabel = i18n ? i18n.t('feature_guide.copied') : 'Tersalin!';
+    copyBtn.textContent = copyLabel;
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(entry.usage).then(() => {
-        copyBtn.textContent = 'Tersalin!';
+        copyBtn.textContent = copiedLabel;
         setTimeout(() => {
-          copyBtn.textContent = 'Salin';
+          copyBtn.textContent = copyLabel;
         }, 1600);
       });
     });
     syntaxBox.append(codeSpan, copyBtn);
 
     const examplesWrap = document.createElement('div');
-    examplesWrap.innerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600;">Contoh Masukan:</span>';
+    const examplesLabel = i18n ? i18n.t('feature_guide.examples_label') : 'Contoh Masukan:';
+    examplesWrap.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-weight:600;">${escapeHtml(examplesLabel)}</span>`;
     const tagList = document.createElement('div');
     tagList.className = 'examples-wrap';
     entry.examples.forEach((ex) => {
@@ -318,20 +336,23 @@
     });
     examplesWrap.appendChild(tagList);
 
-    syntaxCard.innerHTML = '<div class="card-title pink">Cara Penggunaan &amp; Sintaks</div>';
+    const usageTitle = i18n ? i18n.t('feature_guide.usage_title') : 'Cara Penggunaan & Sintaks';
+    syntaxCard.innerHTML = `<div class="card-title pink">${escapeHtml(usageTitle)}</div>`;
     syntaxCard.append(syntaxBox, examplesWrap);
     articleArea.appendChild(syntaxCard);
 
     // Grid: Requirements & Mode Availability
     const grid = document.createElement('div');
     grid.className = 'grid-two';
+    const reqTitle = i18n ? i18n.t('feature_guide.requirements_title') : 'Persyaratan';
+    const modeTitle = i18n ? i18n.t('feature_guide.mode_title') : 'Kesesuaian Mode';
     grid.innerHTML = `
       <div class="card-section" style="margin-bottom:0;">
-        <div class="card-title" style="color:#94a3b8;">Persyaratan</div>
+        <div class="card-title" style="color:#94a3b8;">${escapeHtml(reqTitle)}</div>
         <div class="card-text">${escapeHtml(entry.requirements)}</div>
       </div>
       <div class="card-section" style="margin-bottom:0;">
-        <div class="card-title" style="color:#94a3b8;">Kesesuaian Mode</div>
+        <div class="card-title" style="color:#94a3b8;">${escapeHtml(modeTitle)}</div>
         <div class="card-text">${escapeHtml(entry.modeAvailability)}</div>
       </div>
     `;
@@ -340,12 +361,13 @@
     // Privacy & Safety card
     const privacyCard = document.createElement('div');
     privacyCard.className = 'privacy-card';
+    const privTitle = i18n ? i18n.t('feature_guide.privacy_title') : 'Privasi & Keamanan Terjamin';
     privacyCard.innerHTML = `
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
       </svg>
       <div>
-        <strong>Privasi &amp; Keamanan Terjamin</strong>
+        <strong>${escapeHtml(privTitle)}</strong>
         <span>${escapeHtml(entry.privacyNotes)}</span>
       </div>
     `;

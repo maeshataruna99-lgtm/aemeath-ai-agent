@@ -469,11 +469,22 @@
       reposition();
     }
 
+    function getGreeting() {
+      if (window.AemeathI18n && typeof window.AemeathI18n.createI18n === 'function') {
+        const i18nInst = window.AemeathI18n.createI18n({ locale: currentLocale });
+        const val = i18nInst.t('chat.greeting');
+        if (val && val !== 'chat.greeting') return val;
+      }
+      return currentLocale === 'en-US'
+        ? 'Hi, Rover! What would you like to chat about? You can ask about Wuthering Waves too~'
+        : 'Hai, Rover! Mau ngobrol apa? Tanya soal Wuthering Waves juga boleh~';
+    }
+
     async function open() {
       clearTimeout(forgetTimer);
       isOpen = true;
       el.classList.remove('hidden');
-      if (log.children.length === 0) add('bot', GREETING);
+      if (log.children.length === 0) add('bot', getGreeting());
       reposition();
       api.focusWindow();
       await Promise.all([refreshStatus(), refreshCommands()]);
@@ -486,7 +497,7 @@
       pendingAttachments = [];
       renderPendingAttachments();
       log.textContent = '';
-      if (isOpen && mode === 'chat') add('bot', GREETING);
+      if (isOpen && mode === 'chat') add('bot', getGreeting());
     }
 
     function close() {
@@ -736,6 +747,11 @@
         if (loc === 'id-ID' || loc === 'en-US') {
           currentLocale = loc;
           updateLocalizedUI();
+          if (log.children.length === 1 && log.children[0].classList.contains('bot')) {
+            const botMsg = log.children[0];
+            const botText = botMsg.querySelector('.msg-text') || botMsg;
+            botText.textContent = getGreeting();
+          }
         }
       },
       contains: (node) => el.contains(node),

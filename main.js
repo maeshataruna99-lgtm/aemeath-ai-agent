@@ -286,6 +286,7 @@ function main() {
     tracker: createActivityTracker({
       getLimitMin: () => settings.doomscrollLimitMin,
       getMode: () => settings.interactiveMode,
+      getLocale: () => settings.locale,
     }),
     getIdleSeconds: () => (isSelfie ? 0 : powerMonitor.getSystemIdleTime()),
     onRemark: (remark) => {
@@ -769,11 +770,14 @@ function main() {
     });
 
     ipcMain.handle('guide:get-entries', (event) =>
-      fromWindow(event, featureWin) ? getGuideEntries() : []
+      fromWindow(event, featureWin) ? getGuideEntries(settings.locale || 'id-ID') : []
     );
-    ipcMain.handle('guide:search', (event, query) =>
-      fromWindow(event, featureWin) ? guideSearchIndex.search(query) : []
-    );
+    ipcMain.handle('guide:search', (event, query) => {
+      if (!fromWindow(event, featureWin)) return [];
+      const currentEntries = getGuideEntries(settings.locale || 'id-ID');
+      const searcher = createSearchIndex(currentEntries);
+      return searcher.search(query);
+    });
     ipcMain.handle('guide:get-atlas', (event) =>
       fromWindow(event, featureWin) ? atlasJson : null
     );

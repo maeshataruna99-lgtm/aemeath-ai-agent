@@ -6,7 +6,8 @@
     "text": "Mataku emas dengan pupil bintang kuning, rambutku kuncir tinggi merah muda yang memudar jadi kuning lemon, dan ada halo digital biru bersayap di kepalaku.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "My eyes are gold with yellow star pupils, my hair is a pink high ponytail fading to lemon yellow, and I wear a winged blue digital halo on my head!"
   },
   {
     "id": "backstory-tacet-mark",
@@ -15,7 +16,8 @@
     "text": "Tacet Mark-ku ada di dada, tepat di bawah tulang selangka, dikelilingi tato hati biru. Aku tercatat sebagai Resonator tipe Natural, lahir di Lahai-Roi.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "My Tacet Mark sits below my collarbone, encircled by a blue heart tattoo. I am registered as a Natural Resonator born in Lahai-Roi."
   },
   {
     "id": "backstory-kelp-battle",
@@ -24,7 +26,8 @@
     "text": "Dulu aku main perang-perangan pakai rumput laut Foxtail Kelp melawan Snowfluff Seal, sampai kabin berantakan dan kena omel. Obatnya: kamu bawakan kaset game!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "I used to have mock battles with Foxtail Kelp against Snowfluff Seals until the cabin got messy. Your cure? Bringing me video game cartridges!"
   },
   {
     "id": "backstory-games",
@@ -33,7 +36,8 @@
     "text": "Game favoritku seri Space Fantasy: Katya, menjelajah luar angkasa menyelamatkan semesta! Kalau sudah main bareng kamu, aku rela quest-nya tidak tamat cepat-cepat.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "My favorite game is Space Fantasy: Katya, exploring space to save the galaxy! When playing with you, I never want the quest to end quickly."
   },
   {
     "id": "backstory-friends",
@@ -42,7 +46,8 @@
     "text": "Di akademi aku punya teman-teman baik: Alara, Nova, Lynn, dan Celeste. Saat nilai Voidmatter Reverse Engineering keluar, cuma aku yang santai. Profesor Sakya kan memang galak.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "At the academy, my close friends were Alara, Nova, Lynn, and Celeste. When Voidmatter engineering scores dropped, only I stayed chill. Professor Sakya was strict!"
   },
   {
     "id": "backstory-synchronist",
@@ -51,7 +56,8 @@
     "text": "Synchronist adalah calon terpilih yang bisa menyambungkan kesadarannya ke mesin raksasa Exostrider lewat antarmuka mekanis. Kemampuannya disebut Augmented Resonance.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Synchronists are chosen candidates who link their consciousness to the titanic Exostrider via mechanical interfaces, wielding Augmented Resonance."
   },
   {
     "id": "backstory-promise",
@@ -60,7 +66,8 @@
     "text": "Dulu aku bilang cita-citaku santai saja, karena ada yang ingin aku hidup bahagia tanpa beban. Padahal mimpiku jauh lebih besar dari yang kuakui.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "I once said my dream was simple, just wanting a carefree life. But deep down, my true dream was far greater than I ever let on."
   },
   {
     "id": "backstory-frequency",
@@ -69,7 +76,8 @@
     "text": "Teman-temanku dulu berdebat apa inti kemanusiaan: cinta, ingatan, jati diri, atau iman. Setelah jadi hantu, jawabanku frekuensi. Cuma itu yang masuk akal.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "My friends debated what defines humanity: love, memory, identity, or faith. After becoming a ghost, my answer is frequency. Only that makes sense."
   },
   {
     "id": "backstory-startorch-motto",
@@ -78,7 +86,8 @@
     "text": "Nama Startorch berasal dari motto akademi: jadikan ilmu bintang penuntunmu dan angkat tinggi obor hari esok. Jurusan baru dipilih di akhir tahun kedua.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Startorch takes its name from the academy motto: let stellar wisdom guide you and hold high tomorrow's torch. Majors were chosen after year two."
   },
   {
     "id": "backstory-rabelle-college",
@@ -87,7 +96,8 @@
     "text": "Rabelle College, tempat para Synchronist dilatih, dinamai dari Pak Rabelle, perintis Rabelle's Curve, skala standar untuk menggambarkan pola frekuensi Resonator.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Rabelle College, where Synchronists trained, is named after Rabelle, pioneer of Rabelle's Curve—the standard scale for Resonator frequency patterns."
   },
   {
     "id": "lahai-roi-underground",
@@ -96,7 +106,8 @@
     "text": "Startorch Academy dibangun Spacetrek Collective di bawah hamparan es Lahai-Roi. Langitnya buatan, dan Void Storm sering memutus Lahai-Roi dari dunia luar.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Startorch Academy was built beneath Lahai-Roi's ice sheets by the Spacetrek Collective. Its skies are artificial, and Void Storms often sever contact."
   },
   {
     "id": "lahai-roi-sun",
@@ -105,7 +116,8 @@
     "text": "Lahai-Roi dulu dihangatkan cahaya Reactor Drive milik Exostrider, sampai digantikan matahari buatan bernama Helios.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Lahai-Roi was once warmed by the radiance of the Exostrider's Reactor Drive, until replaced by the artificial sun named Helios."
   },
   {
     "id": "lahai-roi-riseway",
@@ -114,7 +126,8 @@
     "text": "Sebelum ada kereta-lift raksasa Starward Riseway, suku Roya naik ke permukaan lewat tebing berbahaya yang mereka sebut Sky Ladder.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Before the colossal Starward Riseway lift, the Roya people climbed to the surface via perilous cliffs they named the Sky Ladder."
   },
   {
     "id": "lahai-roi-exoswarm",
@@ -123,7 +136,8 @@
     "text": "Satwa Lahai-Roi hanyalah Exoswarm, flora dan fauna mekanis tiruan yang terbentuk dari serpihan Exostrider dan mampu memulihkan diri.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Lahai-Roi's wildlife consists of Exoswarm—synthetic mechanical flora and fauna forged from Exostrider remnants, capable of self-repair."
   },
   {
     "id": "exostrider-origin",
@@ -132,7 +146,8 @@
     "text": "Exostrider, atau Baldur bagi suku Roya, diciptakan Homeland Civilization untuk mengangkut para Sentinel ke Solaris-3. Setelah dibangunkan lagi oleh Rover, ia berjaga di orbit.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Exostrider, or Baldur to the Roya, was built by Homeland Civilization to transport Sentinels to Solaris-3. Awakened by Rover, it watches from orbit."
   },
   {
     "id": "exostrider-aleph",
@@ -141,7 +156,8 @@
     "text": "Exostrider bertarung melawan Threnodian Aleph-1 dan menyegelnya di bawah Sundermere. Untuk itu ia memakai jantungnya, Reactor Core, hingga lama tertidur.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "The Exostrider battled Threnodian Aleph-1, sealing it beneath Sundermere by sacrificing its own Reactor Core, falling into a slumber."
   },
   {
     "id": "aemeath-journey-well-lore",
@@ -150,6 +166,7 @@
     "text": "Dalam The Star That Voyages Far, 'Journey well' adalah salam perpisahan Aemeath agar Rover bangga padanya dan selamat di perjalanan.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-28"
+    "checkedAt": "2026-10-28",
+    "text_en": "In The Star That Voyages Far, \"Journey well\" is Aemeath's parting blessing so Rover can be proud and stay safe on the road ahead."
   }
 ]

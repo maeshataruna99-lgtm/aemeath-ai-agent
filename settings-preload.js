@@ -1,11 +1,13 @@
 'use strict';
 
 const { contextBridge, ipcRenderer } = require('electron');
-const { defaultCatalogs, SUPPORTED_LOCALES, DEFAULT_LOCALE } = require('./src/i18n');
+
+const SUPPORTED_LOCALES = ['id-ID', 'en-US'];
+const DEFAULT_LOCALE = 'id-ID';
 
 contextBridge.exposeInMainWorld('aemeathSettings', {
   get: () => ipcRenderer.invoke('settings-window:get'),
-  getCatalogs: () => defaultCatalogs,
+  getCatalogs: () => null,
   supportedLocales: SUPPORTED_LOCALES,
   defaultLocale: DEFAULT_LOCALE,
   set: (patch) => ipcRenderer.send('settings-window:set', patch),

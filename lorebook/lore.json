@@ -6,7 +6,8 @@
     "text": "Istilah dunia kita dikelompokkan jadi Solaris-3, Waveworn Phenomenon, Lament, Tacet Field, Resonator, Tacet Discord, Echoes, Sentinel, Threnodian, Reverberation, dan Remnant. Kamu hafal berapa, Rover?",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Our world's terms include Solaris-3, Waveworn Phenomena, Lament, Tacet Field, Resonator, Tacet Discord, Echoes, Sentinel, and Threnodian. How many do you recall?"
   },
   {
     "id": "lament-definition",
@@ -15,7 +16,8 @@
     "text": "Lament adalah sebutan untuk rangkaian bencana kepunahan massal di planet ini. Secara ketat, ia masih berlangsung sampai sekarang, Rover.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "The Lament refers to the recurring mass-extinction catastrophes across our world. Technically, it is still ongoing to this day, Rover."
   },
   {
     "id": "lament-black-shores",
@@ -24,7 +26,8 @@
     "text": "Black Shores mengawasi dan meredam dampak Lament lewat Tethys System, bahkan punya sistem untuk memprediksi kemunculannya.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "The Black Shores monitors and mitigates Lament disasters through the Tethys System, even operating predictive models for outbreaks."
   },
   {
     "id": "waveworn-list",
@@ -33,7 +36,8 @@
     "text": "Waveworn Phenomenon itu kumpulan keanehan pasca-Lament: Tacet Field, Etheric Sea, Retroact Rain, sampai hilangnya gravitasi.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Waveworn Phenomena comprise post-Lament anomalies: Tacet Fields, the Etheric Sea, Retroact Rain, and even localized gravity loss."
   },
   {
     "id": "waveworn-name",
@@ -42,7 +46,8 @@
     "text": "Nama Mandarin Waveworn Phenomenon kira-kira berarti \"erosi pantai\". Nama selembut itu untuk fenomena sebesar ini, aneh ya?",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "The Chinese name for Waveworn Phenomenon translates roughly to \"coastal erosion\". Such a gentle phrase for cataclysms, don't you think?"
   },
   {
     "id": "resonator-awakening",
@@ -51,7 +56,8 @@
     "text": "Saat Resonator terbangun, muncul Tacet Mark di tubuhnya. Bentuknya ditentukan oleh Rabelle's Curve. Aku tipe Natural, kamu tipe yang mana?",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "When a Resonator awakens, a Tacet Mark manifests on their body, shaped by Rabelle's Curve. I'm Natural type—which one are you, Rover?"
   },
   {
     "id": "resonator-types",
@@ -60,7 +66,8 @@
     "text": "Rabelle's Curve membagi Resonator jadi tiga golongan: Natural, Mutant, dan Congenital, menurut kapan dan bagaimana mereka terbangun.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Rabelle's Curve categorizes Resonators into three classes: Natural, Mutant, and Congenital, based on how and when they awakened."
   },
   {
     "id": "tacet-discord-nature",
@@ -69,7 +76,8 @@
     "text": "Tacet Discord terbentuk dari sisa energi frekuensi kacau. Mereka memakan frekuensi lain agar stabil, dan bentuknya ikut meniru apa yang mereka makan.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Tacet Discords form from chaotic residual frequency energy. They consume frequencies to stabilize, mimicking whatever they absorb."
   },
   {
     "id": "tacet-discord-core",
@@ -78,7 +86,8 @@
     "text": "Di dalam Tacet Discord ada Tacet Core, yang di kalangan akademisi disebut Reverberation Body. Nama yang rapi untuk makhluk yang berantakan.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Inside a Tacet Discord lies a Tacet Core, termed Reverberation Body in academia. A remarkably tidy name for such disorderly creatures."
   },
   {
     "id": "threnodian-fear",
@@ -87,7 +96,8 @@
     "text": "Threnodian itu bentuk ketakutan manusia yang memadat. Mereka melahap kehendak yang runtuh, dan tiap Threnodian terikat pada ketakutan tertentu.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Threnodians are condensed human terrors. They feed on collapsing wills, each bound to a specific fundamental primal fear."
   },
   {
     "id": "threnodian-ovathrax",
@@ -96,7 +106,8 @@
     "text": "Ovathrax, Threnodian Perang, muncul di Jinzhou, tanah yang berabad-abad jadi medan tempur. Ketakutan selalu lahir di tempat yang pantas.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Ovathrax, Threnodian of War, arose in Jinzhou, a land steeped in centuries of battle. Terrors always manifest where their seeds run deepest."
   },
   {
     "id": "lore-general-terms",
@@ -105,7 +116,8 @@
     "text": "Dalam arsip Lore umum Solaris-3, tercatat istilah penting seperti Anchoring, Arbiter (julukanmu, Rover!), Echoes, Homeland & Pre-Lament Civilization, Remnant, Resonance Beacon, serta Terminal.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "General Solaris-3 lore catalogs terms like Anchoring, Arbiter (that's you, Rover!), Echoes, Homeland Civilization, Remnant, and Terminals."
   },
   {
     "id": "lore-huanglong-terms",
@@ -114,7 +126,8 @@
     "text": "Lore wilayah Huanglong mencakup Pangu Terminal, legenda Suan'ni, Evil Miasma, serta sejarah perang besar seperti Battle Beneath the Crescent dan Fortress and Gorges War di Jinzhou.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Huanglong lore encompasses Pangu Terminal, Suan'ni legends, Evil Miasma, and great conflicts like the Fortress and Gorges War in Jinzhou."
   },
   {
     "id": "lore-black-shores-terms",
@@ -123,7 +136,8 @@
     "text": "Di Black Shores, pengetahuan dunia dijaga lewat Tethys System, Stellar Matrices, bunga penanda Blake Bloom, para Left Behinds, serta robot kecil KU-Roro yang rajin membantu!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "In the Black Shores, knowledge is guarded by the Tethys System, Stellar Matrices, Blake Blooms, Left Behinds, and helpful little KU-Roro bots!"
   },
   {
     "id": "lore-rinascita-terms",
@@ -132,7 +146,8 @@
     "text": "Lore Rinascita erat dengan ancaman Dark Tide, Common Echoes, para Harbinger, kapal Pilgrim's Sail, Ragunna Terminal, serta tradisi Carnevale, Great Agon, dan Night of Remembrance.",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Rinascita lore highlights the Dark Tide, Common Echoes, Harbingers, Pilgrim's Sail, Ragunna Terminal, Carnevale, and Night of Remembrance."
   },
   {
     "id": "lore-lahai-roi-terms",
@@ -141,7 +156,8 @@
     "text": "Lore Lahai-Roi meliputi Exostrider, Exoswarm, Reactor Drive, Soliskin, Heliodic Six, Heliogyre, Stargrams, Starstacks, hingga fenomena Void Storm, Shimmer, Voidspace, dan Voidworms!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Lahai-Roi lore features Exostriders, Exoswarms, Reactor Drives, Soliskin, Heliodic Six, Heliogyre, Stargrams, Void Storms, and Voidworms!"
   },
   {
     "id": "lore-ashinohara-festivals",
@@ -150,6 +166,7 @@
     "text": "Wilayah Ashinohara mengenal Legacy Talismans dan Suzu, sementara di Jinzhou warga merayakan Moon-Chasing Festival dan kompetisi Riverside Games. Seru banget kalau kita ke sana, Rover!",
     "status": "verified",
     "kind": "canon",
-    "checkedAt": "2026-10-27"
+    "checkedAt": "2026-10-27",
+    "text_en": "Ashinohara is known for Legacy Talismans and Suzu, while Jinzhou celebrates Moon-Chasing Festival and Riverside Games. Exploring them together would be a blast!"
   }
 ]

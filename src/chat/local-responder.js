@@ -62,17 +62,17 @@ const SMALL_TALK_ID = [
 ];
 
 const SMALL_TALK_EN = [
-  { test: /^(hello|hi|hey|hallo|morning|afternoon|evening|good\s+(morning|afternoon|evening))\b/i, replies: [
+  { test: /^(hello|hi|hey|hai|hallo|morning|afternoon|evening|good\s+(morning|afternoon|evening))\b/i, replies: [
     "Hi, Rover! I'm right here. Want to ask about the world of Wuthering Waves?",
     "Hello Rover! You arrived right on time, I was getting bored floating around, haha.",
   ] },
-  { test: /\b(thank\s+you|thanks|thx|appreciate\s+it)\b/i, replies: [
+  { test: /\b(thank\s+you|thanks|thx|appreciate\s+it|terima kasih|makasih)\b/i, replies: [
     "You're welcome, Rover! If you need anything at all, just call me.",
   ] },
-  { test: /\b(how\s+are\s+you|how\s+is\s+it\s+going|what\s+are\s+you\s+doing|doing\s+what)\b/i, replies: [
+  { test: /\b(how\s+are\s+you|how\s+is\s+it\s+going|what\s+are\s+you\s+doing|doing\s+what|apa kabar|lagi apa)\b/i, replies: [
     "I'm doing great! In prime condition and full of energy, happy you dropped by!",
   ] },
-  { test: /\b(who\s+are\s+you|what\s+is\s+your\s+name|introduce\s+yourself)\b/i, replies: [
+  { test: /\b(who\s+are\s+you|what\s+is\s+your\s+name|introduce\s+yourself|siapa kamu)\b/i, replies: [
     "I'm Aemeath, the digital ghost who was once a Synchronist at Startorch Academy. Only you can see me, Rover!",
   ] },
 ];
@@ -101,7 +101,7 @@ function createLocalResponder(options) {
     const entries = validEntries.map((entry) => ({
       entry: entry,
       topic: new Set(keywords(entry.topic)),
-      body: new Set(keywords(entry.topic + ' ' + entry.text)),
+      body: new Set(keywords(entry.topic + ' ' + entry.text + (entry.text_en ? ' ' + entry.text_en : ''))),
     }));
     const frequency = new Map();
     for (const item of entries) {
@@ -177,15 +177,16 @@ function createLocalResponder(options) {
       return { text: pick(lines), sources: [], matched: false };
     }
 
+    const getText = (e) => ((isEn && e.text_en) ? e.text_en : e.text);
     const chosen = [hits[0]];
     if (hits[1] && hits[1].score >= hits[0].score * SECOND_RATIO) {
-      const combined = hits[0].entry.text.length + hits[1].entry.text.length;
+      const combined = getText(hits[0].entry).length + getText(hits[1].entry).length;
       if (combined <= MAX_REPLY) chosen.push(hits[1]);
     }
     const lead = reason === 'offline'
       ? (isEn ? "The internet is down right now, so I'll answer from what I remember~" : 'Internetnya lagi putus, jadi aku jawab dari ingatanku saja ya~')
       : pick(activeIntros);
-    const body = chosen.map((hit) => hit.entry.text).join('\n\n');
+    const body = chosen.map((hit) => getText(hit.entry)).join('\n\n');
     const seen = new Set();
     const sources = [];
     for (const hit of chosen) {
