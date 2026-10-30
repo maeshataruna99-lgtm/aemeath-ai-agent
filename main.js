@@ -80,6 +80,47 @@ function main() {
   let win = null;
   let settingsWin = null;
   let featureWin = null;
+  const platformInfo = detectPlatform();
+  let isIgnoringMouse = true;
+  let interactiveBounds = [];
+  let linuxHoverTimer = null;
+
+  function applyIgnoreMouse(ignore) {
+    if (!win || win.isDestroyed()) return;
+    if (isIgnoringMouse === ignore) return;
+    isIgnoringMouse = ignore;
+    win.setIgnoreMouseEvents(ignore, { forward: !platformInfo.isLinux });
+  }
+
+  let cursorLeaveDebounce = 0;
+
+  function checkLinuxCursor() {
+    if (!win || win.isDestroyed()) return;
+    if ((settingsWin && settingsWin.isFocused()) || (featureWin && featureWin.isFocused())) {
+      applyIgnoreMouse(true);
+      return;
+    }
+    const point = screen.getCursorScreenPoint();
+    const bounds = win.getBounds();
+    const rx = point.x - bounds.x;
+    const ry = point.y - bounds.y;
+    let inside = false;
+    for (const b of interactiveBounds) {
+      if (b && rx >= b.x && rx <= (b.x + b.width) && ry >= b.y && ry <= (b.y + b.height)) {
+        inside = true;
+        break;
+      }
+    }
+    if (inside) {
+      cursorLeaveDebounce = 0;
+      applyIgnoreMouse(false);
+    } else {
+      cursorLeaveDebounce++;
+      if (cursorLeaveDebounce >= 2) {
+        applyIgnoreMouse(true);
+      }
+    }
+  }
   const guideSearchIndex = createSearchIndex(getGuideEntries());
   let keyStore = null;
   let commandStore = null;
@@ -231,7 +272,6 @@ function main() {
   // and it only ever receives commands the settings window saved. The selfie
   // run records launches instead of making them.
   const selfieLaunches = [];
-  const platformInfo = detectPlatform();
   const realCommandRunner = createCommandRunner({
     shell,
     spawn,
@@ -445,11 +485,21 @@ function main() {
         nodeIntegration: false,
       },
     });
-    win.setAlwaysOnTop(true, 'screen-saver');
-    win.setIgnoreMouseEvents(true, { forward: true });
+    const petAlwaysOnTopLevel = platformInfo.isLinux ? 'normal' : 'screen-saver';
+    win.setAlwaysOnTop(true, petAlwaysOnTopLevel);
+    win.setIgnoreMouseEvents(true, { forward: !platformInfo.isLinux });
+
+    isIgnoringMouse = true;
     win.on('closed', () => {
+      if (linuxHoverTimer) clearInterval(linuxHoverTimer);
+      linuxHoverTimer = null;
       win = null;
     });
+
+    if (platformInfo.isLinux && !isSelfie) {
+      if (linuxHoverTimer) clearInterval(linuxHoverTimer);
+      linuxHoverTimer = setInterval(checkLinuxCursor, 50);
+    }
     win.loadFile(path.join(__dirname, 'renderer', 'index.html')).then(() => {
       broadcastTheme();
       win.show();
@@ -473,7 +523,11 @@ function main() {
     }));
 
     ipcMain.on('pet:hover', (_event, hovering) => {
-      if (win) win.setIgnoreMouseEvents(!hovering, { forward: true });
+      applyIgnoreMouse(!hovering);
+    });
+
+    ipcMain.on('pet:bounds', (_event, bounds) => {
+      interactiveBounds = Array.isArray(bounds) ? bounds : [];
     });
 
     ipcMain.on('settings:save', (_event, patch) => {
@@ -535,7 +589,7 @@ function main() {
       if (patch && typeof patch.glassBlur === 'number') next.glassBlur = patch.glassBlur;
       if (patch && typeof patch.glassOpacity === 'number') next.glassOpacity = patch.glassOpacity;
       Object.assign(settings, settingsStore.save(next));
-      if (settings.transparentMode) win?.setIgnoreMouseEvents(true, { forward: true });
+      if (settings.transparentMode) applyIgnoreMouse(true);
       win?.webContents?.send('settings:updated', settings);
       settingsWin?.webContents?.send('settings:updated', settings);
       featureWin?.webContents?.send('settings:updated', settings);
@@ -595,10 +649,16 @@ function main() {
     });
     // The overlay is click-through and unfocused by default; typing needs focus.
     ipcMain.on('chat:focus', (event) => {
-      if (fromWindow(event, win)) win.focus();
+      if (fromWindow(event, win)) {
+        applyIgnoreMouse(false);
+        win.focus();
+      }
     });
     ipcMain.on('chat:blur', (event) => {
-      if (fromWindow(event, win)) win.blur();
+      if (fromWindow(event, win)) {
+        applyIgnoreMouse(true);
+        win.blur();
+      }
     });
     ipcMain.handle('chat:status', (event) =>
       fromWindow(event, win) || fromWindow(event, settingsWin) ? chatStatus() : null,
@@ -935,8 +995,10 @@ function main() {
 
   // Chat lives in a box next to the pet; the tray only asks the overlay to toggle it.
   function toggleChat() {
-    if (!win) return;
+    if (!win || win.isDestroyed()) return;
+    applyIgnoreMouse(false);
     win.show();
+    win.focus();
     win.webContents.send('chat:toggle');
   }
 
@@ -944,6 +1006,8 @@ function main() {
     if (settingsWin) {
       settingsWin.show();
       settingsWin.focus();
+      settingsWin.moveTop();
+      applyIgnoreMouse(true);
       return;
     }
     settingsWin = new BrowserWindow({
@@ -961,13 +1025,18 @@ function main() {
         nodeIntegration: false,
       },
     });
-    // The pet overlay sits at the screen-saver level; stay above it.
-    settingsWin.setAlwaysOnTop(true, 'screen-saver');
+    const subTopLevel = platformInfo.isLinux ? 'normal' : 'screen-saver';
+    settingsWin.setAlwaysOnTop(true, subTopLevel, 1);
+    settingsWin.on('focus', () => {
+      applyIgnoreMouse(true);
+    });
     settingsWin.on('closed', () => {
       settingsWin = null;
     });
     settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html')).then(() => {
       broadcastTheme();
+      settingsWin.moveTop();
+      applyIgnoreMouse(true);
     });
   }
 
@@ -975,6 +1044,8 @@ function main() {
     if (featureWin) {
       featureWin.show();
       featureWin.focus();
+      featureWin.moveTop();
+      applyIgnoreMouse(true);
       return;
     }
     featureWin = new BrowserWindow({
@@ -994,12 +1065,18 @@ function main() {
         nodeIntegration: false,
       },
     });
-    featureWin.setAlwaysOnTop(true, 'screen-saver');
+    const subTopLevel = platformInfo.isLinux ? 'normal' : 'screen-saver';
+    featureWin.setAlwaysOnTop(true, subTopLevel, 1);
+    featureWin.on('focus', () => {
+      applyIgnoreMouse(true);
+    });
     featureWin.on('closed', () => {
       featureWin = null;
     });
     featureWin.loadFile(path.join(__dirname, 'renderer', 'feature-window.html')).then(() => {
       broadcastTheme();
+      featureWin.moveTop();
+      applyIgnoreMouse(true);
     });
   }
 
@@ -1184,7 +1261,7 @@ function main() {
   function toggleFeature(key) {
     Object.assign(settings, settingsStore.save({ [key]: !settings[key] }));
     if (key === 'transparentMode' && settings.transparentMode) {
-      win?.setIgnoreMouseEvents(true, { forward: true });
+      applyIgnoreMouse(true);
     }
     applyFeatureFlags();
     win?.webContents?.send('settings:updated', settings);
