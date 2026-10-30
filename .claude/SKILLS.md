@@ -80,3 +80,17 @@ NestJS/Prisma (`nestjs-*`, `prisma-model-generator`, `getpage-optimizer`,
 1. Clone repo ini; `.claude/` ikut terbawa.
 2. Pasang plugin/skill yang dibutuhkan dari tabel di atas (opsional, untuk Claude Code).
 3. Pastikan aturan di `.claude/CLAUDE.md` dipatuhi oleh AI apa pun yang dipakai.
+
+## Dukungan harness AI
+
+Aturan tetap hanya di folder `.claude/`. Berkas di root hanya penunjuk agar tiap alat menemukannya:
+
+| Alat | Berkas yang dibaca | Isi |
+|---|---|---|
+| Claude Code | `.claude/CLAUDE.md`, `.claude/settings.json` | Aturan + hook commit |
+| Codex, Cursor | `AGENTS.md` | Penunjuk ke `.claude/CLAUDE.md` |
+| Antigravity | `GEMINI.md`, `AGENTS.md` | Penunjuk ke `.claude/CLAUDE.md` |
+| OpenCode | `opencode.json`, `AGENTS.md` | `instructions` memuat `.claude/CLAUDE.md` |
+
+Hook otomatis (`.claude/hooks/`) hanya aktif di Claude Code; alat lain mengandalkan aturan tertulis,
+jadi periksa pesan commit secara manual (§1 dan §5).
