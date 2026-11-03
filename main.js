@@ -145,6 +145,46 @@ function main() {
       }),
     };
   };
+  // Verification run only: a stand-in for the Claude CLI that answers from the prompt, so no
+  // model is called and nothing is edited. Records the arguments each run was started with.
+  const selfieClaudeCalls = [];
+  function selfieClaudeSpawn(_bin, args) {
+    const { EventEmitter } = require('node:events');
+    const { PassThrough } = require('node:stream');
+    const child = new EventEmitter();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.stdin = new PassThrough();
+    child.kill = () => child.stdout.end();
+    child.stdout.on('end', () => child.emit('close', 0));
+    let prompt = '';
+    child.stdin.on('data', (d) => (prompt += d));
+    child.stdin.on('end', () => {
+      selfieClaudeCalls.push(args.filter((a) => a === '--resume' || a === '--allowedTools' || a === '--permission-prompts' || a === '--permission-mode').join(' '));
+      if (prompt.includes('panjang')) return; // never answers until it is stopped
+      const line = (o) => JSON.stringify(Object.assign({ session_id: '5e1f1e00-0000-4000-8000-000000000001' }, o)) + '\n';
+      const delta = (text) => line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text } } });
+      let chunks;
+      if (args.includes('--allowedTools')) {
+        chunks = [delta('Catatan '), delta('sudah ditulis.'), line({ type: 'result', subtype: 'success', result: 'Catatan sudah ditulis.' })];
+      } else if (prompt.includes('buat')) {
+        chunks = [
+          line({
+            type: 'result',
+            subtype: 'success',
+            result: 'Belum ditulis.',
+            permission_denials: [{ tool_name: 'Write', tool_use_id: 't1', tool_input: { file_path: 'catatan.txt', content: 'x' } }],
+          }),
+        ];
+      } else {
+        chunks = [delta('Halo '), delta('dari Claude palsu.'), line({ type: 'result', subtype: 'success', result: 'Halo dari Claude palsu.' })];
+      }
+      chunks.forEach((chunk, i) => setTimeout(() => child.stdout.write(chunk), 60 * (i + 1)));
+      setTimeout(() => child.stdout.end(), 60 * (chunks.length + 1));
+    });
+    return child;
+  }
+
   const providers = createProviders({ fetchImpl: isSelfie ? selfieFetch : undefined });
 
   const selfieSearch = {
@@ -362,7 +402,10 @@ function main() {
           const res = await agentBridge.approve({
             onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
           });
-          return res.ok ? { ok: true, text: agentReply(tr, res) } : { ok: false, text: tr(messageKey(res.code)) };
+          if (res.ok) return { ok: true, text: agentReply(tr, res) };
+          // A stop already says so; the request it ended stays quiet.
+          if (res.code === 'cancelled') return { ok: true, text: '' };
+          return { ok: false, text: tr(messageKey(res.code)) };
         }
         if (word === 'baru' || word === 'new') {
           if (agentBridge) agentBridge.newSession();
@@ -383,7 +426,10 @@ function main() {
         const res = await agentBridge.ask(text, {
           onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
         });
-        return res.ok ? { ok: true, text: agentReply(tr, res) } : { ok: false, text: tr(messageKey(res.code)) };
+        if (res.ok) return { ok: true, text: agentReply(tr, res) };
+          // A stop already says so; the request it ended stays quiet.
+          if (res.code === 'cancelled') return { ok: true, text: '' };
+          return { ok: false, text: tr(messageKey(res.code)) };
       },
     },
     feature: {
@@ -424,7 +470,9 @@ function main() {
     agentBridge = createAgentBridge({
       store: taskStore,
       runner: createTaskRunner({ store: taskStore }),
-      adapter: createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
+      adapter: isSelfie
+        ? createClaudeAdapter({ spawn: selfieClaudeSpawn, cwd: getAgentDir, resolve: () => 'selfie-claude', isDir: () => true })
+        : createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
       getDir: getAgentDir,
       listSessions: (dir) => listSessions(dir),
       isEnabled: () => settings.agentBridgeEnabled === true,
@@ -1701,6 +1749,41 @@ function main() {
       await win.webContents.executeJavaScript(`document.getElementById('chat-form').requestSubmit()`);
       await sleep(wait || 900);
     };
+    // /claude against the stand-in CLI: off at first, then streaming, a denied edit and its
+    // typed approval, the session list, and a stop while a request is running.
+    const claudeTail = (n) =>
+      win.webContents.executeJavaScript(
+        `JSON.stringify([...document.querySelectorAll('#chat-log .msg')].slice(-${n}).map((m) => m.className.replace('msg ', '') + ': ' + m.textContent.slice(0, 160)))`,
+      );
+    await submit('/claude halo', 900);
+    console.log('[aemeath] claude while off: ' + (await claudeTail(1)));
+    Object.assign(settings, settingsStore.save({ agentBridgeEnabled: true }));
+    await submit('/claude halo', 1500);
+    console.log('[aemeath] claude answer: ' + (await claudeTail(2)));
+    fs.writeFileSync(path.join(dir, 'chat-claude.png'), (await win.webContents.capturePage()).toPNG());
+    await submit('/claude buat catatan', 1200);
+    console.log('[aemeath] claude edit denied: ' + (await claudeTail(1)));
+    await submit('/claude ya', 1500);
+    console.log('[aemeath] claude edit approved: ' + (await claudeTail(1)));
+    await submit('/claude ya', 900);
+    console.log('[aemeath] claude second ya: ' + (await claudeTail(1)));
+    await submit('/claude sesi', 900);
+    console.log('[aemeath] claude sessions: ' + (await claudeTail(1)));
+    await submit('/claude panjang', 700);
+    const busyInput = await win.webContents.executeJavaScript(`document.getElementById('chat-input').disabled`);
+    await submit('/claude stop', 1200);
+    console.log('[aemeath] claude stop while running (input locked: ' + busyInput + '): ' + (await claudeTail(3)));
+    console.log('[aemeath] claude runs started with: ' + JSON.stringify(selfieClaudeCalls));
+    fs.writeFileSync(path.join(dir, 'chat-claude-stop.png'), (await win.webContents.capturePage()).toPNG());
+    let agentUi = 'settings window not open';
+    try {
+      agentUi = await settingsWin.webContents.executeJavaScript(
+        `JSON.stringify({ toggle: Boolean(document.getElementById('agent-toggle')), checked: document.getElementById('agent-toggle') && document.getElementById('agent-toggle').checked, pick: Boolean(document.getElementById('agent-dir-pick')), purge: Boolean(document.getElementById('agent-purge')), dir: document.getElementById('agent-dir') && document.getElementById('agent-dir').textContent })`,
+      );
+    } catch (error) {
+      agentUi = 'unavailable: ' + error.message;
+    }
+    console.log('[aemeath] settings agent section: ' + agentUi);
     const launchesBefore = selfieLaunches.length;
     await submit('/change-mode', 1800);
     const modeOn = await win.webContents.executeJavaScript(
@@ -1722,6 +1805,10 @@ function main() {
     );
     console.log('[aemeath] terminal log ' + termLog);
     console.log('[aemeath] custom launches during terminal mode ' + (selfieLaunches.length - launchesBefore));
+    // /claude typed in terminal mode goes to the agent, not to PowerShell.
+    await submit('/claude halo', 1500);
+    console.log('[aemeath] claude typed in terminal mode: ' + (await claudeTail(2)));
+    Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false }));
     await submit('exit', 1500);
     const modeOff = await win.webContents.executeJavaScript(
       `JSON.stringify({ terminal: document.getElementById('chat').classList.contains('terminal'), last: document.querySelector('#chat-log .msg:last-child').textContent })`,

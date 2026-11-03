@@ -550,10 +550,11 @@
         confirming = Boolean(result.awaitConfirm);
         if (!result.isCommand) return false;
         if (agentPending && agentStreaming && result.ok) {
-          updateMessageContent(agentPending, result.text, true);
+          // an empty text means the request was stopped: keep what had streamed in
+          if (result.text) updateMessageContent(agentPending, result.text, true);
         } else {
           if (agentPending) agentPending.remove();
-          add(result.ok ? 'bot' : 'err', result.text, result.sources);
+          if (result.text) add(result.ok ? 'bot' : 'err', result.text, result.sources);
         }
         if (result.output) add('cmd-out', result.output);
         if (result.mode) setMode(result.mode, result.cwd);
