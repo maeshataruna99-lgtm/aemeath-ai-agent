@@ -38,7 +38,7 @@ const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
 const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, ageText } = require('./src/agent/agent-bridge');
-const { listSessions } = require('./src/agent/session-list');
+const { listSessions, sessionTitle } = require('./src/agent/session-list');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
 const { createUacGate } = require('./src/terminal/uac-gate');
@@ -584,8 +584,8 @@ function main() {
       listSessions: (dir) =>
         isSelfie
           ? [
-              { id: 'aaaaaaaa-0000-4000-8000-000000000001', ageMs: 5 * 60000 },
-              { id: 'bbbbbbbb-0000-4000-8000-000000000002', ageMs: 3 * 3600000 },
+              { id: 'aaaaaaaa-0000-4000-8000-000000000001', ageMs: 5 * 60000, title: 'Perbaiki bug login' },
+              { id: 'bbbbbbbb-0000-4000-8000-000000000002', ageMs: 3 * 3600000, title: '' },
             ]
           : listSessions(dir),
       isEnabled: () => settings.agentBridgeEnabled === true,
@@ -1055,13 +1055,18 @@ function main() {
     // The window sends back an id taken from this list (or "new"); the bridge refuses any other.
     const agentSessions = () => {
       const current = agentBridge ? agentBridge.currentSession() : null;
+      const recent = agentBridge ? agentBridge.listRecent() : [];
+      const found = recent.find((s) => s.id === current);
+      // The name of the session in use, even when it is not among the newest few.
+      const currentTitle = current ? (found ? found.title : sessionTitle(settings.agentBridgeDir || app.getPath('home'), current)) : '';
       return {
         enabled: settings.agentBridgeEnabled === true,
         busy: agentBridge ? agentBridge.busy() : false,
-        current: current ? { id: current, short: current.slice(0, 8) } : null,
-        items: (agentBridge ? agentBridge.listRecent() : []).map((s) => ({
+        current: current ? { id: current, short: current.slice(0, 8), title: currentTitle || '' } : null,
+        items: recent.map((s) => ({
           id: s.id,
           short: s.id.slice(0, 8),
+          title: s.title || '',
           age: ageText(createI18n({ locale: settings.locale || 'id-ID' }).t, s.ageMs),
         })),
       };

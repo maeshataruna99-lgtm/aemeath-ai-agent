@@ -47,7 +47,7 @@ test('sessions are listed newest first from file names and times only', () => {
   const list = listSessions(dir, { projectsDir: base, now: () => now });
   assert.deepEqual(list.map((s) => s.id), [B, A, C]);
   assert.ok(Math.abs(list[0].ageMs - 60000) < 2000);
-  assert.deepEqual(Object.keys(list[0]).sort(), ['ageMs', 'id']);
+  assert.deepEqual(Object.keys(list[0]).sort(), ['ageMs', 'id', 'title']);
   assert.equal(listSessions(dir, { projectsDir: base, now: () => now, limit: 2 }).length, 2);
   assert.deepEqual(listSessions('C:/nowhere',{ projectsDir: base }), []);
 });

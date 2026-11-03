@@ -925,3 +925,67 @@ test('the session list is refreshed after a Claude request finishes', async () =
   delete window.AemeathI18n;
 });
 
+// --- Session names in the chip and the menu ---
+
+test('the session chip shows the session name, shortened, with the full name in its tooltip', async () => {
+  const name = 'Perbaiki bug login di halaman masuk';
+  const t = await agentPanel({
+    agentSessions: async () => sessionsState({ current: { id: S1, short: 'aaaaaaaa', title: name } }),
+  });
+  await t.enter();
+  assert.equal(t.sessionName.textContent, name.slice(0, 23) + String.fromCharCode(0x2026));
+  assert.match(t.sessionButton.title, new RegExp(name + ' \\(aaaaaaaa\\)'));
+  delete window.AemeathI18n;
+});
+
+test('a short name is shown whole, and a session without a name falls back to its short id', async () => {
+  const named = await agentPanel({
+    agentSessions: async () => sessionsState({ current: { id: S1, short: 'aaaaaaaa', title: 'Perbaiki bug' } }),
+  });
+  await named.enter();
+  assert.equal(named.sessionName.textContent, 'Perbaiki bug');
+  const unnamed = await agentPanel({
+    agentSessions: async () => sessionsState({ current: { id: S1, short: 'aaaaaaaa', title: '' } }),
+  });
+  await unnamed.enter();
+  assert.equal(unnamed.sessionName.textContent, 'Sesi aaaaaaaa');
+  delete window.AemeathI18n;
+});
+
+test('the session menu shows names where there are any, and the id in the tooltip', async () => {
+  const t = await agentPanel({
+    agentSessions: async () =>
+      sessionsState({
+        items: [
+          { id: S1, short: 'aaaaaaaa', title: 'Perbaiki bug login', age: '5 menit lalu' },
+          { id: S2, short: 'bbbbbbbb', title: '', age: '3 jam lalu' },
+        ],
+      }),
+  });
+  await t.enter();
+  t.sessionButton.click();
+  assert.deepEqual(
+    t.sessionMenu.children.map((c) => c.textContent),
+    ['1. Perbaiki bug login ' + DOT + ' 5 menit lalu', '2. bbbbbbbb ' + DOT + ' 3 jam lalu', 'Mulai sesi baru']
+  );
+  assert.equal(t.sessionMenu.children[0].title, 'Perbaiki bug login (' + S1 + ')');
+  assert.equal(t.sessionMenu.children[1].title, S2);
+  delete window.AemeathI18n;
+});
+
+test('choosing a named session says which one Claude continues, by name', async () => {
+  const t = await agentPanel({
+    agentSessionUse: async (which) => ({
+      ok: true,
+      state: sessionsState({ current: { id: which, short: 'aaaaaaaa', title: 'Perbaiki bug login' } }),
+    }),
+    agentSessions: async () =>
+      sessionsState({ items: [{ id: S1, short: 'aaaaaaaa', title: 'Perbaiki bug login', age: '5 menit lalu' }] }),
+  });
+  await t.enter();
+  t.sessionButton.click();
+  t.sessionMenu.children[0].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.match(t.texts(), /Claude melanjutkan sesi Perbaiki bug login/);
+  delete window.AemeathI18n;
+});

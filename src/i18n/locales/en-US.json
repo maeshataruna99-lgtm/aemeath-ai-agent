@@ -110,6 +110,7 @@
     "sum_other": "other tools {n}x",
     "sessions_header": "Sessions in this working folder, newest first:",
     "session_row": "{n}. {id} ({age})",
+    "session_row_titled": "{n}. {title} · {id} ({age})",
     "sessions_none": "No sessions in this working folder yet.",
     "sessions_use": "Type /claude continue 1 (or another number) to continue it from here.",
     "session_adopted": "Done, the next /claude continues session {id}.",

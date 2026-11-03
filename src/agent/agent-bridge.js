@@ -105,7 +105,10 @@ function sessionsReply(tr, current, list) {
     lines.push(tr('agent.sessions_none'));
   } else {
     lines.push(tr('agent.sessions_header'));
-    list.forEach((s, i) => lines.push(tr('agent.session_row', { n: i + 1, id: s.id, age: ageText(tr, s.ageMs) })));
+    list.forEach((s, i) => {
+      const row = { n: i + 1, id: s.id, age: ageText(tr, s.ageMs), title: s.title };
+      lines.push(tr(s.title ? 'agent.session_row_titled' : 'agent.session_row', row));
+    });
     lines.push(tr('agent.sessions_use'));
   }
   return lines.join('\n');

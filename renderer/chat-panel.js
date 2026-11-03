@@ -543,6 +543,10 @@
       agentBar.classList.toggle('hidden', folderBar.classList.contains('hidden') && sessionBar.classList.contains('hidden'));
     }
 
+    function shorten(text, max) {
+      return text.length > max ? text.slice(0, max - 1) + '\u2026' : text;
+    }
+
     function addMenuItem(menu, label, title, onClick, active) {
       const entry = document.createElement('button');
       entry.type = 'button';
@@ -572,8 +576,9 @@
         closeSessionMenu();
         return;
       }
-      sessionName.textContent = sessions.current ? tr('chat.session_label', { id: sessions.current.short }) : tr('chat.session_none');
-      sessionButton.title = tr('chat.session_button_title');
+      const cur = sessions.current;
+      sessionName.textContent = cur ? (cur.title ? shorten(cur.title, 24) : tr('chat.session_label', { id: cur.short })) : tr('chat.session_none');
+      sessionButton.title = tr('chat.session_button_title') + (cur ? ': ' + (cur.title ? cur.title + ' (' + cur.short + ')' : cur.short) : '');
       sessionButton.setAttribute('aria-label', sessionButton.title);
     }
 
@@ -609,7 +614,7 @@
       renderSessions();
       reposition();
       if (res.ok) {
-        add('bot', which === 'new' ? tr('chat.session_new_done') : tr('chat.session_changed', { id: sessions && sessions.current ? sessions.current.short : '' }));
+        add('bot', which === 'new' ? tr('chat.session_new_done') : tr('chat.session_changed', { id: sessions && sessions.current ? sessions.current.title || sessions.current.short : '' }));
       } else {
         add('err', tr(SESSION_REFUSALS.has(res.code) ? 'agent.' + res.code : 'chat.folder_error'));
       }
@@ -621,7 +626,7 @@
       sessionMenu.textContent = '';
       sessions.items.forEach((s, i) => {
         const here = Boolean(sessions.current && s.id === sessions.current.id);
-        addMenuItem(sessionMenu, (i + 1) + '. ' + s.short + ' \u00b7 ' + s.age, s.id, () => changeSession(s.id), here);
+        addMenuItem(sessionMenu, (i + 1) + '. ' + (s.title || s.short) + ' \u00b7 ' + s.age, s.title ? s.title + ' (' + s.id + ')' : s.id, () => changeSession(s.id), here);
       });
       addMenuItem(sessionMenu, tr('chat.session_new'), '', () => changeSession('new'), false);
       sessionMenu.classList.remove('hidden');

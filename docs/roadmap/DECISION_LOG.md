@@ -63,5 +63,10 @@
 **Not covered:** writing to GitHub, other services (email, chat), and reading other repositories.  
 **Reference:** issue 4, `docs/roadmap/AGENT_BRIDGE_ROADMAP.md` (P6).
 
+## D-016: Session names are read from Claude Code title lines
+**Decision (owner, 2026-11-03):** The session list shows the name Claude Code gave each session, so a session can be told apart by more than its id.
+**Constraints:** Names come only from the `custom-title` and `ai-title` lines of the owner's own transcripts, and a line is parsed only if it starts with one of those markers, so message text is never parsed or kept. Only the end of a file (and a little of its start) is read. A name the owner set wins over a generated one. Names are cleaned, capped at 40 characters, and secret-looking text is hidden. They are shown in the chat box and in `/claude sesi`, never stored, logged, or sent to any model.
+**Changes:** This replaces the earlier stance that a transcript is never opened for the session list.
+
 ## Change control
 Any change to these decisions must be recorded here with the date, rationale, affected acceptance criteria, and approval from the project owner.

@@ -110,6 +110,7 @@
     "sum_other": "alat lain {n}x",
     "sessions_header": "Sesi di folder kerja ini, terbaru dulu:",
     "session_row": "{n}. {id} ({age})",
+    "session_row_titled": "{n}. {title} · {id} ({age})",
     "sessions_none": "Belum ada sesi di folder kerja ini.",
     "sessions_use": "Ketik /claude lanjut 1 (atau nomor lain) untuk melanjutkannya dari sini.",
     "session_adopted": "Siap, /claude berikutnya melanjutkan sesi {id}.",
