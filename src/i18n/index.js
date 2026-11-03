@@ -51,7 +51,17 @@
             "denied": "Claude ingin melakukan: {list}.",
             "approve_hint": "Ketik /claude ya untuk mengizinkan sekali, atau abaikan saja. Izin habis dalam 5 menit.",
             "denied_blocked": "Jenis aksi ini tidak bisa diizinkan dari sini, jadi ditolak otomatis.",
-            "nothing_to_approve": "Tidak ada permintaan edit yang menunggu izin."
+            "nothing_to_approve": "Tidak ada permintaan edit yang menunggu izin.",
+            "sessions_header": "Sesi di folder kerja ini, terbaru dulu:",
+            "session_row": "{n}. {id} ({age})",
+            "sessions_none": "Belum ada sesi di folder kerja ini.",
+            "sessions_use": "Ketik /claude lanjut 1 (atau nomor lain) untuk melanjutkannya dari sini.",
+            "session_adopted": "Siap, /claude berikutnya melanjutkan sesi {id}.",
+            "session_not_found": "Nomor sesi itu tidak ada. Ketik /claude sesi untuk melihat daftarnya.",
+            "age_now": "baru saja",
+            "age_minutes": "{n} menit lalu",
+            "age_hours": "{n} jam lalu",
+            "age_days": "{n} hari lalu"
         },
         "settings": {
             "title": "Pengaturan Aemeath",
@@ -383,7 +393,17 @@
             "denied": "Claude wants to do: {list}.",
             "approve_hint": "Type /claude ya to allow it once, or ignore this. The permission expires in 5 minutes.",
             "denied_blocked": "This kind of action cannot be allowed from here, so it was denied automatically.",
-            "nothing_to_approve": "No edit request is waiting for permission."
+            "nothing_to_approve": "No edit request is waiting for permission.",
+            "sessions_header": "Sessions in this working folder, newest first:",
+            "session_row": "{n}. {id} ({age})",
+            "sessions_none": "No sessions in this working folder yet.",
+            "sessions_use": "Type /claude continue 1 (or another number) to continue it from here.",
+            "session_adopted": "Done, the next /claude continues session {id}.",
+            "session_not_found": "That session number doesn't exist. Type /claude session to see the list.",
+            "age_now": "just now",
+            "age_minutes": "{n} min ago",
+            "age_hours": "{n} h ago",
+            "age_days": "{n} d ago"
         },
         "settings": {
             "title": "Aemeath Settings",

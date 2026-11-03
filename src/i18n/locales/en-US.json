@@ -36,7 +36,17 @@
     "denied": "Claude wants to do: {list}.",
     "approve_hint": "Type /claude ya to allow it once, or ignore this. The permission expires in 5 minutes.",
     "denied_blocked": "This kind of action cannot be allowed from here, so it was denied automatically.",
-    "nothing_to_approve": "No edit request is waiting for permission."
+    "nothing_to_approve": "No edit request is waiting for permission.",
+    "sessions_header": "Sessions in this working folder, newest first:",
+    "session_row": "{n}. {id} ({age})",
+    "sessions_none": "No sessions in this working folder yet.",
+    "sessions_use": "Type /claude continue 1 (or another number) to continue it from here.",
+    "session_adopted": "Done, the next /claude continues session {id}.",
+    "session_not_found": "That session number doesn't exist. Type /claude session to see the list.",
+    "age_now": "just now",
+    "age_minutes": "{n} min ago",
+    "age_hours": "{n} h ago",
+    "age_days": "{n} d ago"
   },
   "settings": {
     "title": "Aemeath Settings",

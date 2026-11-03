@@ -37,7 +37,8 @@ const { createI18n } = require('./src/i18n');
 const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
-const { createAgentBridge, messageKey, agentReply } = require('./src/agent/agent-bridge');
+const { createAgentBridge, messageKey, agentReply, sessionsReply } = require('./src/agent/agent-bridge');
+const { listSessions } = require('./src/agent/session-list');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
@@ -368,8 +369,15 @@ function main() {
           return { ok: true, text: tr('agent.new_session') };
         }
         if (word === 'sesi' || word === 'session') {
-          const id = agentBridge && agentBridge.currentSession();
-          return { ok: Boolean(id), text: id ? tr('agent.session_id', { id: id }) : tr('agent.no_session') };
+          const current = agentBridge ? agentBridge.currentSession() : null;
+          return { ok: true, text: sessionsReply(tr, current, agentBridge ? agentBridge.listRecent() : []) };
+        }
+        const pick = word.match(/^(?:lanjut|continue)\s+(\d{1,2})$/);
+        if (pick && agentBridge) {
+          const res = agentBridge.useSession(Number(pick[1]));
+          return res.ok
+            ? { ok: true, text: tr('agent.session_adopted', { id: res.id }) }
+            : { ok: false, text: tr(messageKey(res.code)) };
         }
         if (!agentBridge) return { ok: false, text: tr('agent.error') };
         const res = await agentBridge.ask(text, {
@@ -418,6 +426,7 @@ function main() {
       runner: createTaskRunner({ store: taskStore }),
       adapter: createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
       getDir: getAgentDir,
+      listSessions: (dir) => listSessions(dir),
       isEnabled: () => settings.agentBridgeEnabled === true,
     });
     themeStore = createThemeStore({ dir: dataDir });

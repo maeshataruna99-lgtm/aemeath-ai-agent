@@ -33,6 +33,7 @@ const MESSAGE_CODES = new Set([
   'invalid_session',
   'bad_dir',
   'nothing_to_approve',
+  'session_not_found',
 ]);
 
 // Catalog key for a failure code; anything unknown reads as a plain failure.
@@ -48,7 +49,30 @@ function agentReply(tr, res) {
   return res.text + '\n\n' + tr('agent.denied', { list: list }) + ' ' + tr(res.approvable ? 'agent.approve_hint' : 'agent.denied_blocked');
 }
 
-// options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path, now?() -> number }
+function ageText(tr, ms) {
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return tr('agent.age_now');
+  if (minutes < 60) return tr('agent.age_minutes', { n: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return tr('agent.age_hours', { n: hours });
+  return tr('agent.age_days', { n: Math.floor(hours / 24) });
+}
+
+// The current session id plus the recent sessions in the working folder, by number.
+function sessionsReply(tr, current, list) {
+  const lines = [current ? tr('agent.session_id', { id: current }) : tr('agent.no_session')];
+  if (list.length === 0) {
+    lines.push(tr('agent.sessions_none'));
+  } else {
+    lines.push(tr('agent.sessions_header'));
+    list.forEach((s, i) => lines.push(tr('agent.session_row', { n: i + 1, id: s.id, age: ageText(tr, s.ageMs) })));
+    lines.push(tr('agent.sessions_use'));
+  }
+  return lines.join('\n');
+}
+
+// options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path, now?() -> number,
+//            listSessions?(dir) -> [{ id, ageMs }] }
 // A session only resumes in the folder it started in, so changing folder drops it.
 function createAgentBridge(options) {
   const { store, runner, adapter, isEnabled } = options;
@@ -125,6 +149,21 @@ function createAgentBridge(options) {
     });
   }
 
+  function listRecent() {
+    return options.listSessions ? options.listSessions(syncDir()) : [];
+  }
+
+  // Continues one of the listed sessions by its number. Resuming happens through
+  // this adapter; nothing is written into any terminal.
+  function useSession(number) {
+    if (activeTaskId) return { ok: false, code: 'busy' };
+    const picked = listRecent()[number - 1];
+    if (!picked) return { ok: false, code: 'session_not_found' };
+    sessionId = picked.id;
+    pending = null;
+    return { ok: true, id: picked.id };
+  }
+
   function stop() {
     return activeTaskId ? runner.cancel(activeTaskId) : false;
   }
@@ -138,7 +177,7 @@ function createAgentBridge(options) {
     return getDir() === sessionDir ? sessionId : null;
   }
 
-  return { ask, approve, stop, newSession, currentSession };
+  return { ask, approve, stop, newSession, currentSession, listRecent, useSession };
 }
 
-module.exports = { createAgentBridge, messageKey, agentReply, CAPABILITY, EDIT_TOOLS };
+module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, CAPABILITY, EDIT_TOOLS };

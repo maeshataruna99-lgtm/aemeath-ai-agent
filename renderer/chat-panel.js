@@ -526,7 +526,7 @@
         ? add('bot pending', 'Menunggu persetujuan Windows (izin admin)...')
         : null;
       // /claude <message> streams the answer into one bubble as it is written.
-      const isAgent = /^\/claude\s+(?!(?:stop|baru|new|sesi|session)\s*$)\S/i.test(text);
+      const isAgent = /^\/claude\s+(?!(?:stop|baru|new|sesi|session|(?:lanjut|continue)\s+\d{1,2})\s*$)\S/i.test(text);
       const agentPending = isAgent
         ? add('bot pending', currentLocale === 'en-US' ? 'Claude is working...' : 'Claude sedang bekerja...')
         : null;
