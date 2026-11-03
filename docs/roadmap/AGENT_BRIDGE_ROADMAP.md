@@ -93,8 +93,7 @@ DoD: UI reflects task state; both locales; no hardcoded strings; missing-key tes
 
 One ticket each. Same contract, same tests with fake processes. Research is in `AGENT_BRIDGE_P4_RESEARCH.md`.
 
-- Codex (D-012): starts once the owner installs the CLI.
-- Antigravity (D-013): API key only, behind the gates listed in the decision. Observation through the existing watcher until then.
+**Status: skipped for now (owner, 2026-11-03).** Both adapters move to the backlog below and become issues later. Nothing in P0 to P3 and P5 depends on them.
 
 ### P5 — Module lifecycle
 
@@ -121,3 +120,30 @@ Bundle P4–P5 items (scheduler, integrations, domain packages) only after separ
 3. Do Codex and Antigravity support resumable headless sessions?
 4. Is `node:sqlite` usable in the bundled Electron, or should task records stay as JSON files?
 5. Should session ids from route B (started outside Aemeath) be adoptable as tasks, or only listed?
+
+## Backlog (to become issues)
+
+Decided, researched, and deliberately not started. File each as an issue when the work is picked up.
+
+### Codex adapter (D-012)
+
+- Blocked on: the owner installs the Codex CLI. `codex` is not on PATH today; only the desktop app is installed.
+- Scope: adapter beside `claude-adapter.js` with prompt on stdin, argument list, no shell, `--json`, explicit `--sandbox read-only`. Parser for `thread.started`, `turn.*`, `item.*`, `error`. Resume by the `thread_id` captured from `thread.started`.
+- Edit approval: a second run with `--sandbox workspace-write` after a typed "ya", the same pattern as `/claude ya`.
+- Not in the first version: a session list (sessions are zstd files with no folder in the path).
+- Rules: never read `~/.codex/auth.json`; the working folder must be a Git repository or pass `--skip-git-repo-check`.
+- Done when: fake-process tests as for Claude, one real run, and a selfie scenario.
+- Source notes: `AGENT_BRIDGE_P4_RESEARCH.md`.
+
+### Antigravity adapter (D-013)
+
+- Blocked on three gates: `agy` installed on this machine; a run with no terminal confirmed not to hang (reported up to v1.4.10 on Windows); and the owner accepting that Google's FAQ does not say whether a wrapper may use an API key.
+- Scope: Gemini API key only, never a consumer login. Key stored in encrypted local storage (rule section 6) and passed as an environment variable for one run. The adapter refuses to start without a key.
+- Open design points: how the CLI is told to use the key (its settings file needs `modelProvider` set to `gemini`; writing the owner's CLI settings is itself a decision) and whether `stream-json` input can carry a multi-turn session.
+- Until then: the existing read-only watcher is the only Antigravity feature.
+
+### Other open items
+
+- Click-level checks in the real Settings window: the purge button and its confirmation, the folder picker, and the stop on toggle-off and on quit. Logic is unit tested; the selfie run covers chat, not these clicks.
+- A guard against resuming a session that is live in another window (`/claude lanjut` can pick the session Claude Code is currently writing to).
+- P6 (downloadable packages, integrations, scheduler) still waits for separate decisions on network and privacy rules.

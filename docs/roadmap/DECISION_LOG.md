@@ -44,12 +44,14 @@
 ## D-012: Codex adapter
 **Decision:** Build a Codex adapter after the owner installs the Codex CLI. It follows the Claude adapter: prompt on stdin, argument list, no shell, `--json`, and an explicit `--sandbox read-only`.  
 **Constraint:** Never read, copy, or log `~/.codex/auth.json`. Sessions are zstd files with no folder in the path, so the first version resumes by the id from `thread.started` and has no session list.  
-**Reference:** `docs/roadmap/AGENT_BRIDGE_P4_RESEARCH.md`.
+**Reference:** `docs/roadmap/AGENT_BRIDGE_P4_RESEARCH.md`.  
+**Status:** skipped for now by the owner (2026-11-03); tracked in the backlog of `AGENT_BRIDGE_ROADMAP.md`.
 
 ## D-013: Antigravity adapter only through an API key
 **Decision:** An Antigravity adapter may be built, but only with a Gemini API key. A consumer Antigravity login is never driven by Aemeath: Google's FAQ says wrapping `agy` is unsupported on consumer plans and calls third-party access a Terms of Service violation.  
 **Constraint:** The key lives only in encrypted local storage (rule section 6) and reaches the process as an environment variable for that run. The adapter refuses to start without a key.  
-**Gates before any code:** `agy` is installed here; running it with no terminal does not hang (reported up to v1.4.10 on Windows); and the owner accepts that Google's FAQ does not say whether a wrapper may use an API key. Until then the read-only session watcher is the only Antigravity feature.
+**Gates before any code:** `agy` is installed here; running it with no terminal does not hang (reported up to v1.4.10 on Windows); and the owner accepts that Google's FAQ does not say whether a wrapper may use an API key. Until then the read-only session watcher is the only Antigravity feature.  
+**Status:** skipped for now by the owner (2026-11-03); tracked in the backlog of `AGENT_BRIDGE_ROADMAP.md`.
 
 ## D-014: Claude adapter stays, with credential rules
 **Decision:** The Claude adapter stays as built: it runs the unmodified `claude.exe` under the owner's own login.  
