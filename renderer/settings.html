@@ -145,6 +145,24 @@
 
       <hr>
 
+      <section class="row" id="github">
+        <h2 data-i18n="settings.github.title">GitHub (hanya-baca)</h2>
+        <label class="field check" for="github-toggle">
+          <input type="checkbox" id="github-toggle">
+          <span data-i18n="settings.github.toggle">Aktifkan perintah /github</span>
+        </label>
+        <p class="field">
+          <label for="github-repo" data-i18n="settings.github.repo_label">Repo (owner/nama)</label>:
+          <input type="text" id="github-repo" maxlength="200" spellcheck="false" autocomplete="off">
+        </p>
+        <p id="github-status" class="status"></p>
+        <p class="hint tight" data-i18n="settings.github.hint">
+          Mati secara bawaan. Aemeath membaca build, PR terbuka, dan issue terbuka dari satu repo lewat GitHub CLI milikmu.
+        </p>
+      </section>
+
+      <hr>
+
       <section class="row" id="movement">
         <h2 data-i18n="settings.movement.title">Gerak &amp; tampilan</h2>
         <label class="field check" for="still-toggle">

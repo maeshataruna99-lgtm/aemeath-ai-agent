@@ -57,5 +57,11 @@
 **Decision:** The Claude adapter stays as built: it runs the unmodified `claude.exe` under the owner's own login.  
 **Constraint:** Never read or store files that hold Claude credentials, never pass tokens to the process, and never ship Aemeath with a shared login. Anthropic's pages do not state outright that a personal desktop tool may spawn `claude -p`; this reading is inferred and is the owner's call.
 
+## D-015: Read-only GitHub reader through the gh CLI
+**Decision (owner, 2026-11-03):** Aemeath may read build runs, open pull requests and open issues of one repository, through the owner's own `gh` CLI. It is off by default.  
+**Constraints:** The repository is one `owner/name` field in Settings, validated strictly. Only three fixed GET endpoints with a limit of five items are used; there is no free-form endpoint. `gh` is started from an argument list, without a shell. Aemeath never reads, stores, or passes a GitHub token or `gh` config; the login stays with `gh`. Results are only displayed, sanitized, and never sent to a model or run as a command. Nothing from the owner's activity is sent: a request carries the repository name and the owner's `gh` login.  
+**Not covered:** writing to GitHub, other services (email, chat), and reading other repositories.  
+**Reference:** issue 4, `docs/roadmap/AGENT_BRIDGE_ROADMAP.md` (P6).
+
 ## Change control
 Any change to these decisions must be recorded here with the date, rationale, affected acceptance criteria, and approval from the project owner.

@@ -36,6 +36,36 @@
     "day_5": "Friday",
     "day_6": "Saturday"
   },
+  "github": {
+    "usage": "Use /github (builds), /github pr, or /github issue. It only reads the one repository you set in Settings.",
+    "disabled": "The GitHub reader is off, Rover. Turn it on in Settings, General tab.",
+    "no_repo": "Set the repository first in Settings, General tab, as owner/name.",
+    "bad_repo": "The repository name in Settings is not valid. Use the form owner/name.",
+    "gh_missing": "I can't find the GitHub CLI (gh) on this computer. Install it, then log in with gh auth login.",
+    "not_found": "That repository was not found, or your account may not see it.",
+    "auth": "gh isn't logged in or its token was rejected. Run gh auth login in your own terminal.",
+    "gh_failed": "The request to GitHub failed. Try again in a moment.",
+    "timeout": "GitHub took too long to answer, so I stopped it.",
+    "bad_output": "I couldn't read GitHub's answer.",
+    "runs_header": "Latest builds:",
+    "runs_none": "No builds in this repository yet.",
+    "run_row": "{name} · {branch} · {state}",
+    "pulls_header": "Open pull requests:",
+    "pulls_none": "No open pull requests.",
+    "pull_row": "#{number} {title} ({author})",
+    "draft_mark": "[draft]",
+    "issues_header": "Open issues:",
+    "issues_none": "No open issues.",
+    "issue_row": "#{number} {title}",
+    "state_success": "passed",
+    "state_failure": "failed",
+    "state_cancelled": "cancelled",
+    "state_in_progress": "running",
+    "state_queued": "queued",
+    "state_skipped": "skipped",
+    "state_timed_out": "timed out",
+    "state_other": "unknown"
+  },
   "agent": {
     "usage": "Type your message after /claude, Rover. Example: /claude explain the session parser. Other forms: /claude new, /claude session, /claude stop.",
     "disabled": "The agent bridge is off, Rover. Turn it on first in Settings, General tab.",
@@ -297,6 +327,14 @@
       "hint": "Aemeath chats about Wuthering Waves facts from the local lorebook. You can update data from the Wuthering Waves Wiki anytime (leave blank for core pages like Solaris-3, Lore, and Resonator, or specify a page title/URL).",
       "placeholder": "Example: Solaris-3, Lore, Rinascita (optional)",
       "update_btn": "Update Wiki"
+    },
+    "github": {
+      "title": "GitHub (read-only)",
+      "toggle": "Enable the /github command",
+      "repo_label": "Repository (owner/name)",
+      "saved": "Saved.",
+      "invalid": "It must look like owner/name, so it was not saved.",
+      "hint": "Off by default. Aemeath reads builds, open pull requests, and open issues of one repository through your own GitHub CLI (gh). Only the repository name and your gh login are sent; Aemeath stores no token and writes nothing to GitHub. Results are only displayed."
     },
     "agent": {
       "title": "AI agent bridge",

@@ -51,6 +51,36 @@
             "day_5": "Jumat",
             "day_6": "Sabtu"
         },
+        "github": {
+            "usage": "Pakai /github (build), /github pr, atau /github issue. Hanya membaca satu repo yang kamu atur di Pengaturan.",
+            "disabled": "Pembaca GitHub sedang mati, Rover. Nyalakan di Pengaturan, tab Umum.",
+            "no_repo": "Isi dulu repo-nya di Pengaturan, tab Umum, dengan bentuk owner/nama.",
+            "bad_repo": "Nama repo di Pengaturan tidak valid. Pakai bentuk owner/nama.",
+            "gh_missing": "Aku tidak menemukan GitHub CLI (gh) di komputer ini. Pasang dulu, lalu login dengan gh auth login.",
+            "not_found": "Repo itu tidak ditemukan, atau akunmu tidak boleh melihatnya.",
+            "auth": "gh belum login atau tokennya ditolak. Jalankan gh auth login di terminalmu sendiri.",
+            "gh_failed": "Permintaan ke GitHub gagal. Coba lagi sebentar lagi.",
+            "timeout": "GitHub terlalu lama menjawab, jadi kuhentikan.",
+            "bad_output": "Jawaban GitHub tidak bisa kubaca.",
+            "runs_header": "Build terbaru:",
+            "runs_none": "Belum ada build di repo ini.",
+            "run_row": "{name} · {branch} · {state}",
+            "pulls_header": "PR terbuka:",
+            "pulls_none": "Tidak ada PR terbuka.",
+            "pull_row": "#{number} {title} ({author})",
+            "draft_mark": "[draft]",
+            "issues_header": "Issue terbuka:",
+            "issues_none": "Tidak ada issue terbuka.",
+            "issue_row": "#{number} {title}",
+            "state_success": "berhasil",
+            "state_failure": "gagal",
+            "state_cancelled": "dibatalkan",
+            "state_in_progress": "berjalan",
+            "state_queued": "antre",
+            "state_skipped": "dilewati",
+            "state_timed_out": "kehabisan waktu",
+            "state_other": "tidak diketahui"
+        },
         "agent": {
             "usage": "Tulis pesanmu setelah /claude ya, Rover. Contoh: /claude jelaskan fungsi parser sesi. Perintah lain: /claude baru, /claude sesi, /claude stop.",
             "disabled": "Jembatan agen sedang mati, Rover. Nyalakan dulu di Pengaturan, tab Umum.",
@@ -136,6 +166,14 @@
                 "title": "Startup",
                 "toggle": "Jalankan Aemeath otomatis saat Windows menyala",
                 "hint": "Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer. Matikan di sini kalau tidak mau; entri startup-nya langsung dihapus."
+            },
+            "github": {
+                "title": "GitHub (hanya-baca)",
+                "toggle": "Aktifkan perintah /github",
+                "repo_label": "Repo (owner/nama)",
+                "saved": "Tersimpan.",
+                "invalid": "Bentuknya harus owner/nama, jadi tidak disimpan.",
+                "hint": "Mati secara bawaan. Aemeath membaca build, PR terbuka, dan issue terbuka dari satu repo lewat GitHub CLI (gh) milikmu. Yang dikirim hanya nama repo dan login gh-mu; Aemeath tidak menyimpan token dan tidak menulis apa pun ke GitHub. Hasilnya hanya ditampilkan."
             },
             "agent": {
                 "title": "Jembatan agen AI",
@@ -443,6 +481,36 @@
             "day_5": "Friday",
             "day_6": "Saturday"
         },
+        "github": {
+            "usage": "Use /github (builds), /github pr, or /github issue. It only reads the one repository you set in Settings.",
+            "disabled": "The GitHub reader is off, Rover. Turn it on in Settings, General tab.",
+            "no_repo": "Set the repository first in Settings, General tab, as owner/name.",
+            "bad_repo": "The repository name in Settings is not valid. Use the form owner/name.",
+            "gh_missing": "I can't find the GitHub CLI (gh) on this computer. Install it, then log in with gh auth login.",
+            "not_found": "That repository was not found, or your account may not see it.",
+            "auth": "gh isn't logged in or its token was rejected. Run gh auth login in your own terminal.",
+            "gh_failed": "The request to GitHub failed. Try again in a moment.",
+            "timeout": "GitHub took too long to answer, so I stopped it.",
+            "bad_output": "I couldn't read GitHub's answer.",
+            "runs_header": "Latest builds:",
+            "runs_none": "No builds in this repository yet.",
+            "run_row": "{name} · {branch} · {state}",
+            "pulls_header": "Open pull requests:",
+            "pulls_none": "No open pull requests.",
+            "pull_row": "#{number} {title} ({author})",
+            "draft_mark": "[draft]",
+            "issues_header": "Open issues:",
+            "issues_none": "No open issues.",
+            "issue_row": "#{number} {title}",
+            "state_success": "passed",
+            "state_failure": "failed",
+            "state_cancelled": "cancelled",
+            "state_in_progress": "running",
+            "state_queued": "queued",
+            "state_skipped": "skipped",
+            "state_timed_out": "timed out",
+            "state_other": "unknown"
+        },
         "agent": {
             "usage": "Type your message after /claude, Rover. Example: /claude explain the session parser. Other forms: /claude new, /claude session, /claude stop.",
             "disabled": "The agent bridge is off, Rover. Turn it on first in Settings, General tab.",
@@ -528,6 +596,14 @@
                 "title": "Startup",
                 "toggle": "Launch Aemeath automatically on startup",
                 "hint": "Enabled by default, so Aemeath appears every time you turn on your computer. Disable here to remove the startup entry."
+            },
+            "github": {
+                "title": "GitHub (read-only)",
+                "toggle": "Enable the /github command",
+                "repo_label": "Repository (owner/name)",
+                "saved": "Saved.",
+                "invalid": "It must look like owner/name, so it was not saved.",
+                "hint": "Off by default. Aemeath reads builds, open pull requests, and open issues of one repository through your own GitHub CLI (gh). Only the repository name and your gh login are sent; Aemeath stores no token and writes nothing to GitHub. Results are only displayed."
             },
             "agent": {
                 "title": "AI agent bridge",

@@ -4,6 +4,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { isValidRepo } = require('./integrations/github-reader');
 
 const DEFAULTS = {
   scale: 1,
@@ -26,6 +27,9 @@ const DEFAULTS = {
   agentBridgeEnabled: false,
   // Folder Claude works in. Empty means the home folder. Only set through the folder picker.
   agentBridgeDir: '',
+  // Read-only GitHub reader (/github). Off until the owner turns it on and names one repository.
+  githubEnabled: false,
+  githubRepo: '',
   stayStill: false,
   transparentMode: false,
   opacity: 0.6,
@@ -128,6 +132,7 @@ function keepFlags(data) {
     'terminalEnabled',
     'startAtLogin',
     'agentBridgeEnabled',
+    'githubEnabled',
     'stayStill',
     'transparentMode',
     'fullConsent',
@@ -148,6 +153,7 @@ function keepStrings(data) {
   if (typeof dir !== 'string' || dir.length > 500 || /[\u0000-\u001f]/.test(dir) || (dir !== '' && !path.isAbsolute(dir))) {
     data.agentBridgeDir = '';
   }
+  if (data.githubRepo !== '' && !isValidRepo(data.githubRepo)) data.githubRepo = '';
   if (!CHAT_SHORTCUTS.includes(data.chatShortcut)) data.chatShortcut = DEFAULTS.chatShortcut;
 }
 

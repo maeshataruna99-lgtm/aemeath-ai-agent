@@ -36,6 +36,36 @@
     "day_5": "Jumat",
     "day_6": "Sabtu"
   },
+  "github": {
+    "usage": "Pakai /github (build), /github pr, atau /github issue. Hanya membaca satu repo yang kamu atur di Pengaturan.",
+    "disabled": "Pembaca GitHub sedang mati, Rover. Nyalakan di Pengaturan, tab Umum.",
+    "no_repo": "Isi dulu repo-nya di Pengaturan, tab Umum, dengan bentuk owner/nama.",
+    "bad_repo": "Nama repo di Pengaturan tidak valid. Pakai bentuk owner/nama.",
+    "gh_missing": "Aku tidak menemukan GitHub CLI (gh) di komputer ini. Pasang dulu, lalu login dengan gh auth login.",
+    "not_found": "Repo itu tidak ditemukan, atau akunmu tidak boleh melihatnya.",
+    "auth": "gh belum login atau tokennya ditolak. Jalankan gh auth login di terminalmu sendiri.",
+    "gh_failed": "Permintaan ke GitHub gagal. Coba lagi sebentar lagi.",
+    "timeout": "GitHub terlalu lama menjawab, jadi kuhentikan.",
+    "bad_output": "Jawaban GitHub tidak bisa kubaca.",
+    "runs_header": "Build terbaru:",
+    "runs_none": "Belum ada build di repo ini.",
+    "run_row": "{name} · {branch} · {state}",
+    "pulls_header": "PR terbuka:",
+    "pulls_none": "Tidak ada PR terbuka.",
+    "pull_row": "#{number} {title} ({author})",
+    "draft_mark": "[draft]",
+    "issues_header": "Issue terbuka:",
+    "issues_none": "Tidak ada issue terbuka.",
+    "issue_row": "#{number} {title}",
+    "state_success": "berhasil",
+    "state_failure": "gagal",
+    "state_cancelled": "dibatalkan",
+    "state_in_progress": "berjalan",
+    "state_queued": "antre",
+    "state_skipped": "dilewati",
+    "state_timed_out": "kehabisan waktu",
+    "state_other": "tidak diketahui"
+  },
   "agent": {
     "usage": "Tulis pesanmu setelah /claude ya, Rover. Contoh: /claude jelaskan fungsi parser sesi. Perintah lain: /claude baru, /claude sesi, /claude stop.",
     "disabled": "Jembatan agen sedang mati, Rover. Nyalakan dulu di Pengaturan, tab Umum.",
@@ -297,6 +327,14 @@
       "hint": "Aemeath selalu mengobrolkan fakta acak Wuthering Waves dari lorebook lokal yang tersedia. Kamu bisa memperbarui data dari Wuthering Waves Wiki kapan saja (kosongkan kolom untuk memperbarui halaman utama seperti Solaris-3, Lore, dan Resonator, atau isi judul/URL halaman tertentu).",
       "placeholder": "Contoh: Solaris-3, Lore, Rinascita (opsional)",
       "update_btn": "Perbarui Wiki"
+    },
+    "github": {
+      "title": "GitHub (hanya-baca)",
+      "toggle": "Aktifkan perintah /github",
+      "repo_label": "Repo (owner/nama)",
+      "saved": "Tersimpan.",
+      "invalid": "Bentuknya harus owner/nama, jadi tidak disimpan.",
+      "hint": "Mati secara bawaan. Aemeath membaca build, PR terbuka, dan issue terbuka dari satu repo lewat GitHub CLI (gh) milikmu. Yang dikirim hanya nama repo dan login gh-mu; Aemeath tidak menyimpan token dan tidak menulis apa pun ke GitHub. Hasilnya hanya ditampilkan."
     },
     "agent": {
       "title": "Jembatan agen AI",

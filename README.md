@@ -139,6 +139,7 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/memory` — kelola catatan memori companion langsung dari obrolan (`/memory`, `/memory hapus <nomor>`, `/memory aktif`, `/memory nonaktif`).
 - `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
 - `/claude` — tanya Claude Code dari kotak chat, mati secara bawaan (nyalakan di Pengaturan, tab Umum, dan pilih folder kerjanya). `/claude <pesan>`, `/claude baru`, `/claude stop`, `/claude sesi`, `/claude lanjut <nomor>`. Hanya membaca dan menjawab; mengedit file butuh `/claude ya` yang kamu ketik sendiri, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu sendiri.
+- `/github` — lihat build terbaru, PR terbuka, dan issue terbuka dari satu repo GitHub (`/github`, `/github pr`, `/github issue`). Hanya membaca, mati secara bawaan: nyalakan di Pengaturan, tab Umum, dan isi repo `owner/nama`. Berjalan lewat GitHub CLI (`gh`) milikmu, jadi Aemeath tidak pernah memegang token; yang dikirim hanya nama repo dan login `gh`-mu.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 - `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
 - `/search <kata kunci>` — pemicu pencarian web manual eksplisit dengan sumber tautan terverifikasi (menghentikan jawaban jika tidak ada sumber valid yang ditemukan).
@@ -299,6 +300,7 @@ bentrok dengan Aemeath yang sedang berjalan.
 | `src/walker.js`, `src/atlas.js` | gerak terbang 2D dan pembaca atlas sprite |
 | `src/session-parser.js`, `src/claude-code-provider.js` | pembaca transkrip sesi AI dan deteksi keputusan |
 | `src/agent/` | jembatan ke Claude Code CLI: adapter, pengurai keluaran, task runner, daftar sesi |
+| `src/integrations/` | pembaca GitHub hanya-baca lewat `gh` |
 | `src/media-watcher.js`, `scripts/` | deteksi musik lewat media session Windows |
 | `src/dialogue.js`, `src/lorebook*.js` | celetukan dan pemilih trivia berkredit |
 | `src/chat/` | layanan chat, provider DeepSeek, persona, penyaring, pencarian web, jawaban offline, penyimpanan kunci |

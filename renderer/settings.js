@@ -195,6 +195,8 @@
     agentToggle.checked = settings.agentBridgeEnabled === true;
     renderAgentDir(settings.agentBridgeDir);
     refreshAgentTasks();
+    githubToggle.checked = settings.githubEnabled === true;
+    githubRepoInput.value = settings.githubRepo || '';
     transparentToggle.checked = settings.transparentMode === true;
     opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
     renderTransparency();
@@ -456,6 +458,21 @@
     refreshAgentTasks();
   });
   setInterval(refreshAgentTasks, 3000);
+  // GitHub reader: the toggle and one owner/name field. The saved value is read back, so a
+  // value the settings refused is shown as refused rather than silently kept on screen.
+  const githubToggle = document.getElementById('github-toggle');
+  const githubRepoInput = document.getElementById('github-repo');
+  const githubStatus = document.getElementById('github-status');
+  githubToggle.addEventListener('change', () => {
+    window.aemeathSettings.set({ githubEnabled: githubToggle.checked });
+  });
+  githubRepoInput.addEventListener('change', async () => {
+    const wanted = githubRepoInput.value.trim();
+    window.aemeathSettings.set({ githubRepo: wanted });
+    const saved = (await window.aemeathSettings.get()).githubRepo || '';
+    githubRepoInput.value = saved;
+    githubStatus.textContent = i18n ? i18n.t(saved === wanted ? 'settings.github.saved' : 'settings.github.invalid') : '';
+  });
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });

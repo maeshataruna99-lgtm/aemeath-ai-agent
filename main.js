@@ -40,6 +40,7 @@ const { createClaudeAdapter } = require('./src/agent/claude-adapter');
 const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows } = require('./src/agent/agent-bridge');
 const { listSessions } = require('./src/agent/session-list');
 const { createSchedule } = require('./src/productivity/schedule');
+const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
@@ -192,6 +193,44 @@ function main() {
   // Verification run only: a stand-in for the Claude CLI that answers from the prompt, so no
   // model is called and nothing is edited. Records the arguments each run was started with.
   const selfieSchedule = []; // reminders the verification run heard
+  // Verification run only: a stand-in for `gh api` with fixed answers, so GitHub is never called.
+  const selfieGhCalls = [];
+  function selfieGhSpawn(_bin, args) {
+    const { EventEmitter } = require('node:events');
+    const { PassThrough } = require('node:stream');
+    const child = new EventEmitter();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.kill = () => child.stdout.end();
+    const endpoint = args[args.length - 1];
+    selfieGhCalls.push(args.slice(0, -1).join(' ') + ' ' + endpoint);
+    let body = '[]';
+    let code = 0;
+    if (endpoint.includes('/missing/')) {
+      code = 1;
+    } else if (endpoint.includes('/actions/runs')) {
+      body = JSON.stringify({
+        workflow_runs: [
+          { name: 'CI', head_branch: 'master', status: 'completed', conclusion: 'success' },
+          { name: 'Build', head_branch: 'feat/agent', status: 'in_progress', conclusion: null },
+        ],
+      });
+    } else if (endpoint.includes('/pulls')) {
+      body = JSON.stringify([
+        { number: 7, title: 'Add stream parser', user: { login: 'rover' }, draft: false },
+        { number: 9, title: 'WIP\u0007 task list', user: { login: 'rover' }, draft: true },
+      ]);
+    } else if (endpoint.includes('/issues')) {
+      body = JSON.stringify([{ number: 3, title: 'Stop leaves a process' }, { number: 4, title: 'A pull request', pull_request: {} }]);
+    }
+    setTimeout(() => {
+      if (code === 0) child.stdout.write(body);
+      else child.stderr.write('gh: Not Found (HTTP 404)');
+      child.stdout.end();
+      child.emit('close', code);
+    }, 40);
+    return child;
+  }
   const selfieClaudeCalls = [];
   function selfieClaudeSpawn(_bin, args) {
     const { EventEmitter } = require('node:events');
@@ -567,6 +606,25 @@ function main() {
       },
     });
     if (!isSelfie) schedule.start();
+    // Read-only GitHub: three fixed requests to the owner's own gh CLI, off by default.
+    const githubReader = createGithubReader({
+      spawn: isSelfie ? selfieGhSpawn : spawn,
+      getRepo: () => settings.githubRepo,
+      isEnabled: () => settings.githubEnabled === true,
+      resolve: isSelfie ? () => 'selfie-gh' : undefined,
+    });
+    const GITHUB_WORDS = { '': 'runs', build: 'runs', status: 'runs', runs: 'runs', pr: 'pulls', prs: 'pulls', issue: 'issues', issues: 'issues' };
+    builtins.github = {
+      description: 'Lihat build, PR, dan issue repo GitHub-mu, hanya-baca (mati bawaan, atur di Pengaturan)',
+      run: async (arg) => {
+        const tr = createI18n({ locale: settings.locale || 'id-ID' }).t;
+        const word = String(arg == null ? '' : arg).trim().toLowerCase();
+        if (!Object.prototype.hasOwnProperty.call(GITHUB_WORDS, word)) return { ok: false, text: tr('github.usage') };
+        const kind = GITHUB_WORDS[word];
+        const res = await githubReader.fetch(kind);
+        return res.ok ? { ok: true, text: githubReply(tr, kind, res.items) } : { ok: false, text: tr(failureKey(res.code)) };
+      },
+    };
     builtins.jadwal = {
       description: 'Pengingat berulang (mis. /jadwal tambah 08:30 harian Minum obat)',
       run: (arg) => schedule.run(arg, createI18n({ locale: settings.locale || 'id-ID' }).t),
@@ -675,6 +733,7 @@ function main() {
         'terminalEnabled',
         'startAtLogin',
         'agentBridgeEnabled',
+        'githubEnabled',
         'stayStill',
         'transparentMode',
         'fullConsent',
@@ -704,6 +763,7 @@ function main() {
       }
       if (patch && typeof patch.doomscrollLimitMin === 'number') next.doomscrollLimitMin = patch.doomscrollLimitMin;
       if (patch && typeof patch.chatShortcut === 'string') next.chatShortcut = patch.chatShortcut;
+      if (patch && typeof patch.githubRepo === 'string') next.githubRepo = patch.githubRepo.trim().slice(0, 200);
       if (patch && (patch.locale === 'id-ID' || patch.locale === 'en-US')) next.locale = patch.locale;
       if (patch && (patch.theme === 'default' || patch.theme === 'glass')) next.theme = patch.theme;
       if (patch && typeof patch.glassPreset === 'string') next.glassPreset = patch.glassPreset;
@@ -1910,6 +1970,24 @@ function main() {
     await submit('/jadwal hapus 1', 700);
     await submit('/jadwal hapus 1', 700);
     console.log('[aemeath] jadwal deleted: ' + (await claudeTail(1)) + ' | left ' + schedule.list().length);
+    // /github against the stand-in gh: off, build, pull requests, issues, a missing repo, bad input.
+    await submit('/github', 800);
+    console.log('[aemeath] github while off: ' + (await claudeTail(1)));
+    Object.assign(settings, settingsStore.save({ githubEnabled: true, githubRepo: 'rover/aemeath' }));
+    await submit('/github', 900);
+    console.log('[aemeath] github build: ' + (await claudeTail(1)));
+    await submit('/github pr', 900);
+    console.log('[aemeath] github pr: ' + (await claudeTail(1)));
+    await submit('/github issue', 900);
+    console.log('[aemeath] github issue: ' + (await claudeTail(1)));
+    await submit('/github nonsense', 700);
+    console.log('[aemeath] github bad word: ' + (await claudeTail(1)));
+    Object.assign(settings, settingsStore.save({ githubRepo: 'rover/missing' }));
+    await submit('/github', 900);
+    console.log('[aemeath] github missing repo: ' + (await claudeTail(1)));
+    console.log('[aemeath] github calls: ' + JSON.stringify(selfieGhCalls));
+    Object.assign(settings, settingsStore.save({ githubEnabled: false, githubRepo: '' }));
+
     const launchesBefore = selfieLaunches.length;
     await submit('/change-mode', 1800);
     const modeOn = await win.webContents.executeJavaScript(
