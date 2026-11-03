@@ -39,7 +39,7 @@ test('an empty message gets the usage hint', async () => {
 test('the answer comes back and the next message resumes the same session', async () => {
   const { store, bridge, seen } = setup(async () => ({ sessionId: SID, text: 'jawaban' }));
   const first = await bridge.ask('halo');
-  assert.deepEqual(first, { ok: true, text: 'jawaban', sessionId: SID });
+  assert.deepEqual(first, { ok: true, text: 'jawaban', sessionId: SID, denials: [], approvable: false });
   assert.equal(bridge.currentSession(), SID);
   await bridge.ask('lagi');
   assert.equal(seen[0].sessionId, null);
@@ -115,4 +115,96 @@ test('onText is handed through to the adapter', async () => {
   const res = await bridge.ask('x', { onText: (d) => seen.push(d) });
   assert.equal(res.ok, true);
   assert.deepEqual(seen, ['ha', 'lo']);
+});
+
+const { agentReply } = require('../src/agent/agent-bridge');
+
+function approvalSetup(denials, startAt) {
+  const store = createTaskStore();
+  const runner = createTaskRunner({ store });
+  const calls = [];
+  let clock = startAt || 1000;
+  const adapter = {
+    run: async (input) => {
+      calls.push(input);
+      return { sessionId: SID, text: 'selesai', denials: calls.length === 1 ? denials : [] };
+    },
+  };
+  const bridge = createAgentBridge({ store, runner, adapter, isEnabled: () => true, now: () => clock });
+  return { bridge, calls, tick: (ms) => (clock += ms) };
+}
+
+const WRITE = [{ tool: 'Write', target: 'a.txt' }];
+
+test('"ya" after an edit was denied resumes the same session once with edits allowed', async () => {
+  const { bridge, calls } = approvalSetup(WRITE);
+  const first = await bridge.ask('buat a.txt');
+  assert.equal(first.approvable, true);
+  const approved = await bridge.approve();
+  assert.equal(approved.ok, true);
+  assert.equal(calls[1].approveEdits, true);
+  assert.equal(calls[1].sessionId, SID);
+  assert.equal(calls[0].approveEdits, undefined);
+  assert.deepEqual(await bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+});
+
+test('approval is refused when nothing is waiting, when it expired, or after a new message', async () => {
+  const none = approvalSetup([]);
+  assert.deepEqual(await none.bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+
+  const old = approvalSetup(WRITE);
+  await old.bridge.ask('buat a.txt');
+  old.tick(5 * 60 * 1000 + 1);
+  assert.deepEqual(await old.bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+  assert.equal(old.calls.length, 1);
+
+  const moved = approvalSetup(WRITE);
+  await moved.bridge.ask('buat a.txt');
+  await moved.bridge.ask('lupakan itu');
+  assert.deepEqual(await moved.bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+
+  const reset = approvalSetup(WRITE);
+  await reset.bridge.ask('buat a.txt');
+  reset.bridge.newSession();
+  assert.deepEqual(await reset.bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+});
+
+test('a denied shell command cannot be approved', async () => {
+  const { bridge, calls } = approvalSetup([{ tool: 'Bash', target: 'rm -rf x' }]);
+  const res = await bridge.ask('hapus x');
+  assert.equal(res.approvable, false);
+  assert.deepEqual(await bridge.approve(), { ok: false, code: 'nothing_to_approve' });
+  assert.equal(calls.length, 1);
+});
+
+test('an edit mixed with a command is not approvable either', async () => {
+  const { bridge } = approvalSetup([WRITE[0], { tool: 'Bash', target: 'x' }]);
+  assert.equal((await bridge.ask('x')).approvable, false);
+});
+
+test('a disabled bridge cannot approve', async () => {
+  const store = createTaskStore();
+  const bridge = createAgentBridge({
+    store,
+    runner: createTaskRunner({ store }),
+    adapter: { run: async () => ({ sessionId: SID, text: 'x', denials: [] }) },
+    isEnabled: () => false,
+  });
+  assert.deepEqual(await bridge.approve(), { ok: false, code: 'disabled' });
+});
+
+test('the reply says what Claude wanted and how to allow it, in both languages', () => {
+  for (const locale of ['id-ID', 'en-US']) {
+    const t = createI18n({ locale }).t;
+    const editable = agentReply(t, { text: 'jawab', denials: WRITE, approvable: true });
+    assert.match(editable, /Write a\.txt/);
+    assert.match(editable, /\/claude ya/);
+    const blocked = agentReply(t, { text: 'jawab', denials: [{ tool: 'Bash', target: 'ls' }], approvable: false });
+    assert.match(blocked, /Bash ls/);
+    assert.doesNotMatch(blocked, /\/claude ya untuk|Type \/claude ya/);
+    assert.equal(agentReply(t, { text: 'jawab', denials: [], approvable: false }), 'jawab');
+    for (const key of ['agent.denied', 'agent.approve_hint', 'agent.denied_blocked', 'agent.nothing_to_approve']) {
+      assert.notEqual(t(key), key, locale + ' is missing ' + key);
+    }
+  }
 });

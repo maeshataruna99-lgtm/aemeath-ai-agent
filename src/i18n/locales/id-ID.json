@@ -32,7 +32,11 @@
     "session_id": "Sesi Claude saat ini: {id}. Untuk melanjutkannya di terminalmu, ketik sendiri: claude --resume {id}",
     "stopped": "Permintaan /claude dihentikan.",
     "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan.",
-    "bad_dir": "Folder kerja Claude tidak ditemukan. Pilih ulang di Pengaturan, tab Umum, atau kembali ke folder home."
+    "bad_dir": "Folder kerja Claude tidak ditemukan. Pilih ulang di Pengaturan, tab Umum, atau kembali ke folder home.",
+    "denied": "Claude ingin melakukan: {list}.",
+    "approve_hint": "Ketik /claude ya untuk mengizinkan sekali, atau abaikan saja. Izin habis dalam 5 menit.",
+    "denied_blocked": "Jenis aksi ini tidak bisa diizinkan dari sini, jadi ditolak otomatis.",
+    "nothing_to_approve": "Tidak ada permintaan edit yang menunggu izin."
   },
   "settings": {
     "title": "Pengaturan Aemeath",
@@ -258,7 +262,7 @@
       "dir_none": "Folder home",
       "dir_pick": "Pilih folder...",
       "dir_clear": "Pakai folder home",
-      "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
+      "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, untuk membaca dan menjawab. File baru diedit setelah kamu mengetik /claude ya, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
     }
   },
   "chat": {

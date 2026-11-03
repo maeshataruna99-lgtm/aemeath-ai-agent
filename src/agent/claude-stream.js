@@ -29,6 +29,18 @@ function textOf(content) {
     .trim();
 }
 
+// Tool calls the CLI refused for lack of approval, kept to a name and a target.
+function denialsOf(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((d) => d && typeof d.tool_name === 'string')
+    .map((d) => {
+      const input = d.tool_input || {};
+      const target = input.file_path || input.notebook_path || input.path || input.command || '';
+      return { tool: d.tool_name, target: String(target).slice(0, 200) };
+    });
+}
+
 // A failed login comes back as an assistant message flagged `error`, followed by
 // a `result` whose subtype is still "success". The flag is the only reliable tell.
 function toEvent(obj) {
@@ -61,7 +73,9 @@ function toEvent(obj) {
 
   if (obj.type === 'result') {
     const message = String(obj.result || obj.subtype || '');
-    if (obj.subtype === 'success' && !obj.is_error) return { kind: 'done', sessionId, text: message };
+    if (obj.subtype === 'success' && !obj.is_error) {
+      return { kind: 'done', sessionId, text: message, denials: denialsOf(obj.permission_denials) };
+    }
     const reason = obj.subtype === 'error_max_turns' ? 'max_turns' : 'error';
     return { kind: 'failed', sessionId, reason, message };
   }

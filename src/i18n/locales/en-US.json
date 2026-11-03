@@ -32,7 +32,11 @@
     "session_id": "Current Claude session: {id}. To continue it in your terminal, type this yourself: claude --resume {id}",
     "stopped": "The /claude request was stopped.",
     "nothing_running": "No /claude request is running.",
-    "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder."
+    "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder.",
+    "denied": "Claude wants to do: {list}.",
+    "approve_hint": "Type /claude ya to allow it once, or ignore this. The permission expires in 5 minutes.",
+    "denied_blocked": "This kind of action cannot be allowed from here, so it was denied automatically.",
+    "nothing_to_approve": "No edit request is waiting for permission."
   },
   "settings": {
     "title": "Aemeath Settings",
@@ -258,7 +262,7 @@
       "dir_none": "Home folder",
       "dir_pick": "Choose folder...",
       "dir_clear": "Use home folder",
-      "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
+      "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering. Files are edited only after you type /claude ya, and running commands is always denied. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
     }
   },
   "chat": {

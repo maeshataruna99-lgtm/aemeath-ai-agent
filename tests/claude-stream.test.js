@@ -111,3 +111,28 @@ test('partial-message text deltas become delta events and everything else is ski
     [['delta', 'Sat'], ['delta', 'u']]
   );
 });
+
+test('a result lists the tool calls that were denied, reduced to a name and a target', () => {
+  const [event] = run([
+    line({
+      type: 'result',
+      subtype: 'success',
+      result: 'belum dibuat',
+      permission_denials: [
+        { tool_name: 'Write', tool_use_id: 't1', tool_input: { file_path: 'C:/p/note.txt', content: 'secret body' } },
+        { tool_name: 'Bash', tool_use_id: 't2', tool_input: { command: 'rm -rf x' } },
+        { tool_use_id: 'no-name' },
+      ],
+    }),
+  ]);
+  assert.deepEqual(event.denials, [
+    { tool: 'Write', target: 'C:/p/note.txt' },
+    { tool: 'Bash', target: 'rm -rf x' },
+  ]);
+  assert.equal(JSON.stringify(event).includes('secret body'), false);
+});
+
+test('a result without denials has an empty list', () => {
+  const [event] = run([line({ type: 'result', subtype: 'success', result: 'ok' })]);
+  assert.deepEqual(event.denials, []);
+});

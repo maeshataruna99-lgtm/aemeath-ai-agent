@@ -47,7 +47,11 @@
             "session_id": "Sesi Claude saat ini: {id}. Untuk melanjutkannya di terminalmu, ketik sendiri: claude --resume {id}",
             "stopped": "Permintaan /claude dihentikan.",
             "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan.",
-            "bad_dir": "Folder kerja Claude tidak ditemukan. Pilih ulang di Pengaturan, tab Umum, atau kembali ke folder home."
+            "bad_dir": "Folder kerja Claude tidak ditemukan. Pilih ulang di Pengaturan, tab Umum, atau kembali ke folder home.",
+            "denied": "Claude ingin melakukan: {list}.",
+            "approve_hint": "Ketik /claude ya untuk mengizinkan sekali, atau abaikan saja. Izin habis dalam 5 menit.",
+            "denied_blocked": "Jenis aksi ini tidak bisa diizinkan dari sini, jadi ditolak otomatis.",
+            "nothing_to_approve": "Tidak ada permintaan edit yang menunggu izin."
         },
         "settings": {
             "title": "Pengaturan Aemeath",
@@ -105,7 +109,7 @@
                 "dir_none": "Folder home",
                 "dir_pick": "Pilih folder...",
                 "dir_clear": "Pakai folder home",
-                "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
+                "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, untuk membaca dan menjawab. File baru diedit setelah kamu mengetik /claude ya, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
             },
             "movement": {
                 "title": "Gerak & tampilan",
@@ -375,7 +379,11 @@
             "session_id": "Current Claude session: {id}. To continue it in your terminal, type this yourself: claude --resume {id}",
             "stopped": "The /claude request was stopped.",
             "nothing_running": "No /claude request is running.",
-            "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder."
+            "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder.",
+            "denied": "Claude wants to do: {list}.",
+            "approve_hint": "Type /claude ya to allow it once, or ignore this. The permission expires in 5 minutes.",
+            "denied_blocked": "This kind of action cannot be allowed from here, so it was denied automatically.",
+            "nothing_to_approve": "No edit request is waiting for permission."
         },
         "settings": {
             "title": "Aemeath Settings",
@@ -433,7 +441,7 @@
                 "dir_none": "Home folder",
                 "dir_pick": "Choose folder...",
                 "dir_clear": "Use home folder",
-                "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
+                "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering. Files are edited only after you type /claude ya, and running commands is always denied. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
             },
             "movement": {
                 "title": "Movement & display",

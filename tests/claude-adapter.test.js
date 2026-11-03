@@ -53,7 +53,7 @@ function adapterFor(spawn, resolve) {
 test('runs a turn: prompt on stdin, argument list, no shell', async () => {
   const spawn = fakeSpawn(OK_LINES);
   const result = await adapterFor(spawn).run({ prompt: '--help ; rm -rf /' });
-  assert.deepEqual(result, { sessionId: SID, text: 'halo' });
+  assert.deepEqual(result, { sessionId: SID, text: 'halo', denials: [] });
   const { bin, args, options, child } = spawn.calls[0];
   assert.equal(bin, 'C:/bin/claude.exe');
   assert.deepEqual(args, buildArgs(null));
@@ -146,4 +146,28 @@ test('text deltas reach onText while the turn runs and partial messages are requ
   assert.deepEqual(seen, ['Sat', 'u, dua']);
   assert.equal(result.text, 'Satu, dua');
   assert.ok(spawn.calls[0].args.includes('--include-partial-messages'));
+});
+
+test('denied tool calls come back with the answer, and approveEdits lets edits through', async () => {
+  const withDenial = [
+    line({ type: 'system', subtype: 'init' }),
+    line({
+      type: 'result',
+      subtype: 'success',
+      result: 'belum dibuat',
+      permission_denials: [{ tool_name: 'Write', tool_input: { file_path: 'a.txt', content: 'x' } }],
+    }),
+  ];
+  const spawn = fakeSpawn(withDenial);
+  const result = await adapterFor(spawn).run({ prompt: 'buat a.txt' });
+  assert.deepEqual(result.denials, [{ tool: 'Write', target: 'a.txt' }]);
+  assert.equal(spawn.calls[0].args.includes('--allowedTools'), false);
+
+  const spawn2 = fakeSpawn(OK_LINES);
+  await adapterFor(spawn2).run({ prompt: 'ya', sessionId: SID, approveEdits: true });
+  const args = spawn2.calls[0].args;
+  assert.deepEqual(args.slice(args.indexOf('--allowedTools')), ['--allowedTools', 'Edit,Write,MultiEdit,NotebookEdit']);
+  assert.equal(args.includes('acceptEdits'), false);
+  assert.equal(args.join(' ').includes('Bash'), false);
+  assert.ok(args.includes('--permission-prompts') && args.includes('none'));
 });

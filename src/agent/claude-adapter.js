@@ -15,6 +15,9 @@ const { createStreamParser } = require('./claude-stream');
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_PROMPT = 8000;
+// The tools an approved turn may use. Not acceptEdits: that mode also lets some shell
+// commands (a redirect like echo > file) through, which a typed "ya" must not cover.
+const EDIT_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
 
 function coded(code) {
   const err = new Error(code);
@@ -39,9 +42,11 @@ function resolveClaude(env, platform, exists) {
   return null;
 }
 
-function buildArgs(sessionId) {
+function buildArgs(sessionId, approveEdits) {
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--setting-sources', 'project', '--permission-prompts', 'none'];
   if (sessionId) args.push('--resume', sessionId);
+  // Only the owner's typed "ya" gets here: file edits go through for this one turn, commands stay denied.
+  if (approveEdits) args.push('--allowedTools', EDIT_TOOLS.join(','));
   return args;
 }
 
@@ -61,7 +66,7 @@ function createClaudeAdapter(options) {
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
-  // run({ prompt, sessionId?, signal?, onText?(delta) }) -> Promise<{ sessionId, text }>
+  // run({ prompt, sessionId?, signal?, onText?(delta), approveEdits? }) -> Promise<{ sessionId, text, denials }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
   // empty_prompt, bad_dir, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
@@ -76,7 +81,7 @@ function createClaudeAdapter(options) {
     return new Promise((resolvePromise, reject) => {
       let child;
       try {
-        child = spawn(bin, buildArgs(input.sessionId), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+        child = spawn(bin, buildArgs(input.sessionId, input.approveEdits === true), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
       } catch {
         reject(coded('spawn_failed'));
         return;
@@ -98,7 +103,7 @@ function createClaudeAdapter(options) {
         if (!event) return;
         if (event.sessionId) sessionId = event.sessionId;
         if (event.kind === 'delta' && input.onText) input.onText(event.text);
-        if (event.kind === 'done') outcome = { done: event.text };
+        if (event.kind === 'done') outcome = { done: event.text, denials: event.denials || [] };
         if (event.kind === 'failed') outcome = { failed: event.reason };
       }
 
@@ -117,7 +122,7 @@ function createClaudeAdapter(options) {
       child.on('close', () => {
         if (buffer.trim()) handle(buffer);
         finish(() => {
-          if (outcome && outcome.done !== undefined) resolvePromise({ sessionId, text: outcome.done });
+          if (outcome && outcome.done !== undefined) resolvePromise({ sessionId, text: outcome.done, denials: outcome.denials });
           else if (outcome && outcome.failed) reject(coded(outcome.failed));
           else reject(coded('no_result'));
         });
@@ -142,4 +147,4 @@ function createClaudeAdapter(options) {
   return { run };
 }
 
-module.exports = { createClaudeAdapter, resolveClaude, buildArgs, SESSION_ID };
+module.exports = { createClaudeAdapter, resolveClaude, buildArgs, EDIT_TOOLS, SESSION_ID };

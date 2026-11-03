@@ -37,7 +37,7 @@ const { createI18n } = require('./src/i18n');
 const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
-const { createAgentBridge, messageKey } = require('./src/agent/agent-bridge');
+const { createAgentBridge, messageKey, agentReply } = require('./src/agent/agent-bridge');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
@@ -357,6 +357,12 @@ function main() {
         if (word === 'stop') {
           return { ok: true, text: tr(agentBridge && agentBridge.stop() ? 'agent.stopped' : 'agent.nothing_running') };
         }
+        if (word === 'ya' || word === 'yes') {
+          const res = await agentBridge.approve({
+            onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
+          });
+          return res.ok ? { ok: true, text: agentReply(tr, res) } : { ok: false, text: tr(messageKey(res.code)) };
+        }
         if (word === 'baru' || word === 'new') {
           if (agentBridge) agentBridge.newSession();
           return { ok: true, text: tr('agent.new_session') };
@@ -369,7 +375,7 @@ function main() {
         const res = await agentBridge.ask(text, {
           onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
         });
-        return res.ok ? { ok: true, text: res.text } : { ok: false, text: tr(messageKey(res.code)) };
+        return res.ok ? { ok: true, text: agentReply(tr, res) } : { ok: false, text: tr(messageKey(res.code)) };
       },
     },
     feature: {
