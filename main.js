@@ -366,7 +366,9 @@ function main() {
           return { ok: Boolean(id), text: id ? tr('agent.session_id', { id: id }) : tr('agent.no_session') };
         }
         if (!agentBridge) return { ok: false, text: tr('agent.error') };
-        const res = await agentBridge.ask(text);
+        const res = await agentBridge.ask(text, {
+          onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
+        });
         return res.ok ? { ok: true, text: res.text } : { ok: false, text: tr(messageKey(res.code)) };
       },
     },

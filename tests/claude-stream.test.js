@@ -96,3 +96,18 @@ test('a failure does not leak into the next turn of the same process', () => {
     ['failed', 'text', 'done']
   );
 });
+
+test('partial-message text deltas become delta events and everything else is skipped', () => {
+  const events = run([
+    line({ type: 'stream_event', event: { type: 'message_start' } }),
+    line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'thinking_delta', thinking: 'x' } } }),
+    line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Sat' } } }),
+    line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'u' } } }),
+    line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: '' } } }),
+    line({ type: 'stream_event', event: { type: 'message_stop' } }),
+  ]);
+  assert.deepEqual(
+    events.map((e) => [e.kind, e.text]),
+    [['delta', 'Sat'], ['delta', 'u']]
+  );
+});

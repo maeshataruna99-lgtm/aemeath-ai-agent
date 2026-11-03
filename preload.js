@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('aemeath', {
     ipcRenderer.on('chat:chunk', listener);
     return () => ipcRenderer.removeListener('chat:chunk', listener);
   },
+  onAgentChunk: (fn) => {
+    const listener = (_e, chunk) => fn(chunk);
+    ipcRenderer.on('agent:chunk', listener);
+    return () => ipcRenderer.removeListener('agent:chunk', listener);
+  },
   openSession: (sessionId) => ipcRenderer.invoke('session:open', sessionId),
   onTimerDone: (fn) => ipcRenderer.on('productivity:timer-done', (_e, payload) => fn(payload)),
   onQuestDone: (fn) => ipcRenderer.on('productivity:quest-done', (_e, payload) => fn(payload)),

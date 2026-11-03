@@ -525,6 +525,23 @@
       const pending = /^\/change-mode(?:\s|$)/i.test(text)
         ? add('bot pending', 'Menunggu persetujuan Windows (izin admin)...')
         : null;
+      // /claude <message> streams the answer into one bubble as it is written.
+      const isAgent = /^\/claude\s+(?!(?:stop|baru|new|sesi|session)\s*$)\S/i.test(text);
+      const agentPending = isAgent
+        ? add('bot pending', currentLocale === 'en-US' ? 'Claude is working...' : 'Claude sedang bekerja...')
+        : null;
+      let agentText = '';
+      let agentStreaming = false;
+      const unbindAgent = isAgent && api.onAgentChunk ? api.onAgentChunk((chunk) => {
+        if (!chunk || !chunk.delta) return;
+        if (!agentStreaming) {
+          agentStreaming = true;
+          agentPending.className = 'msg bot';
+        }
+        agentText += chunk.delta;
+        updateMessageContent(agentPending, agentText, true);
+        reposition();
+      }) : null;
       busy = true;
       controls();
       try {
@@ -532,14 +549,21 @@
         if (pending) pending.remove();
         confirming = Boolean(result.awaitConfirm);
         if (!result.isCommand) return false;
-        add(result.ok ? 'bot' : 'err', result.text, result.sources);
+        if (agentPending && agentStreaming && result.ok) {
+          updateMessageContent(agentPending, result.text, true);
+        } else {
+          if (agentPending) agentPending.remove();
+          add(result.ok ? 'bot' : 'err', result.text, result.sources);
+        }
         if (result.output) add('cmd-out', result.output);
         if (result.mode) setMode(result.mode, result.cwd);
         if (result.launched && options.onCommand) options.onCommand();
       } catch {
         confirming = false;
+        if (agentPending) agentPending.remove();
         add('err', 'Perintahnya gagal dijalankan.');
       } finally {
+        if (typeof unbindAgent === 'function') unbindAgent();
         busy = false;
         controls();
         reposition();
@@ -648,11 +672,18 @@
     async function submit() {
       const text = input.value.trim();
       const hasAttachments = pendingAttachments.length > 0;
+      // The one thing that works while a request runs: stopping the agent.
+      if (busy && /^\/claude\s+stop\s*$/i.test(text)) {
+        input.value = '';
+        const stopped = await api.runCommand(text);
+        if (stopped && stopped.isCommand) add(stopped.ok ? 'bot' : 'err', stopped.text);
+        return;
+      }
       if ((!text && !hasAttachments) || busy) return;
       input.value = '';
       hideSuggestions();
       if (mode === 'terminal') {
-        return /^\/change-mode(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
+        return /^\/(?:change-mode|claude)(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
       }
       if (hasAttachments) {
         const payload = {

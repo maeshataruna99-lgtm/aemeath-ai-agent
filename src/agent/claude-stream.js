@@ -37,6 +37,15 @@ function toEvent(obj) {
 
   if (obj.type === 'system' && obj.subtype === 'init') return { kind: 'session', sessionId };
 
+  // Token-sized text arrives as stream_event lines when --include-partial-messages is on.
+  if (obj.type === 'stream_event') {
+    const delta = obj.event && obj.event.type === 'content_block_delta' ? obj.event.delta : null;
+    if (delta && delta.type === 'text_delta' && typeof delta.text === 'string' && delta.text) {
+      return { kind: 'delta', sessionId, text: delta.text };
+    }
+    return null;
+  }
+
   if (obj.type === 'assistant') {
     const msg = obj.message || {};
     const text = textOf(msg.content);

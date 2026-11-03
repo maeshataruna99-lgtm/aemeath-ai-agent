@@ -104,3 +104,15 @@ test('every failure code has a message in both languages', () => {
     assert.notEqual(t('settings.agent.toggle'), 'settings.agent.toggle');
   }
 });
+
+test('onText is handed through to the adapter', async () => {
+  const { bridge } = setup(async (input) => {
+    input.onText('ha');
+    input.onText('lo');
+    return { sessionId: SID, text: 'halo' };
+  });
+  const seen = [];
+  const res = await bridge.ask('x', { onText: (d) => seen.push(d) });
+  assert.equal(res.ok, true);
+  assert.deepEqual(seen, ['ha', 'lo']);
+});

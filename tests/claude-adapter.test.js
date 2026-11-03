@@ -130,3 +130,20 @@ test('resolveClaude picks claude.exe on Windows and never the .cmd shim', () => 
   assert.equal(resolveClaude(env, 'win32', exists), path.join('C:\\Users\\me', '.local', 'bin', 'claude.exe'));
   assert.equal(resolveClaude({ PATH: 'C:\\npm' }, 'win32', exists), null);
 });
+
+test('text deltas reach onText while the turn runs and partial messages are requested', async () => {
+  const delta = (text) =>
+    line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text } } });
+  const spawn = fakeSpawn([
+    line({ type: 'system', subtype: 'init' }),
+    delta('Sat'),
+    delta('u, dua'),
+    line({ type: 'assistant', message: { model: 'm', content: [{ type: 'text', text: 'Satu, dua' }] } }),
+    line({ type: 'result', subtype: 'success', result: 'Satu, dua' }),
+  ]);
+  const seen = [];
+  const result = await adapterFor(spawn).run({ prompt: 'x', onText: (d) => seen.push(d) });
+  assert.deepEqual(seen, ['Sat', 'u, dua']);
+  assert.equal(result.text, 'Satu, dua');
+  assert.ok(spawn.calls[0].args.includes('--include-partial-messages'));
+});

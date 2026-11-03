@@ -36,7 +36,8 @@ function createAgentBridge(options) {
   let activeTaskId = null;
 
   // -> { ok: true, text, sessionId } | { ok: false, code }
-  async function ask(text) {
+  // options: { onText?(delta) } receives the answer as it is written.
+  async function ask(text, askOptions) {
     if (!isEnabled()) return { ok: false, code: 'disabled' };
     if (activeTaskId) return { ok: false, code: 'busy' };
     const prompt = String(text == null ? '' : text).trim();
@@ -49,7 +50,7 @@ function createAgentBridge(options) {
       const done = await runner.run(
         task.id,
         async ({ signal }) => {
-          answer = await adapter.run({ prompt, sessionId, signal });
+          answer = await adapter.run({ prompt, sessionId, signal, onText: askOptions && askOptions.onText });
           return answer;
         },
         { timeoutMs: TIMEOUT_MS, validate: (r) => Boolean(r && typeof r.text === 'string' && r.text.trim()) }

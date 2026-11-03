@@ -40,7 +40,7 @@ function resolveClaude(env, platform, exists) {
 }
 
 function buildArgs(sessionId) {
-  const args = ['-p', '--output-format', 'stream-json', '--verbose', '--setting-sources', 'project', '--permission-prompts', 'none'];
+  const args = ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--setting-sources', 'project', '--permission-prompts', 'none'];
   if (sessionId) args.push('--resume', sessionId);
   return args;
 }
@@ -52,7 +52,7 @@ function createClaudeAdapter(options) {
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
-  // run({ prompt, sessionId?, signal? }) -> Promise<{ sessionId, text }>
+  // run({ prompt, sessionId?, signal?, onText?(delta) }) -> Promise<{ sessionId, text }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
   // empty_prompt, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
@@ -86,6 +86,7 @@ function createClaudeAdapter(options) {
         const event = feed(line);
         if (!event) return;
         if (event.sessionId) sessionId = event.sessionId;
+        if (event.kind === 'delta' && input.onText) input.onText(event.text);
         if (event.kind === 'done') outcome = { done: event.text };
         if (event.kind === 'failed') outcome = { failed: event.reason };
       }
