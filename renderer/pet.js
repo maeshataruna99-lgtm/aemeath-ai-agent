@@ -122,6 +122,17 @@
         bottom: walker.y + petHeight(),
       }),
       bounds: () => workArea,
+      onOpen: () => {
+        setHover(true);
+        reportInteractiveBounds(true);
+      },
+      onClose: () => {
+        setHover(false);
+        reportInteractiveBounds(true);
+      },
+      onReposition: () => {
+        reportInteractiveBounds(true);
+      },
       onCommand: () => setTransient('jumping', 1200),
       onReply: (result) => {
         if (result && result.anim) {
@@ -353,6 +364,7 @@
     canvas.style.left = Math.round(walker.x) + 'px';
     canvas.style.top = Math.round(walker.y + bobOffset(now || 0)) + 'px';
     positionMusicBadge();
+    reportInteractiveBounds();
   }
 
   // The bubble sits above the pet, or below it when there is no room above.
@@ -395,6 +407,7 @@
     renderBubble(item);
     bubble.classList.remove('hidden');
     positionBubble();
+    reportInteractiveBounds(true);
     // An offer with buttons needs time to be read and answered.
     bubbleUntil = now + bubbleDuration(item.text) + (item.action ? 6000 : 0);
     if (item.anim) setTransient(item.anim, item.animMs || TRANSIENT_MS);
@@ -532,6 +545,8 @@
     bubble.classList.add('hidden');
     bubbleUntil = 0;
     currentBubbleSessionId = null;
+    if (!chatOpen()) setHover(false);
+    reportInteractiveBounds(true);
   }
 
   function updateBubble(now) {
@@ -652,10 +667,65 @@
     }
   }
 
+  let lastBoundsReport = 0;
+  function reportInteractiveBounds(immediate) {
+    if (!window.aemeath || typeof window.aemeath.setBounds !== 'function') return;
+    const now = Date.now();
+    if (!immediate && now - lastBoundsReport < 100) return;
+    lastBoundsReport = now;
+    const list = [];
+    if (settings.transparentMode !== true) {
+      list.push({
+        x: Math.round(walker.x),
+        y: Math.round(walker.y),
+        width: petWidth(),
+        height: petHeight(),
+      });
+      if (!bubble.classList.contains('hidden')) {
+        list.push({
+          x: bubble.offsetLeft,
+          y: bubble.offsetTop,
+          width: bubble.offsetWidth,
+          height: bubble.offsetHeight,
+        });
+      }
+      if (!musicBadge.classList.contains('hidden')) {
+        list.push({
+          x: musicBadge.offsetLeft,
+          y: musicBadge.offsetTop,
+          width: musicBadge.offsetWidth,
+          height: musicBadge.offsetHeight,
+        });
+      }
+    }
+    const chatEl = document.getElementById('chat');
+    if (chatOpen() && chatEl && !chatEl.classList.contains('hidden')) {
+      const pad = 10;
+      list.push({
+        x: Math.max(0, chatEl.offsetLeft - pad),
+        y: Math.max(0, chatEl.offsetTop - pad),
+        width: chatEl.offsetWidth + pad * 2,
+        height: chatEl.offsetHeight + pad * 2,
+      });
+      const minX = Math.min(walker.x, chatEl.offsetLeft);
+      const maxX = Math.max(walker.x + petWidth(), chatEl.offsetLeft + chatEl.offsetWidth);
+      const minY = Math.min(walker.y, chatEl.offsetTop);
+      const maxY = Math.max(walker.y + petHeight(), chatEl.offsetTop + chatEl.offsetHeight);
+      list.push({
+        x: Math.round(minX),
+        y: Math.round(minY),
+        width: Math.round(maxX - minX),
+        height: Math.round(maxY - minY),
+      });
+    }
+    window.aemeath.setBounds(list);
+  }
+
   // Clicking the pet (or the tray item) opens or closes the chat box beside her.
   function toggleChat() {
     chatPanel.toggle();
     if (chatPanel.isOpen()) setTransient('waving', 1200);
+    reportInteractiveBounds(true);
   }
 
   function setHover(next) {
@@ -665,6 +735,9 @@
   }
 
   function wireEvents() {
+    reportInteractiveBounds(true);
+    let hoverDebounceTimer = null;
+
     // The window is click-through except over the pet and its bubbles.
     // In transparent mode, the mouse passes right through the sprite and bubbles.
     document.addEventListener('mousemove', (e) => {
@@ -673,8 +746,49 @@
       const petInteractive =
         settings.transparentMode !== true &&
         (target === canvas || bubble.contains(target) || musicBadge.contains(target));
-      const hovering = petInteractive || chatPanel.contains(target);
-      setHover(hovering);
+      const inChat = chatPanel && chatPanel.contains(target);
+      const hovering = petInteractive || inChat;
+
+      if (hovering) {
+        clearTimeout(hoverDebounceTimer);
+        setHover(true);
+      } else {
+        clearTimeout(hoverDebounceTimer);
+        // If chat is open, give a 250ms grace period so moving across the 16px gap
+        // or scrolling inside the box does not trigger ignoreMouseEvents
+        const delay = chatOpen() ? 250 : 80;
+        hoverDebounceTimer = setTimeout(() => {
+          setHover(false);
+        }, delay);
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      clearTimeout(hoverDebounceTimer);
+      if (!chatOpen()) {
+        setHover(false);
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      clearTimeout(hoverDebounceTimer);
+      if (!chatOpen()) {
+        setHover(false);
+      }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (!chatOpen()) return;
+      const target = e.target;
+      if (
+        !chatPanel.contains(target) &&
+        target !== canvas &&
+        !bubble.contains(target) &&
+        !musicBadge.contains(target)
+      ) {
+        chatPanel.close();
+        setHover(false);
+      }
     });
 
     canvas.addEventListener('mousedown', (e) => {

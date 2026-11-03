@@ -455,6 +455,7 @@
       el.style.left = placed.left + 'px';
       el.style.top = placed.top + 'px';
       el.style.setProperty('--arrow-x', placed.arrowX + 'px');
+      if (typeof options.onReposition === 'function') options.onReposition();
     }
 
     function setLarge(next) {
@@ -487,6 +488,8 @@
       if (log.children.length === 0) add('bot', getGreeting());
       reposition();
       api.focusWindow();
+      if (typeof api.setHover === 'function') api.setHover(true);
+      if (typeof options.onOpen === 'function') options.onOpen();
       await Promise.all([refreshStatus(), refreshCommands()]);
       input.focus();
       touch();
@@ -511,6 +514,8 @@
       el.classList.add('hidden');
       clearTimeout(idleTimer);
       api.blurWindow();
+      if (typeof api.setHover === 'function') api.setHover(false);
+      if (typeof options.onClose === 'function') options.onClose();
       // A closed box keeps the conversation for a while, then forgets it.
       clearTimeout(forgetTimer);
       forgetTimer = setTimeout(resetConversation, FORGET_AFTER_MS);

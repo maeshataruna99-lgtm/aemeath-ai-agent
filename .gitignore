@@ -1,4 +1,5 @@
 node_modules/
+dist/
 .verify/
 
 # Local secrets and user data: never commit

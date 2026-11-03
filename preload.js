@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('aemeath', {
   supportedLocales: SUPPORTED_LOCALES,
   defaultLocale: DEFAULT_LOCALE,
   setHover: (hovering) => ipcRenderer.send('pet:hover', hovering),
+  setBounds: (bounds) => ipcRenderer.send('pet:bounds', bounds),
   saveSettings: (patch) => ipcRenderer.send('settings:save', patch),
   quit: () => ipcRenderer.send('app:quit'),
   openContextMenu: () => ipcRenderer.send('pet:contextmenu'),
