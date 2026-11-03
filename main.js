@@ -1548,6 +1548,14 @@ function main() {
   }
 
   async function runSelfie() {
+    // The pet overlay takes focus and ends up above the settings window, and Chromium cannot
+    // capture a window it considers covered (UnknownVizError). Raise it first, as a click would.
+    const snapSettings = async () => {
+      settingsWin.show();
+      settingsWin.moveTop();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      return settingsWin.webContents.capturePage();
+    };
     const states = [
       'idle',
       'running-right',
@@ -1616,7 +1624,7 @@ function main() {
       '[aemeath] settings interval ' + before + ' -> ' + settings.chatterIntervalMin +
         ' (stored ' + settingsStore.data.chatterIntervalMin + ')',
     );
-    const shot = await settingsWin.webContents.capturePage();
+    const shot = await snapSettings();
     fs.writeFileSync(path.join(dir, 'settings-window.png'), shot.toPNG());
     console.log('[aemeath] selfie saved: settings-window');
     Object.assign(settings, settingsStore.save({ chatterIntervalMin: before }));
@@ -1645,7 +1653,7 @@ function main() {
           })`,
         )),
     );
-    fs.writeFileSync(path.join(dir, 'settings-memory.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(dir, 'settings-memory.png'), (await snapSettings()).toPNG());
     console.log('[aemeath] selfie saved: settings-memory');
 
     // A memory offer only appears in Medium or Full, so switch for this check.
@@ -1739,7 +1747,7 @@ function main() {
     console.log('[aemeath] key check (settings) ' + settingsLeak);
     await settingsWin.webContents.executeJavaScript(`document.getElementById('tab-chatbot').click()`);
     await sleep(300);
-    const shotSettings = await settingsWin.webContents.capturePage();
+    const shotSettings = await snapSettings();
     fs.writeFileSync(path.join(dir, 'settings-chatbot.png'), shotSettings.toPNG());
 
     // With a key and web search on, the model receives the lookup results.
@@ -1791,15 +1799,15 @@ function main() {
       `document.getElementById('tab-commands').click(); document.getElementById('builtin').scrollIntoView()`,
     );
     await sleep(300);
-    const shotCommands = await settingsWin.webContents.capturePage();
+    const shotCommands = await snapSettings();
     fs.writeFileSync(path.join(dir, 'settings-commands.png'), shotCommands.toPNG());
     await settingsWin.webContents.executeJavaScript(`document.getElementById('add-preset').scrollIntoView()`);
     await sleep(300);
-    fs.writeFileSync(path.join(dir, 'settings-commands-ps.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(dir, 'settings-commands-ps.png'), (await snapSettings()).toPNG());
 
     await settingsWin.webContents.executeJavaScript(`document.getElementById('tab-appearance').click()`);
     await sleep(400);
-    fs.writeFileSync(path.join(dir, 'settings-appearance.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(dir, 'settings-appearance.png'), (await snapSettings()).toPNG());
     console.log('[aemeath] selfie saved: settings-appearance');
 
     const requestsBefore = selfieRequests.length;
@@ -2043,7 +2051,7 @@ function main() {
         )) +
         ' | mode in settings: ' + settings.interactiveMode + ' | reading: ' + activity.running,
     );
-    fs.writeFileSync(path.join(dir, 'settings-interactive-consent.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(dir, 'settings-interactive-consent.png'), (await snapSettings()).toPNG());
 
     await inSettings(`document.getElementById('medium-accept').click()`);
     await sleep(900);
@@ -2070,7 +2078,7 @@ function main() {
     const seen = await inSettings(`window.aemeathSettings.getActivity().then((a) => JSON.stringify(a))`);
     console.log('[aemeath] what she sees: tray ' + JSON.stringify(trayLine && trayLine.label) + ' | settings ' + seen);
     console.log('[aemeath] title leaked anywhere: ' + (JSON.stringify([trayLine, seen, selfieRemarks]).includes('TOPSECRET')));
-    fs.writeFileSync(path.join(dir, 'settings-interactive-on.png'), (await settingsWin.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(dir, 'settings-interactive-on.png'), (await snapSettings()).toPNG());
 
     await inSettings(`window.aemeathSettings.set({ interactiveMode: 'full' })`);
     await sleep(500);
