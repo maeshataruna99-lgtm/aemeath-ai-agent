@@ -1,6 +1,6 @@
 # Implementation Plan — Journey Well Protocol & Travel-Aware Smart Commands
 
-Status: **Not implemented yet**. This document defines the intended engineering approach.
+Status: **Implemented** in commit dfcb3bb (see docs/JOURNEY_WELL_ROADMAP.md). Kept as the record of the intended approach.
 Repository: `maeshataruna99-lgtm/aemeath-ai-agent`
 
 ## Current code areas to inspect first

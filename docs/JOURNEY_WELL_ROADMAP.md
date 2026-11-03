@@ -1,6 +1,6 @@
 # Roadmap — Journey Well Protocol & Travel-Aware Companion
 
-Status: **Planning only**. No implementation is claimed complete.
+Status: **Implemented** in commit dfcb3bb; all 32 checklist items below are marked done. Not re-audited in this update.
 Target repository: `maeshataruna99-lgtm/aemeath-ai-agent`
 Prepared: 2026-10-28
 

@@ -1,7 +1,23 @@
 # Roadmap — Agent Bridge on the Modular Core
 
-Status: **Planning only**. No implementation is claimed complete.  
-Prepared: 2026-11-03
+Status: **P0 to P3 and P5 implemented; P4 skipped; P6 first slice done.** See Progress below.  
+Prepared: 2026-11-03. Progress updated: 2026-11-03.
+
+## Progress
+
+Evidence is the commit and the checks run at that commit (`npm run verify`, 517 tests passing at the latest). Items marked untested are listed under Backlog.
+
+| Phase | Status | Commits | Notes |
+|---|---|---|---|
+| P0 Contracts and research | Done | 1a39939, 6a417ee | Parser, decisions D-008 to D-011, isolation and permission findings |
+| P1 Local task runtime | Done | aaa4fe0 | Store and runner: timeout, cancel, retry, restart recovery |
+| P2 Claude adapter | Done | 7be05b7, 4065e85, b11f245, 1ff9e0a | /claude, working folder, typed "ya" for edits, session list |
+| P3 UI | Done | 5585760, 6e56a15 | Streaming bubble, stop, terminal mode, task list in Settings, live-session guard |
+| P4 Codex and Antigravity | Skipped | 228f75e, 9298db6 | Backlog, decisions D-012 and D-013 |
+| P5 Module lifecycle | Done | b1137a2 | Stop on disable, separate confirmed purge |
+| P6 Expansion | Two slices done | b414638, and the GitHub reader commit | /jadwal text reminders; /github read-only through gh (D-015). Other integrations and packages wait for decisions |
+
+Deviations from the plan: edit approval uses an explicit tool list instead of a permission prompt tool, because acceptEdits let a shell redirect through; scheduled reminders are text only, by the owner's choice.
 
 ## Goal
 
@@ -117,15 +133,17 @@ Bundle P4–P5 items (scheduler, integrations, domain packages) only after separ
 
 1. ~~Isolation~~ Answered 2026-11-03: `--setting-sources project` gives a clean one-turn run with no hooks and no skill calls. `--bare` is not usable because it drops OAuth login and needs an API key.
 2. Permission requests: `--permission-prompts none` denies anything that would prompt, which is the safe default for the first version. Answering prompts over the pipe (`--permission-prompt-tool`) is untested and moves to P3.
-3. Do Codex and Antigravity support resumable headless sessions?
-4. Is `node:sqlite` usable in the bundled Electron, or should task records stay as JSON files?
-5. Should session ids from route B (started outside Aemeath) be adoptable as tasks, or only listed?
+3. ~~Resumable headless sessions~~ Answered in `AGENT_BRIDGE_P4_RESEARCH.md`: both CLIs document resume. Codex is not installed here and Antigravity is blocked on consumer plans.
+4. ~~SQLite or JSON~~ Answered: task records are a small JSON file, no database.
+5. ~~Adopting route B sessions~~ Answered: `/claude lanjut N` continues a listed session from any route, and refuses one written in the last minute.
 
 ## Backlog (to become issues)
 
 Decided, researched, and deliberately not started. File each as an issue when the work is picked up.
 
 ### Codex adapter (D-012)
+
+Issue: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent/issues/1
 
 - Blocked on: the owner installs the Codex CLI. `codex` is not on PATH today; only the desktop app is installed.
 - Scope: adapter beside `claude-adapter.js` with prompt on stdin, argument list, no shell, `--json`, explicit `--sandbox read-only`. Parser for `thread.started`, `turn.*`, `item.*`, `error`. Resume by the `thread_id` captured from `thread.started`.
@@ -137,6 +155,8 @@ Decided, researched, and deliberately not started. File each as an issue when th
 
 ### Antigravity adapter (D-013)
 
+Issue: https://github.com/maeshataruna99-lgtm/aemeath-ai-agent/issues/2
+
 - Blocked on three gates: `agy` installed on this machine; a run with no terminal confirmed not to hang (reported up to v1.4.10 on Windows); and the owner accepting that Google's FAQ does not say whether a wrapper may use an API key.
 - Scope: Gemini API key only, never a consumer login. Key stored in encrypted local storage (rule section 6) and passed as an environment variable for one run. The adapter refuses to start without a key.
 - Open design points: how the CLI is told to use the key (its settings file needs `modelProvider` set to `gemini`; writing the owner's CLI settings is itself a decision) and whether `stream-json` input can carry a multi-turn session.
@@ -144,6 +164,6 @@ Decided, researched, and deliberately not started. File each as an issue when th
 
 ### Other open items
 
-- Click-level checks in the real Settings window: the purge button and its confirmation, the folder picker, and the stop on toggle-off and on quit. Logic is unit tested; the selfie run covers chat, not these clicks.
-- A guard against resuming a session that is live in another window (`/claude lanjut` can pick the session Claude Code is currently writing to).
-- P6 (downloadable packages, integrations, scheduler) still waits for separate decisions on network and privacy rules.
+- OS dialogs and quit shutdown by hand (https://github.com/maeshataruna99-lgtm/aemeath-ai-agent/issues/3). The selfie run now clicks through the Settings window (toggle off while a request runs, task list, purge) with the OS dialogs answered by fixed replies; the real dialogs and the stop on quit are still checked only by unit tests.
+- Done: `/claude lanjut` refuses a session written in the last minute. The check uses file age only, so a session idle for over a minute in another window can still be picked.
+- P6 integrations beyond GitHub (https://github.com/maeshataruna99-lgtm/aemeath-ai-agent/issues/4; the read-only GitHub reader is done, D-015) and downloadable packages (https://github.com/maeshataruna99-lgtm/aemeath-ai-agent/issues/5) wait for separate decisions on network, privacy and trust rules. The scheduler slice (`/jadwal`) is done.
