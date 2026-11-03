@@ -41,5 +41,19 @@
 ## D-011: Bridge is an optional module
 **Decision:** Core boots and chats with the bridge disabled or removed. The module is off by default.
 
+## D-012: Codex adapter
+**Decision:** Build a Codex adapter after the owner installs the Codex CLI. It follows the Claude adapter: prompt on stdin, argument list, no shell, `--json`, and an explicit `--sandbox read-only`.  
+**Constraint:** Never read, copy, or log `~/.codex/auth.json`. Sessions are zstd files with no folder in the path, so the first version resumes by the id from `thread.started` and has no session list.  
+**Reference:** `docs/roadmap/AGENT_BRIDGE_P4_RESEARCH.md`.
+
+## D-013: Antigravity adapter only through an API key
+**Decision:** An Antigravity adapter may be built, but only with a Gemini API key. A consumer Antigravity login is never driven by Aemeath: Google's FAQ says wrapping `agy` is unsupported on consumer plans and calls third-party access a Terms of Service violation.  
+**Constraint:** The key lives only in encrypted local storage (rule section 6) and reaches the process as an environment variable for that run. The adapter refuses to start without a key.  
+**Gates before any code:** `agy` is installed here; running it with no terminal does not hang (reported up to v1.4.10 on Windows); and the owner accepts that Google's FAQ does not say whether a wrapper may use an API key. Until then the read-only session watcher is the only Antigravity feature.
+
+## D-014: Claude adapter stays, with credential rules
+**Decision:** The Claude adapter stays as built: it runs the unmodified `claude.exe` under the owner's own login.  
+**Constraint:** Never read or store files that hold Claude credentials, never pass tokens to the process, and never ship Aemeath with a shared login. Anthropic's pages do not state outright that a personal desktop tool may spawn `claude -p`; this reading is inferred and is the owner's call.
+
 ## Change control
 Any change to these decisions must be recorded here with the date, rationale, affected acceptance criteria, and approval from the project owner.

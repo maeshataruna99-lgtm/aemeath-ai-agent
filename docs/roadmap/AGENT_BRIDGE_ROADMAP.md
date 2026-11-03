@@ -91,7 +91,10 @@ DoD: UI reflects task state; both locales; no hardcoded strings; missing-key tes
 
 ### P4 — Codex and Antigravity adapters
 
-One ticket each, after their P0 research. Same contract, same tests with fake processes.
+One ticket each. Same contract, same tests with fake processes. Research is in `AGENT_BRIDGE_P4_RESEARCH.md`.
+
+- Codex (D-012): starts once the owner installs the CLI.
+- Antigravity (D-013): API key only, behind the gates listed in the decision. Observation through the existing watcher until then.
 
 ### P5 — Module lifecycle
 
