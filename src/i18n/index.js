@@ -119,6 +119,10 @@
                 "dir_none": "Folder home",
                 "dir_pick": "Pilih folder...",
                 "dir_clear": "Pakai folder home",
+                "purge_button": "Hapus data modul...",
+                "purge_hint": "Menghapus catatan tugas dan pilihan folder kerja, lalu mematikan modul ini. Riwayat obrolan, persona, bahasa, dan memori tidak disentuh. Sesi Claude Code milikmu sendiri juga tidak dihapus.",
+                "purge_confirm": "Hapus data modul agen AI? Permintaan yang sedang berjalan dihentikan, catatan tugas dan pilihan folder kerja dihapus, dan modul dimatikan. Riwayat obrolan, persona, dan bahasa tetap aman. Tindakan ini tidak bisa dibatalkan.",
+                "purge_done": "Data modul agen AI sudah dihapus dan modul dimatikan.",
                 "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, untuk membaca dan menjawab. File baru diedit setelah kamu mengetik /claude ya, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
             },
             "movement": {
@@ -461,6 +465,10 @@
                 "dir_none": "Home folder",
                 "dir_pick": "Choose folder...",
                 "dir_clear": "Use home folder",
+                "purge_button": "Delete module data...",
+                "purge_hint": "Deletes the task records and the working folder choice, then turns this module off. Chat history, persona, language, and memory are not touched. Your own Claude Code sessions are not deleted either.",
+                "purge_confirm": "Delete the AI agent module data? A running request is stopped, the task records and working folder choice are deleted, and the module is turned off. Chat history, persona, and language stay safe. This cannot be undone.",
+                "purge_done": "The AI agent module data was deleted and the module is off.",
                 "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering. Files are edited only after you type /claude ya, and running commands is always denied. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
             },
             "movement": {

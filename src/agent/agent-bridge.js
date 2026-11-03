@@ -81,6 +81,7 @@ function createAgentBridge(options) {
   let sessionDir = null;
   let sessionId = null;
   let activeTaskId = null;
+  let current = null; // settles when the running request has fully finished
   let pending = null; // { sessionId, dir, until }: edits waiting for the owner's "ya"
 
   function syncDir() {
@@ -99,7 +100,7 @@ function createAgentBridge(options) {
     activeTaskId = task.id;
     let answer = null;
     try {
-      const done = await runner.run(
+      const running = runner.run(
         task.id,
         async ({ signal }) => {
           answer = await adapter.run(Object.assign({ prompt, signal }, input));
@@ -107,6 +108,8 @@ function createAgentBridge(options) {
         },
         { timeoutMs: TIMEOUT_MS, validate: (r) => Boolean(r && typeof r.text === 'string' && r.text.trim()) }
       );
+      current = running.then(() => {}, () => {});
+      const done = await running;
       if (done.status !== 'succeeded') {
         return { ok: false, code: done.status === 'cancelled' ? 'cancelled' : done.errorCode || 'error' };
       }
@@ -149,6 +152,19 @@ function createAgentBridge(options) {
     });
   }
 
+  // Stops a running request and waits for it to end, so no process or record write is left behind.
+  async function shutdown() {
+    newSession();
+    stop();
+    if (current) await current;
+  }
+
+  // Shuts down, then deletes the task records. Chat history, persona and settings are not here to touch.
+  async function purge() {
+    await shutdown();
+    store.purge();
+  }
+
   function listRecent() {
     return options.listSessions ? options.listSessions(syncDir()) : [];
   }
@@ -177,7 +193,7 @@ function createAgentBridge(options) {
     return getDir() === sessionDir ? sessionId : null;
   }
 
-  return { ask, approve, stop, newSession, currentSession, listRecent, useSession };
+  return { ask, approve, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
 module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, CAPABILITY, EDIT_TOOLS };

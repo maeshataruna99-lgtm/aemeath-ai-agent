@@ -272,6 +272,10 @@
       "dir_none": "Folder home",
       "dir_pick": "Pilih folder...",
       "dir_clear": "Pakai folder home",
+      "purge_button": "Hapus data modul...",
+      "purge_hint": "Menghapus catatan tugas dan pilihan folder kerja, lalu mematikan modul ini. Riwayat obrolan, persona, bahasa, dan memori tidak disentuh. Sesi Claude Code milikmu sendiri juga tidak dihapus.",
+      "purge_confirm": "Hapus data modul agen AI? Permintaan yang sedang berjalan dihentikan, catatan tugas dan pilihan folder kerja dihapus, dan modul dimatikan. Riwayat obrolan, persona, dan bahasa tetap aman. Tindakan ini tidak bisa dibatalkan.",
+      "purge_done": "Data modul agen AI sudah dihapus dan modul dimatikan.",
       "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, untuk membaca dan menjawab. File baru diedit setelah kamu mengetik /claude ya, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
     }
   },

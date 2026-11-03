@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('aemeathSettings', {
   pickPath: (kind) => ipcRenderer.invoke('commands:pick', kind),
   pickAgentDir: () => ipcRenderer.invoke('agent:pick-dir'),
   clearAgentDir: () => ipcRenderer.invoke('agent:clear-dir'),
+  purgeAgentData: () => ipcRenderer.invoke('agent:purge'),
   memoryStatus: () => ipcRenderer.invoke('memory:status'),
   listMemory: () => ipcRenderer.invoke('memory:list'),
   saveMemory: (payload) => ipcRenderer.invoke('memory:save', payload),

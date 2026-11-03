@@ -590,6 +590,8 @@ function main() {
       if (patch && typeof patch.glassBlur === 'number') next.glassBlur = patch.glassBlur;
       if (patch && typeof patch.glassOpacity === 'number') next.glassOpacity = patch.glassOpacity;
       Object.assign(settings, settingsStore.save(next));
+      // Turning the module off ends whatever it is running.
+      if (next.agentBridgeEnabled === false && agentBridge) void agentBridge.shutdown();
       if (settings.transparentMode) win?.setIgnoreMouseEvents(true, { forward: true });
       win?.webContents?.send('settings:updated', settings);
       settingsWin?.webContents?.send('settings:updated', settings);
@@ -775,6 +777,14 @@ function main() {
       settingsWin?.webContents?.send('settings:updated', settings);
       return settings.agentBridgeDir;
     });
+    // Removes the module's own data and turns it off. A separate, confirmed action: disabling alone keeps it.
+    ipcMain.handle('agent:purge', async (event) => {
+      if (!fromWindow(event, settingsWin) || !agentBridge) return false;
+      await agentBridge.purge();
+      Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '' }));
+      settingsWin?.webContents?.send('settings:updated', settings);
+      return true;
+    });
     ipcMain.handle('agent:clear-dir', (event) => {
       if (!fromWindow(event, settingsWin)) return false;
       Object.assign(settings, settingsStore.save({ agentBridgeDir: '' }));
@@ -959,6 +969,7 @@ function main() {
       }
     }
     if (productivity) productivity.stop();
+    if (agentBridge) agentBridge.stop();
     terminal.stop();
     activity.stop();
     if (activityTrayTimer) clearInterval(activityTrayTimer);

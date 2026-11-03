@@ -414,6 +414,17 @@
     await window.aemeathSettings.clearAgentDir();
     renderAgentDir('');
   });
+  const agentPurgeStatus = document.getElementById('agent-purge-status');
+  document.getElementById('agent-purge').addEventListener('click', async () => {
+    if (!i18n) return;
+    agentPurgeStatus.textContent = '';
+    if (!window.confirm(i18n.t('settings.agent.purge_confirm'))) return;
+    if (await window.aemeathSettings.purgeAgentData()) {
+      agentToggle.checked = false;
+      renderAgentDir('');
+      agentPurgeStatus.textContent = i18n.t('settings.agent.purge_done');
+    }
+  });
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });

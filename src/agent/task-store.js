@@ -146,8 +146,30 @@ function createTaskStore(options) {
     return tasks.map((t) => Object.assign({}, t)).reverse();
   }
 
+  // Drops every record and the files that hold them, set-aside corrupt copies included.
+  // Nothing else in the folder is touched.
+  function purge() {
+    tasks = [];
+    if (!file) return;
+    const dir = path.dirname(file);
+    let names = [];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      if (!/^tasks(?:\.corrupt-\d+)?\.json(?:\.tmp)?$/.test(name)) continue;
+      try {
+        fs.rmSync(path.join(dir, name), { force: true });
+      } catch {
+        // locked or already gone
+      }
+    }
+  }
+
   load();
-  return { create, transition, get, list };
+  return { create, transition, get, list, purge };
 }
 
 module.exports = { createTaskStore, STATUSES, TERMINAL };
