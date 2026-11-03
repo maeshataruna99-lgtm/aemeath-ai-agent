@@ -45,7 +45,7 @@ test('tool use is reported by tool name', () => {
   const [event] = run([
     line({ type: 'assistant', message: { model: 'm', content: [{ type: 'tool_use', id: 't1', name: 'Skill' }] } }),
   ]);
-  assert.deepEqual(event, { kind: 'tool', sessionId: SID, names: ['Skill'] });
+  assert.deepEqual(event, { kind: 'tool', sessionId: SID, names: ['Skill'], uses: [{ name: 'Skill', target: '' }] });
 });
 
 test('a failed login is one failure, not a success', () => {

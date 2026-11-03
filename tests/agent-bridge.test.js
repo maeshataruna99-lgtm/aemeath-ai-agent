@@ -39,7 +39,7 @@ test('an empty message gets the usage hint', async () => {
 test('the answer comes back and the next message resumes the same session', async () => {
   const { store, bridge, seen } = setup(async () => ({ sessionId: SID, text: 'jawaban' }));
   const first = await bridge.ask('halo');
-  assert.deepEqual(first, { ok: true, text: 'jawaban', sessionId: SID, denials: [], approvable: false });
+  assert.deepEqual(first, { ok: true, text: 'jawaban', sessionId: SID, denials: [], approvable: false, steps: {} });
   assert.equal(bridge.currentSession(), SID);
   await bridge.ask('lagi');
   assert.equal(seen[0].sessionId, null);

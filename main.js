@@ -37,7 +37,7 @@ const { createI18n } = require('./src/i18n');
 const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
-const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows } = require('./src/agent/agent-bridge');
+const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText } = require('./src/agent/agent-bridge');
 const { listSessions } = require('./src/agent/session-list');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
@@ -249,6 +249,7 @@ function main() {
       const line = (o) => JSON.stringify(Object.assign({ session_id: '5e1f1e00-0000-4000-8000-000000000001' }, o)) + '\n';
       const delta = (text) => line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text } } });
       let chunks;
+      let gap = 60;
       if (args.includes('--allowedTools')) {
         chunks = [delta('Catatan '), delta('sudah ditulis.'), line({ type: 'result', subtype: 'success', result: 'Catatan sudah ditulis.' })];
       } else if (prompt.includes('buat')) {
@@ -261,10 +262,20 @@ function main() {
           }),
         ];
       } else {
-        chunks = [delta('Halo '), delta('dari Claude palsu.'), line({ type: 'result', subtype: 'success', result: 'Halo dari Claude palsu.' })];
+        const tool = (name, input) => line({ type: 'assistant', message: { model: 'm', content: [{ type: 'tool_use', id: 't', name, input }] } });
+        chunks = [
+          line({ type: 'system', subtype: 'init' }),
+          line({ type: 'stream_event', event: { type: 'content_block_start', content_block: { type: 'thinking' } } }),
+          tool('Read', { file_path: 'README.md' }),
+          tool('Grep', { pattern: 'workflow', path: 'src' }),
+          delta('Halo '),
+          delta('dari Claude palsu.'),
+          line({ type: 'result', subtype: 'success', result: 'Halo dari Claude palsu.' }),
+        ];
+        gap = 120; // slow enough for the verification run to catch the status lines
       }
-      chunks.forEach((chunk, i) => setTimeout(() => child.stdout.write(chunk), 60 * (i + 1)));
-      setTimeout(() => child.stdout.end(), 60 * (chunks.length + 1));
+      chunks.forEach((chunk, i) => setTimeout(() => child.stdout.write(chunk), gap * (i + 1)));
+      setTimeout(() => child.stdout.end(), gap * (chunks.length + 1));
     });
     return child;
   }
@@ -484,6 +495,7 @@ function main() {
         if (word === 'ya' || word === 'yes') {
           const res = await agentBridge.approve({
             onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
+          onStep: (step) => win?.webContents?.send('agent:step', { text: stepText(tr, step) }),
           });
           if (res.ok) return { ok: true, text: agentReply(tr, res) };
           // A stop already says so; the request it ended stays quiet.
@@ -508,6 +520,7 @@ function main() {
         if (!agentBridge) return { ok: false, text: tr('agent.error') };
         const res = await agentBridge.ask(text, {
           onText: (delta) => win?.webContents?.send('agent:chunk', { delta: delta }),
+          onStep: (step) => win?.webContents?.send('agent:step', { text: stepText(tr, step) }),
         });
         if (res.ok) return { ok: true, text: agentReply(tr, res) };
           // A stop already says so; the request it ended stays quiet.
@@ -1977,7 +1990,10 @@ function main() {
     await submit('/claude halo', 900);
     console.log('[aemeath] claude while off: ' + (await claudeTail(1)));
     Object.assign(settings, settingsStore.save({ agentBridgeEnabled: true }));
-    await submit('/claude halo', 1500);
+    await submit('/claude halo', 560);
+    console.log('[aemeath] claude status mid-run: ' + (await claudeTail(1)));
+    fs.writeFileSync(path.join(dir, 'chat-claude-status.png'), (await win.webContents.capturePage()).toPNG());
+    await sleep(1200);
     console.log('[aemeath] claude answer: ' + (await claudeTail(2)));
     fs.writeFileSync(path.join(dir, 'chat-claude.png'), (await win.webContents.capturePage()).toPNG());
     await submit('/claude buat catatan', 1200);

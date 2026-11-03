@@ -46,11 +46,47 @@ function messageKey(code) {
   return 'agent.' + (MESSAGE_CODES.has(code) ? code : 'error');
 }
 
-// The answer, plus what Claude wanted and how to allow it when something was denied.
+// Tool names, grouped the way Aemeath talks about them.
+const STEP_CLASS = {
+  Read: 'read',
+  Grep: 'search',
+  Glob: 'search',
+  Edit: 'edit',
+  MultiEdit: 'edit',
+  NotebookEdit: 'edit',
+  Write: 'write',
+  Bash: 'bash',
+  WebFetch: 'web',
+  WebSearch: 'web',
+};
+const STEP_ORDER = ['read', 'search', 'edit', 'write', 'bash', 'web', 'other'];
+
+function stepClass(name) {
+  return Object.prototype.hasOwnProperty.call(STEP_CLASS, name) ? STEP_CLASS[name] : 'other';
+}
+
+// One status line for the chat bubble, in Aemeath's voice and the active language.
+function stepText(tr, step) {
+  if (step.kind === 'start') return tr('agent.step_start');
+  if (step.kind === 'thinking') return tr('agent.step_thinking');
+  const verb = tr('agent.step_' + stepClass(step.name), { name: step.name });
+  return step.target ? verb + ': ' + step.target : verb;
+}
+
+// "Claude's steps: read 3x, searched 1x." or '' when it used no tool.
+function stepsSummary(tr, steps) {
+  const parts = STEP_ORDER.filter((c) => steps && steps[c] > 0).map((c) => tr('agent.sum_' + c, { n: steps[c] }));
+  return parts.length ? tr('agent.sum_header') + ' ' + parts.join(', ') + '.' : '';
+}
+
+// The answer, what Claude did to get it, and, when something was denied, what it wanted and how to allow it.
 function agentReply(tr, res) {
-  if (!res.denials || res.denials.length === 0) return res.text;
+  let text = res.text;
+  const summary = stepsSummary(tr, res.steps);
+  if (summary) text += '\n\n' + summary;
+  if (!res.denials || res.denials.length === 0) return text;
   const list = res.denials.map((d) => d.tool + (d.target ? ' ' + d.target : '')).join(', ');
-  return res.text + '\n\n' + tr('agent.denied', { list: list }) + ' ' + tr(res.approvable ? 'agent.approve_hint' : 'agent.denied_blocked');
+  return text + '\n\n' + tr('agent.denied', { list: list }) + ' ' + tr(res.approvable ? 'agent.approve_hint' : 'agent.denied_blocked');
 }
 
 function ageText(tr, ms) {
@@ -115,11 +151,24 @@ function createAgentBridge(options) {
     const task = store.create({ capability: CAPABILITY });
     activeTaskId = task.id;
     let answer = null;
+    // Counts the tools used, and passes each step on without repeating a "thinking" step.
+    const steps = {};
+    const passStep = input.onStep;
+    let lastKind = null;
+    const onStep = (step) => {
+      if (step.kind === 'tool') {
+        const c = stepClass(step.name);
+        steps[c] = (steps[c] || 0) + 1;
+      }
+      if (step.kind === 'thinking' && lastKind === 'thinking') return;
+      lastKind = step.kind;
+      if (passStep) passStep(step);
+    };
     try {
       const running = runner.run(
         task.id,
         async ({ signal }) => {
-          answer = await adapter.run(Object.assign({ prompt, signal }, input));
+          answer = await adapter.run(Object.assign({ prompt, signal }, input, { onStep }));
           return answer;
         },
         { timeoutMs: TIMEOUT_MS, validate: (r) => Boolean(r && typeof r.text === 'string' && r.text.trim()) }
@@ -134,7 +183,7 @@ function createAgentBridge(options) {
       // Only a turn denied nothing but edits can be approved with "ya".
       const approvable = denials.length > 0 && denials.every((d) => EDIT_TOOLS.has(d.tool));
       pending = approvable ? { sessionId, dir: sessionDir, until: now() + APPROVAL_MS } : null;
-      return { ok: true, text: answer.text, sessionId, denials, approvable };
+      return { ok: true, text: answer.text, sessionId, denials, approvable, steps };
     } finally {
       activeTaskId = null;
     }
@@ -148,7 +197,7 @@ function createAgentBridge(options) {
     if (!prompt) return { ok: false, code: 'empty_prompt' };
     syncDir();
     pending = null; // a new message withdraws any earlier request
-    return execute(prompt, { sessionId, onText: askOptions && askOptions.onText });
+    return execute(prompt, { sessionId, onText: askOptions && askOptions.onText, onStep: askOptions && askOptions.onStep });
   }
 
   // Resumes the session that was denied edits and lets them through, once.
@@ -165,6 +214,7 @@ function createAgentBridge(options) {
       sessionId: waiting.sessionId,
       approveEdits: true,
       onText: askOptions && askOptions.onText,
+      onStep: askOptions && askOptions.onStep,
     });
   }
 
@@ -220,4 +270,4 @@ function createAgentBridge(options) {
   return { ask, approve, busy, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
-module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, CAPABILITY, EDIT_TOOLS };
+module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, stepsSummary, stepClass, CAPABILITY, EDIT_TOOLS };

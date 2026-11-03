@@ -66,7 +66,7 @@ function createClaudeAdapter(options) {
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
-  // run({ prompt, sessionId?, signal?, onText?(delta), approveEdits? }) -> Promise<{ sessionId, text, denials }>
+  // run({ prompt, sessionId?, signal?, onText?(delta), onStep?(step), approveEdits? }) -> Promise<{ sessionId, text, denials }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
   // empty_prompt, bad_dir, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
@@ -103,6 +103,11 @@ function createClaudeAdapter(options) {
         if (!event) return;
         if (event.sessionId) sessionId = event.sessionId;
         if (event.kind === 'delta' && input.onText) input.onText(event.text);
+        if (input.onStep) {
+          if (event.kind === 'session') input.onStep({ kind: 'start' });
+          else if (event.kind === 'thinking') input.onStep({ kind: 'thinking' });
+          else if (event.kind === 'tool') for (const use of event.uses) input.onStep({ kind: 'tool', name: use.name, target: use.target });
+        }
         if (event.kind === 'done') outcome = { done: event.text, denials: event.denials || [] };
         if (event.kind === 'failed') outcome = { failed: event.reason };
       }

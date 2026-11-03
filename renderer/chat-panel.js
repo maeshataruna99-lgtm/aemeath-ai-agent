@@ -613,8 +613,16 @@
       // /claude <message> streams the answer into one bubble as it is written.
       const isAgent = /^\/claude\s+(?!(?:stop|baru|new|sesi|session|(?:lanjut|continue)\s+\d{1,2})\s*$)\S/i.test(text);
       const agentPending = isAgent
-        ? add('bot pending', currentLocale === 'en-US' ? 'Claude is working...' : 'Claude sedang bekerja...')
+        ? add('bot pending', tr('chat.agent_pending'))
         : null;
+      // What the CLI is doing, as Aemeath reports it: the last few steps, until the answer starts.
+      const stepLines = [];
+      const unbindStep = isAgent && api.onAgentStep ? api.onAgentStep((step) => {
+        if (!step || !step.text || agentStreaming || stepLines[stepLines.length - 1] === step.text) return;
+        stepLines.push(step.text);
+        updateMessageContent(agentPending, stepLines.slice(-5).join('\n'), false);
+        reposition();
+      }) : null;
       let agentText = '';
       let agentStreaming = false;
       const unbindAgent = isAgent && api.onAgentChunk ? api.onAgentChunk((chunk) => {
@@ -650,6 +658,7 @@
         add('err', 'Perintahnya gagal dijalankan.');
       } finally {
         if (typeof unbindAgent === 'function') unbindAgent();
+        if (typeof unbindStep === 'function') unbindStep();
         busy = false;
         controls();
         reposition();

@@ -4,6 +4,8 @@
 // Pure module: no I/O, no clock, no Electron. Shapes mirror lines observed from
 // the real CLI; the login-failure shape is taken from a saved session transcript.
 
+const { redact } = require('../chat/chat-error');
+
 function parseLine(line) {
   if (typeof line !== 'string') return null;
   const trimmed = line.trim();
@@ -41,6 +43,18 @@ function denialsOf(list) {
     });
 }
 
+// What a tool call is about, as one short line for the status display: a file, a search
+// pattern, a command, an address. Shown only; long values keep their tail, where a path differs.
+function targetOf(input) {
+  const i = input && typeof input === 'object' ? input : {};
+  const raw = i.file_path || i.notebook_path || i.pattern || i.path || i.url || i.query || i.command || i.description || '';
+  const text = String(raw)
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return redact(text.length > 80 ? '\u2026' + text.slice(-79) : text);
+}
+
 // A failed login comes back as an assistant message flagged `error`, followed by
 // a `result` whose subtype is still "success". The flag is the only reliable tell.
 function toEvent(obj) {
@@ -55,6 +69,8 @@ function toEvent(obj) {
     if (delta && delta.type === 'text_delta' && typeof delta.text === 'string' && delta.text) {
       return { kind: 'delta', sessionId, text: delta.text };
     }
+    const started = obj.event && obj.event.type === 'content_block_start' ? obj.event.content_block : null;
+    if (started && started.type === 'thinking') return { kind: 'thinking', sessionId };
     return null;
   }
 
@@ -66,8 +82,8 @@ function toEvent(obj) {
       return { kind: 'failed', sessionId, reason, message: text };
     }
     if (text) return { kind: 'text', sessionId, text };
-    const tools = blocks(msg.content, 'tool_use').map((b) => b.name);
-    if (tools.length) return { kind: 'tool', sessionId, names: tools };
+    const uses = blocks(msg.content, 'tool_use').map((b) => ({ name: String(b.name), target: targetOf(b.input) }));
+    if (uses.length) return { kind: 'tool', sessionId, names: uses.map((u) => u.name), uses };
     return null;
   }
 

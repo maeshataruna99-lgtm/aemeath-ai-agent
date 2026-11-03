@@ -576,3 +576,52 @@ test('the bar follows a settings update that turns the module on', async () => {
   assert.equal(t.bar.classList.contains('hidden'), false);
   delete window.AemeathI18n;
 });
+
+// --- /claude: the bubble shows what the CLI is doing, reported by Aemeath ---
+
+test('the /claude bubble shows status lines from the CLI in Aemeath\'s voice until the answer arrives', async () => {
+  const env = setupChatPanelEnvironment();
+  window.AemeathI18n = require('../src/i18n');
+  let stepCallback = null;
+  let finish = null;
+  const panel = env.createPanel({
+    onAgentStep: (fn) => {
+      stepCallback = fn;
+      return () => {
+        stepCallback = null;
+      };
+    },
+    runCommand: () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ isCommand: true, ok: true, text: 'jawaban akhir' });
+      }),
+  });
+  await panel.open();
+  const log = env.elements.get('chat-log');
+  const messages = () => log.children.map((c) => c.textContent);
+
+  env.elements.get('chat-input').value = '/claude baca README';
+  env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 20));
+
+  const pending = log.children[log.children.length - 1];
+  assert.ok(pending.classList.contains('pending'));
+  assert.equal(pending.textContent, 'Aemeath sedang menghubungi Claude...');
+  assert.doesNotMatch(messages().join('|'), /Claude sedang bekerja/);
+
+  stepCallback({ text: 'Aemeath meneruskan pesanmu ke Claude…' });
+  stepCallback({ text: 'Membaca: README.md' });
+  stepCallback({ text: 'Membaca: README.md' }); // a repeat is not shown twice
+  stepCallback({ text: 'Mencari: workflow' });
+  assert.equal(pending.textContent, ['Aemeath meneruskan pesanmu ke Claude…', 'Membaca: README.md', 'Mencari: workflow'].join('\n'));
+
+  for (let i = 0; i < 6; i++) stepCallback({ text: 'Langkah ' + i });
+  assert.equal(pending.textContent.split('\n').length, 5, 'only the last five lines are kept');
+
+  finish();
+  await new Promise((r) => origSetTimeout(r, 20));
+  assert.match(messages().join('|'), /jawaban akhir/);
+  assert.doesNotMatch(messages().join('|'), /Langkah 5\|/);
+  assert.equal(stepCallback, null, 'the listener is released when the request ends');
+  delete window.AemeathI18n;
+});

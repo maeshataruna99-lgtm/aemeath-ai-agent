@@ -420,6 +420,11 @@ body {
   font-style: italic;
 }
 
+/* Status lines from the CLI keep their line breaks. */
+#chat-log .pending .msg-body {
+  white-space: pre-line;
+}
+
 #chat .mode {
   margin-left: 6px;
   padding: 1px 8px;

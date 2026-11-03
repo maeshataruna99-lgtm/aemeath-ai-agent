@@ -44,6 +44,11 @@ contextBridge.exposeInMainWorld('aemeath', {
   agentFolders: () => ipcRenderer.invoke('agent:folders'),
   agentFolderPick: () => ipcRenderer.invoke('agent:folder-pick'),
   agentFolderUse: (which) => ipcRenderer.invoke('agent:folder-use', which),
+  onAgentStep: (fn) => {
+    const listener = (_e, step) => fn(step);
+    ipcRenderer.on('agent:step', listener);
+    return () => ipcRenderer.removeListener('agent:step', listener);
+  },
   onAgentChunk: (fn) => {
     const listener = (_e, chunk) => fn(chunk);
     ipcRenderer.on('agent:chunk', listener);
