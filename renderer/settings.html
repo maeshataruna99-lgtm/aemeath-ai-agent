@@ -135,6 +135,12 @@
           <button type="button" id="agent-purge" data-i18n="settings.agent.purge_button">Hapus data modul...</button>
         </p>
         <p id="agent-purge-status" class="status"></p>
+        <h3 data-i18n="settings.agent.tasks_title">Tugas agen terbaru</h3>
+        <p class="field">
+          <button type="button" id="agent-tasks-refresh" data-i18n="settings.agent.tasks_refresh">Segarkan</button>
+          <button type="button" id="agent-tasks-stop" data-i18n="settings.agent.tasks_stop">Hentikan yang berjalan</button>
+        </p>
+        <ul id="agent-tasks" class="hint tight"></ul>
       </section>
 
       <hr>
@@ -622,6 +628,34 @@
         <div class="builtin-row">
           <code>/review</code>
           <span>Nilai dan tinjau perubahan kodinganmu saat ini (<code>git status</code> / <code>git diff</code>).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/focus</code>
+          <span data-i18n="settings.commands.builtin_focus">Orkestrasi sesi fokus kerja (mis. /focus 25m Tugas, /focus status).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/quest</code>
+          <span data-i18n="settings.commands.builtin_quest">Kelola maksimal 3 prioritas harian (/quest tambah ..., alias /daily).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/chronicle</code>
+          <span data-i18n="settings.commands.builtin_chronicle">Ringkasan harian opsional dari fakta lokal (/chronicle aktif).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/memory</code>
+          <span data-i18n="settings.commands.builtin_memory">Kelola catatan memori companion (/memory, /memory hapus 1).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/feature</code>
+          <span data-i18n="settings.commands.builtin_feature">Buka Aemeath Guidebook, buku panduan fitur.</span>
+        </div>
+        <div class="builtin-row">
+          <code>/claude</code>
+          <span data-i18n="settings.commands.builtin_claude">Tanya Claude Code dari kotak chat. Mati secara bawaan, nyalakan di tab Umum (/claude stop, /claude sesi).</span>
+        </div>
+        <div class="builtin-row">
+          <code>/jadwal</code>
+          <span data-i18n="settings.commands.builtin_jadwal">Pengingat berulang lokal (mis. /jadwal tambah 08:30 harian Minum obat).</span>
         </div>
         <label class="field check" for="terminal">
           <input type="checkbox" id="terminal">

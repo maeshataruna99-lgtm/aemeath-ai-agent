@@ -15,6 +15,8 @@ const { EDIT_TOOLS: ADAPTER_EDIT_TOOLS } = require('./claude-adapter');
 const CAPABILITY = 'agent.claude.run';
 const TIMEOUT_MS = 180000;
 const APPROVAL_MS = 5 * 60 * 1000;
+// A session written this recently may still be open in another window.
+const ACTIVE_MS = 60 * 1000;
 const EDIT_TOOLS = new Set(ADAPTER_EDIT_TOOLS);
 const APPROVED_PROMPT = 'The owner approved the file edits that were denied. Apply them now.';
 
@@ -34,6 +36,8 @@ const MESSAGE_CODES = new Set([
   'bad_dir',
   'nothing_to_approve',
   'session_not_found',
+  'session_active',
+  'interrupted',
 ]);
 
 // Catalog key for a failure code; anything unknown reads as a plain failure.
@@ -69,6 +73,18 @@ function sessionsReply(tr, current, list) {
     lines.push(tr('agent.sessions_use'));
   }
   return lines.join('\n');
+}
+
+// The recent tasks as the Settings window shows them: status, times, and a catalog key for a failure.
+// No prompt or answer text exists to show; the store keeps metadata only.
+function taskRows(tasks, limit) {
+  return tasks.slice(0, limit || 10).map((t) => ({
+    status: t.status,
+    createdAt: t.createdAt,
+    durationMs: t.startedAt != null && t.endedAt != null ? t.endedAt - t.startedAt : null,
+    attempts: t.attempts,
+    errorKey: t.status === 'failed' ? messageKey(t.errorCode) : null,
+  }));
 }
 
 // options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path, now?() -> number,
@@ -175,6 +191,9 @@ function createAgentBridge(options) {
     if (activeTaskId) return { ok: false, code: 'busy' };
     const picked = listRecent()[number - 1];
     if (!picked) return { ok: false, code: 'session_not_found' };
+    // Two writers on one transcript corrupt it, so a session touched in the last minute is refused,
+    // unless it is the one this bridge was already using.
+    if (picked.ageMs < ACTIVE_MS && picked.id !== sessionId) return { ok: false, code: 'session_active' };
     sessionId = picked.id;
     pending = null;
     return { ok: true, id: picked.id };
@@ -196,4 +215,4 @@ function createAgentBridge(options) {
   return { ask, approve, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
-module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, CAPABILITY, EDIT_TOOLS };
+module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, CAPABILITY, EDIT_TOOLS };

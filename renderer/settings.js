@@ -194,6 +194,7 @@
     stillToggle.checked = settings.stayStill === true;
     agentToggle.checked = settings.agentBridgeEnabled === true;
     renderAgentDir(settings.agentBridgeDir);
+    refreshAgentTasks();
     transparentToggle.checked = settings.transparentMode === true;
     opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
     renderTransparency();
@@ -423,8 +424,38 @@
       agentToggle.checked = false;
       renderAgentDir('');
       agentPurgeStatus.textContent = i18n.t('settings.agent.purge_done');
+      refreshAgentTasks();
     }
   });
+  // Recent agent tasks: status, time, and why a failed one failed. Metadata only.
+  const agentTasksEl = document.getElementById('agent-tasks');
+  async function refreshAgentTasks() {
+    if (!i18n || document.hidden) return;
+    const rows = await window.aemeathSettings.agentTasks();
+    const t = i18n.t;
+    agentTasksEl.textContent = '';
+    if (!rows.length) {
+      const empty = document.createElement('li');
+      empty.textContent = t('settings.agent.tasks_none');
+      agentTasksEl.appendChild(empty);
+      return;
+    }
+    for (const row of rows) {
+      const parts = [t('settings.agent.status_' + row.status), new Date(row.createdAt).toLocaleString(i18n.getLocale())];
+      if (row.durationMs != null) parts.push(t('settings.agent.tasks_seconds', { n: Math.max(1, Math.round(row.durationMs / 1000)) }));
+      if (row.attempts > 1) parts.push(t('settings.agent.tasks_attempt', { n: row.attempts }));
+      if (row.errorKey) parts.push(t(row.errorKey));
+      const li = document.createElement('li');
+      li.textContent = parts.join(' · ');
+      agentTasksEl.appendChild(li);
+    }
+  }
+  document.getElementById('agent-tasks-refresh').addEventListener('click', refreshAgentTasks);
+  document.getElementById('agent-tasks-stop').addEventListener('click', async () => {
+    await window.aemeathSettings.stopAgent();
+    refreshAgentTasks();
+  });
+  setInterval(refreshAgentTasks, 3000);
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });

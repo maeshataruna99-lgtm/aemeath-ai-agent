@@ -37,7 +37,7 @@ const { createI18n } = require('./src/i18n');
 const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
-const { createAgentBridge, messageKey, agentReply, sessionsReply } = require('./src/agent/agent-bridge');
+const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows } = require('./src/agent/agent-bridge');
 const { listSessions } = require('./src/agent/session-list');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createUacGate } = require('./src/terminal/uac-gate');
@@ -132,6 +132,7 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let agentBridge = null;
+  let taskStore = null;
   let schedule = null;
   let productivity = null;
   let workSession = null;
@@ -508,7 +509,7 @@ function main() {
       ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
       : app.getPath('userData');
     commandStore = createCommandStore({ dir: dataDir });
-    const taskStore = createTaskStore({ dir: dataDir });
+    taskStore = createTaskStore({ dir: dataDir });
     const getAgentDir = () => settings.agentBridgeDir || app.getPath('home');
     agentBridge = createAgentBridge({
       store: taskStore,
@@ -897,7 +898,10 @@ function main() {
     // Claude's working folder is only ever chosen through the OS dialog, never typed or sent in.
     ipcMain.handle('agent:pick-dir', async (event) => {
       if (!fromWindow(event, settingsWin)) return null;
-      const picked = await dialog.showOpenDialog(settingsWin, { properties: ['openDirectory'] });
+      // The verification run cannot click an OS dialog, so it answers with the temp folder.
+      const picked = isSelfie
+        ? { canceled: false, filePaths: [app.getPath('temp')] }
+        : await dialog.showOpenDialog(settingsWin, { properties: ['openDirectory'] });
       if (picked.canceled || !picked.filePaths[0]) return null;
       Object.assign(settings, settingsStore.save({ agentBridgeDir: picked.filePaths[0] }));
       settingsWin?.webContents?.send('settings:updated', settings);
@@ -911,6 +915,13 @@ function main() {
       settingsWin?.webContents?.send('settings:updated', settings);
       return true;
     });
+    // The Settings window only reads these task rows and can stop the one that is running.
+    ipcMain.handle('agent:tasks', (event) =>
+      fromWindow(event, settingsWin) && taskStore ? taskRows(taskStore.list()) : [],
+    );
+    ipcMain.handle('agent:stop', (event) =>
+      fromWindow(event, settingsWin) && agentBridge ? agentBridge.stop() : false,
+    );
     ipcMain.handle('agent:clear-dir', (event) => {
       if (!fromWindow(event, settingsWin)) return false;
       Object.assign(settings, settingsStore.save({ agentBridgeDir: '' }));
@@ -1929,6 +1940,29 @@ function main() {
       `JSON.stringify({ terminal: document.getElementById('chat').classList.contains('terminal'), last: document.querySelector('#chat-log .msg:last-child').textContent })`,
     );
     console.log('[aemeath] terminal mode off ' + modeOff);
+    // Click-level checks in the real Settings window: folder picker, the toggle turned on and
+    // off while a request runs, the task list, and the confirmed purge.
+    const clickIn = (js) => settingsWin.webContents.executeJavaScript(js);
+    await snapSettings();
+    await clickIn(`document.getElementById('agent-dir-pick').click()`);
+    await sleep(500);
+    console.log('[aemeath] settings folder picked: ' + (await clickIn(`document.getElementById('agent-dir').textContent`)) + ' | saved ' + (settings.agentBridgeDir === app.getPath('temp')));
+    await clickIn(`document.getElementById('agent-toggle').click()`);
+    await sleep(500);
+    console.log('[aemeath] settings toggle on by click: ' + settings.agentBridgeEnabled);
+    await submit('/claude panjang', 700);
+    await clickIn(`document.getElementById('agent-toggle').click()`);
+    await sleep(900);
+    console.log('[aemeath] settings toggle off by click: enabled=' + settings.agentBridgeEnabled + ' | newest tasks ' + JSON.stringify(taskRows(taskStore.list(), 3).map((r) => r.status)));
+    await clickIn(`document.getElementById('agent-tasks-refresh').click()`);
+    await sleep(400);
+    console.log('[aemeath] settings task list: ' + (await clickIn(`JSON.stringify([...document.querySelectorAll('#agent-tasks li')].slice(0, 3).map((li) => li.textContent))`)));
+    await clickIn(`document.getElementById('tab-general').click(); document.getElementById('agent-tasks').scrollIntoView({ block: 'center' })`);
+    await sleep(300);
+    fs.writeFileSync(path.join(dir, 'settings-agent-tasks.png'), (await snapSettings()).toPNG());
+    await clickIn(`window.confirm = () => true; document.getElementById('agent-purge').click()`);
+    await sleep(900);
+    console.log('[aemeath] settings purge: toggle=' + (await clickIn(`document.getElementById('agent-toggle').checked`)) + ' enabled=' + settings.agentBridgeEnabled + ' dir="' + settings.agentBridgeDir + '" tasks=' + taskStore.list().length + ' | ' + (await clickIn(`document.getElementById('agent-purge-status').textContent`)));
 
     // PowerShell commands: a harmless one runs and prints, a risky one asks first and can be
     // cancelled, and the verification run only records what would have been shut down.

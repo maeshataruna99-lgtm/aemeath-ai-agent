@@ -67,7 +67,7 @@ function bridgeWith(list) {
 }
 
 test('continuing a listed session by number makes the next message resume it', async () => {
-  const { bridge, seen } = bridgeWith([{ id: B, ageMs: 1 }, { id: A, ageMs: 2 }]);
+  const { bridge, seen } = bridgeWith([{ id: B, ageMs: 5 * 60000 }, { id: A, ageMs: 9 * 60000 }]);
   assert.deepEqual(bridge.useSession(2), { ok: true, id: A });
   assert.equal(bridge.currentSession(), A);
   await bridge.ask('lanjut');
