@@ -126,12 +126,13 @@ function taskRows(tasks, limit) {
   }));
 }
 
-// options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path, now?() -> number,
+// options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path, getPersona?() -> text, now?() -> number,
 //            listSessions?(dir) -> [{ id, ageMs }] }
 // A session only resumes in the folder it started in, so changing folder drops it.
 function createAgentBridge(options) {
   const { store, runner, adapter, isEnabled } = options;
   const getDir = options.getDir || (() => null);
+  const getPersona = options.getPersona || (() => null);
   const now = options.now || Date.now;
   let sessionDir = null;
   let sessionId = null;
@@ -171,7 +172,7 @@ function createAgentBridge(options) {
       const running = runner.run(
         task.id,
         async ({ signal }) => {
-          answer = await adapter.run(Object.assign({ prompt, signal }, input, { onStep }));
+          answer = await adapter.run(Object.assign({ prompt, signal, persona: getPersona() }, input, { onStep }));
           return answer;
         },
         { timeoutMs: TIMEOUT_MS, validate: (r) => Boolean(r && typeof r.text === 'string' && r.text.trim()) }

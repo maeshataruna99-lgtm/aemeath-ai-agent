@@ -39,6 +39,7 @@ const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
 const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, ageText } = require('./src/agent/agent-bridge');
 const { listSessions, sessionTitle } = require('./src/agent/session-list');
+const { agentPersona } = require('./src/agent/agent-persona');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
 const { createUacGate } = require('./src/terminal/uac-gate');
@@ -244,7 +245,7 @@ function main() {
     let prompt = '';
     child.stdin.on('data', (d) => (prompt += d));
     child.stdin.on('end', () => {
-      selfieClaudeCalls.push(args.filter((a) => a === '--resume' || a === '--allowedTools' || a === '--permission-prompts' || a === '--permission-mode').join(' '));
+      selfieClaudeCalls.push(args.filter((a) => a === '--resume' || a === '--append-system-prompt' || a === '--allowedTools' || a === '--permission-prompts' || a === '--permission-mode').join(' '));
       if (prompt.includes('panjang')) return; // never answers until it is stopped
       const line = (o) => JSON.stringify(Object.assign({ session_id: '5e1f1e00-0000-4000-8000-000000000001' }, o)) + '\n';
       const delta = (text) => line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text } } });
@@ -580,6 +581,8 @@ function main() {
         ? createClaudeAdapter({ spawn: selfieClaudeSpawn, cwd: getAgentDir, resolve: () => 'selfie-claude', isDir: () => true })
         : createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
       getDir: getAgentDir,
+      // Replies that pass through Aemeath sound like her: Claude is asked to answer in her voice.
+      getPersona: () => agentPersona(settings.locale),
       // The verification run lists two made-up sessions, so the session menu has something to show.
       listSessions: (dir) =>
         isSelfie

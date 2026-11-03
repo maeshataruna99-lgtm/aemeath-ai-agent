@@ -15,6 +15,7 @@ const { createStreamParser } = require('./claude-stream');
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_PROMPT = 8000;
+const MAX_PERSONA = 4000;
 // The tools an approved turn may use. Not acceptEdits: that mode also lets some shell
 // commands (a redirect like echo > file) through, which a typed "ya" must not cover.
 const EDIT_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
@@ -42,9 +43,11 @@ function resolveClaude(env, platform, exists) {
   return null;
 }
 
-function buildArgs(sessionId, approveEdits) {
+function buildArgs(sessionId, approveEdits, persona) {
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--setting-sources', 'project', '--permission-prompts', 'none'];
   if (sessionId) args.push('--resume', sessionId);
+  // Aemeath's voice, as one extra system prompt argument (never part of the user's message).
+  if (persona) args.push('--append-system-prompt', persona);
   // Only the owner's typed "ya" gets here: file edits go through for this one turn, commands stay denied.
   if (approveEdits) args.push('--allowedTools', EDIT_TOOLS.join(','));
   return args;
@@ -66,7 +69,7 @@ function createClaudeAdapter(options) {
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
-  // run({ prompt, sessionId?, signal?, onText?(delta), onStep?(step), approveEdits? }) -> Promise<{ sessionId, text, denials }>
+  // run({ prompt, sessionId?, signal?, onText?(delta), onStep?(step), approveEdits?, persona? }) -> Promise<{ sessionId, text, denials }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
   // empty_prompt, bad_dir, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
@@ -81,7 +84,7 @@ function createClaudeAdapter(options) {
     return new Promise((resolvePromise, reject) => {
       let child;
       try {
-        child = spawn(bin, buildArgs(input.sessionId, input.approveEdits === true), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+        child = spawn(bin, buildArgs(input.sessionId, input.approveEdits === true, typeof input.persona === 'string' ? input.persona.slice(0, MAX_PERSONA) : null), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
       } catch {
         reject(coded('spawn_failed'));
         return;
