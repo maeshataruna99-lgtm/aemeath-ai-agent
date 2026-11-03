@@ -21,6 +21,7 @@ const MESSAGE_CODES = new Set([
   'spawn_failed',
   'cancelled',
   'invalid_session',
+  'bad_dir',
 ]);
 
 // Catalog key for a failure code; anything unknown reads as a plain failure.
@@ -29,9 +30,12 @@ function messageKey(code) {
   return 'agent.' + (MESSAGE_CODES.has(code) ? code : 'error');
 }
 
-// options: { store, runner, adapter, isEnabled() -> boolean }
+// options: { store, runner, adapter, isEnabled() -> boolean, getDir?() -> path }
+// A session only resumes in the folder it started in, so changing folder drops it.
 function createAgentBridge(options) {
   const { store, runner, adapter, isEnabled } = options;
+  const getDir = options.getDir || (() => null);
+  let sessionDir = null;
   let sessionId = null;
   let activeTaskId = null;
 
@@ -43,6 +47,11 @@ function createAgentBridge(options) {
     const prompt = String(text == null ? '' : text).trim();
     if (!prompt) return { ok: false, code: 'empty_prompt' };
 
+    const dir = getDir();
+    if (dir !== sessionDir) {
+      sessionId = null;
+      sessionDir = dir;
+    }
     const task = store.create({ capability: CAPABILITY });
     activeTaskId = task.id;
     let answer = null;
@@ -74,7 +83,7 @@ function createAgentBridge(options) {
   }
 
   function currentSession() {
-    return sessionId;
+    return getDir() === sessionDir ? sessionId : null;
   }
 
   return { ask, stop, newSession, currentSession };

@@ -46,7 +46,8 @@
             "no_session": "Belum ada sesi Claude yang berjalan dari Aemeath.",
             "session_id": "Sesi Claude saat ini: {id}. Untuk melanjutkannya di terminalmu, ketik sendiri: claude --resume {id}",
             "stopped": "Permintaan /claude dihentikan.",
-            "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan."
+            "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan.",
+            "bad_dir": "Folder kerja Claude tidak ditemukan. Pilih ulang di Pengaturan, tab Umum, atau kembali ke folder home."
         },
         "settings": {
             "title": "Pengaturan Aemeath",
@@ -100,7 +101,11 @@
             "agent": {
                 "title": "Jembatan agen AI",
                 "toggle": "Aktifkan perintah /claude (Claude Code)",
-                "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu."
+                "dir_label": "Folder kerja Claude",
+                "dir_none": "Folder home",
+                "dir_pick": "Pilih folder...",
+                "dir_clear": "Pakai folder home",
+                "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu. Claude bisa membaca isi folder kerja yang kamu pilih, jadi pilih folder proyek, bukan folder berisi data pribadi."
             },
             "movement": {
                 "title": "Gerak & tampilan",
@@ -369,7 +374,8 @@
             "no_session": "No Claude session has been started from Aemeath yet.",
             "session_id": "Current Claude session: {id}. To continue it in your terminal, type this yourself: claude --resume {id}",
             "stopped": "The /claude request was stopped.",
-            "nothing_running": "No /claude request is running."
+            "nothing_running": "No /claude request is running.",
+            "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder."
         },
         "settings": {
             "title": "Aemeath Settings",
@@ -423,7 +429,11 @@
             "agent": {
                 "title": "AI agent bridge",
                 "toggle": "Enable the /claude command (Claude Code)",
-                "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data."
+                "dir_label": "Claude working folder",
+                "dir_none": "Home folder",
+                "dir_pick": "Choose folder...",
+                "dir_clear": "Use home folder",
+                "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
             },
             "movement": {
                 "title": "Movement & display",

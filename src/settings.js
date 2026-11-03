@@ -24,6 +24,8 @@ const DEFAULTS = {
   startAtLogin: true,
   // Agent bridge: the /claude command. Off until the owner turns it on.
   agentBridgeEnabled: false,
+  // Folder Claude works in. Empty means the home folder. Only set through the folder picker.
+  agentBridgeDir: '',
   stayStill: false,
   transparentMode: false,
   opacity: 0.6,
@@ -141,6 +143,10 @@ function keepFlags(data) {
 function keepStrings(data) {
   for (const key of ['chatProvider', 'chatModel']) {
     if (typeof data[key] !== 'string' || data[key] === '') data[key] = DEFAULTS[key];
+  }
+  const dir = data.agentBridgeDir;
+  if (typeof dir !== 'string' || dir.length > 500 || /[\u0000-\u001f]/.test(dir) || (dir !== '' && !path.isAbsolute(dir))) {
+    data.agentBridgeDir = '';
   }
   if (!CHAT_SHORTCUTS.includes(data.chatShortcut)) data.chatShortcut = DEFAULTS.chatShortcut;
 }

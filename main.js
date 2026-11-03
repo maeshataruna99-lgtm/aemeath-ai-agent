@@ -406,10 +406,12 @@ function main() {
       : app.getPath('userData');
     commandStore = createCommandStore({ dir: dataDir });
     const taskStore = createTaskStore({ dir: dataDir });
+    const getAgentDir = () => settings.agentBridgeDir || app.getPath('home');
     agentBridge = createAgentBridge({
       store: taskStore,
       runner: createTaskRunner({ store: taskStore }),
-      adapter: createClaudeAdapter({ spawn: spawn, cwd: app.getPath('home') }),
+      adapter: createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
+      getDir: getAgentDir,
       isEnabled: () => settings.agentBridgeEnabled === true,
     });
     themeStore = createThemeStore({ dir: dataDir });
@@ -748,6 +750,21 @@ function main() {
         properties: [kind === 'folder' ? 'openDirectory' : 'openFile'],
       });
       return picked.canceled ? null : picked.filePaths[0];
+    });
+    // Claude's working folder is only ever chosen through the OS dialog, never typed or sent in.
+    ipcMain.handle('agent:pick-dir', async (event) => {
+      if (!fromWindow(event, settingsWin)) return null;
+      const picked = await dialog.showOpenDialog(settingsWin, { properties: ['openDirectory'] });
+      if (picked.canceled || !picked.filePaths[0]) return null;
+      Object.assign(settings, settingsStore.save({ agentBridgeDir: picked.filePaths[0] }));
+      settingsWin?.webContents?.send('settings:updated', settings);
+      return settings.agentBridgeDir;
+    });
+    ipcMain.handle('agent:clear-dir', (event) => {
+      if (!fromWindow(event, settingsWin)) return false;
+      Object.assign(settings, settingsStore.save({ agentBridgeDir: '' }));
+      settingsWin?.webContents?.send('settings:updated', settings);
+      return true;
     });
 
     // Companion memory. The settings window owns the list; the overlay may only

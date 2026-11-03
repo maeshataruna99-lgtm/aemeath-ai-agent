@@ -193,6 +193,7 @@
     refreshStartup();
     stillToggle.checked = settings.stayStill === true;
     agentToggle.checked = settings.agentBridgeEnabled === true;
+    renderAgentDir(settings.agentBridgeDir);
     transparentToggle.checked = settings.transparentMode === true;
     opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
     renderTransparency();
@@ -394,6 +395,24 @@
   const agentToggle = document.getElementById('agent-toggle');
   agentToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ agentBridgeEnabled: agentToggle.checked });
+  });
+  const agentDirEl = document.getElementById('agent-dir');
+  function renderAgentDir(dir) {
+    if (dir) {
+      agentDirEl.removeAttribute('data-i18n');
+      agentDirEl.textContent = dir;
+    } else {
+      agentDirEl.setAttribute('data-i18n', 'settings.agent.dir_none');
+      if (i18n) i18n.applyDom(document);
+    }
+  }
+  document.getElementById('agent-dir-pick').addEventListener('click', async () => {
+    const dir = await window.aemeathSettings.pickAgentDir();
+    if (dir) renderAgentDir(dir);
+  });
+  document.getElementById('agent-dir-clear').addEventListener('click', async () => {
+    await window.aemeathSettings.clearAgentDir();
+    renderAgentDir('');
   });
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {

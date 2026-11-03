@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('aemeathSettings', {
   getCommands: () => ipcRenderer.invoke('commands:get'),
   saveCommands: (list) => ipcRenderer.invoke('commands:save', list),
   pickPath: (kind) => ipcRenderer.invoke('commands:pick', kind),
+  pickAgentDir: () => ipcRenderer.invoke('agent:pick-dir'),
+  clearAgentDir: () => ipcRenderer.invoke('agent:clear-dir'),
   memoryStatus: () => ipcRenderer.invoke('memory:status'),
   listMemory: () => ipcRenderer.invoke('memory:list'),
   saveMemory: (payload) => ipcRenderer.invoke('memory:save', payload),

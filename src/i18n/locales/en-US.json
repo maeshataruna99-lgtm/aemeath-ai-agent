@@ -31,7 +31,8 @@
     "no_session": "No Claude session has been started from Aemeath yet.",
     "session_id": "Current Claude session: {id}. To continue it in your terminal, type this yourself: claude --resume {id}",
     "stopped": "The /claude request was stopped.",
-    "nothing_running": "No /claude request is running."
+    "nothing_running": "No /claude request is running.",
+    "bad_dir": "Claude's working folder was not found. Pick it again in Settings, General tab, or go back to the home folder."
   },
   "settings": {
     "title": "Aemeath Settings",
@@ -253,7 +254,11 @@
     "agent": {
       "title": "AI agent bridge",
       "toggle": "Enable the /claude command (Claude Code)",
-      "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data."
+      "dir_label": "Claude working folder",
+      "dir_none": "Home folder",
+      "dir_pick": "Choose folder...",
+      "dir_clear": "Use home folder",
+      "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data. Claude can read the contents of the working folder you choose, so pick a project folder, not one with personal data."
     }
   },
   "chat": {

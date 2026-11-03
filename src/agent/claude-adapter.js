@@ -45,22 +45,33 @@ function buildArgs(sessionId) {
   return args;
 }
 
-// options: { spawn, cwd, env?, resolve?() -> path | null }
+// options: { spawn, cwd | cwd() -> path, env?, resolve?() -> path | null, isDir?(path) -> boolean }
 function createClaudeAdapter(options) {
   const spawn = options.spawn;
-  const cwd = options.cwd;
+  const cwdOf = typeof options.cwd === 'function' ? options.cwd : () => options.cwd;
+  const isDir =
+    options.isDir ||
+    ((p) => {
+      try {
+        return fs.statSync(p).isDirectory();
+      } catch {
+        return false;
+      }
+    });
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
   // run({ prompt, sessionId?, signal?, onText?(delta) }) -> Promise<{ sessionId, text }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
-  // empty_prompt, spawn_failed, auth, max_turns, api, error, no_result.
+  // empty_prompt, bad_dir, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
     const prompt = String(input.prompt == null ? '' : input.prompt).trim().slice(0, MAX_PROMPT);
     if (!prompt) return Promise.reject(coded('empty_prompt'));
     if (input.sessionId && !SESSION_ID.test(input.sessionId)) return Promise.reject(coded('invalid_session'));
     const bin = resolve();
     if (!bin) return Promise.reject(coded('not_installed'));
+    const cwd = cwdOf();
+    if (!cwd || !isDir(cwd)) return Promise.reject(coded('bad_dir'));
 
     return new Promise((resolvePromise, reject) => {
       let child;

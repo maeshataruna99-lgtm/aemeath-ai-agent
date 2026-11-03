@@ -47,7 +47,7 @@ function fakeSpawn(lines, opts) {
 }
 
 function adapterFor(spawn, resolve) {
-  return createClaudeAdapter({ spawn, cwd: 'C:/home', env: {}, resolve: resolve || (() => 'C:/bin/claude.exe') });
+  return createClaudeAdapter({ spawn, cwd: 'C:/home', isDir: () => true, env: {}, resolve: resolve || (() => 'C:/bin/claude.exe') });
 }
 
 test('runs a turn: prompt on stdin, argument list, no shell', async () => {
