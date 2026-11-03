@@ -47,6 +47,11 @@
     const folderButton = document.getElementById('chat-folder-btn');
     const folderName = document.getElementById('chat-folder-name');
     const folderMenu = document.getElementById('chat-folder-menu');
+    const agentBar = document.getElementById('chat-agentbar');
+    const sessionBar = document.getElementById('chat-session');
+    const sessionButton = document.getElementById('chat-session-btn');
+    const sessionName = document.getElementById('chat-session-name');
+    const sessionMenu = document.getElementById('chat-session-menu');
 
     let isOpen = false;
     let busy = false;
@@ -56,7 +61,7 @@
     let idleTimer = null;
     let forgetTimer = null;
     let commands = [];
-    let mode = 'chat'; // 'chat' or 'terminal'
+    let mode = 'chat'; // 'chat', 'terminal', or 'claude' (everything typed goes to Claude)
     let large = false;
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
@@ -69,7 +74,9 @@
       if (input) {
         input.placeholder = mode === 'terminal'
           ? (isEn ? 'Type a PowerShell command... (exit to leave)' : 'Ketik perintah PowerShell... (exit untuk keluar)')
-          : (isEn ? 'Type a message, or / for commands...' : 'Tulis pesan, atau / untuk perintah...');
+          : mode === 'claude'
+            ? tr('chat.claude_placeholder')
+            : (isEn ? 'Type a message, or / for commands...' : 'Tulis pesan, atau / untuk perintah...');
       }
       if (send) {
         send.textContent = isEn ? 'Send' : 'Kirim';
@@ -235,7 +242,7 @@
     // there is no key and offline answers are switched off.
     function controls() {
       input.disabled = false;
-      if (attachButton) attachButton.disabled = busy || mode === 'terminal';
+      if (attachButton) attachButton.disabled = busy || mode !== 'chat';
       send.disabled = busy;
     }
 
@@ -400,16 +407,19 @@
 
     // Chat and terminal share the box; only the look and where lines go differ.
     function setMode(next, nextCwd) {
-      mode = next === 'terminal' ? 'terminal' : 'chat';
+      mode = next === 'terminal' || next === 'claude' ? next : 'chat';
       if (nextCwd) cwd = nextCwd;
       el.classList.toggle('terminal', mode === 'terminal');
-      modeBadge.classList.toggle('hidden', mode !== 'terminal');
-      if (mode === 'terminal') {
+      el.classList.toggle('claude', mode === 'claude');
+      modeBadge.classList.toggle('hidden', mode === 'chat');
+      modeBadge.textContent = mode === 'claude' ? tr('chat.claude_mode_badge') : 'PowerShell';
+      if (mode !== 'chat') {
         pendingAttachments = [];
         renderPendingAttachments();
       }
       updateLocalizedUI();
       renderFolders();
+      renderSessions();
       notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
       hideSuggestions();
       controls();
@@ -501,8 +511,9 @@
     }
 
     function renderFolders() {
-      const show = Boolean(folders && folders.enabled) && mode === 'chat';
+      const show = Boolean(folders && folders.enabled) && mode === 'claude';
       folderBar.classList.toggle('hidden', !show);
+      syncAgentBar();
       if (!show) {
         closeFolderMenu();
         return;
@@ -518,8 +529,103 @@
       } catch {
         folders = null;
       }
+      // Turning the module off ends Claude mode.
+      if (mode === 'claude' && !(folders && folders.enabled)) {
+        setMode('chat');
+        add('bot', tr('chat.claude_mode_ended'));
+      }
       renderFolders();
       reposition();
+    }
+
+    // The folder and session chips share one row, shown while either is.
+    function syncAgentBar() {
+      agentBar.classList.toggle('hidden', folderBar.classList.contains('hidden') && sessionBar.classList.contains('hidden'));
+    }
+
+    function addMenuItem(menu, label, title, onClick, active) {
+      const entry = document.createElement('button');
+      entry.type = 'button';
+      entry.setAttribute('role', 'menuitem');
+      entry.textContent = (active ? '\u2713 ' : '') + label;
+      if (title) entry.title = title;
+      entry.addEventListener('click', onClick);
+      menu.appendChild(entry);
+    }
+
+    // The sessions of the working folder: continue one, or start a new one. The panel sends back an
+    // id taken from the list it was given, or "new"; the main process checks it again.
+    let sessions = null;
+    const SESSION_REFUSALS = new Set(['busy', 'session_active', 'session_not_found']);
+
+    function closeSessionMenu() {
+      sessionMenu.classList.add('hidden');
+      sessionMenu.textContent = '';
+      sessionButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderSessions() {
+      const show = Boolean(sessions && sessions.enabled) && mode === 'claude';
+      sessionBar.classList.toggle('hidden', !show);
+      syncAgentBar();
+      if (!show) {
+        closeSessionMenu();
+        return;
+      }
+      sessionName.textContent = sessions.current ? tr('chat.session_label', { id: sessions.current.short }) : tr('chat.session_none');
+      sessionButton.title = tr('chat.session_button_title');
+      sessionButton.setAttribute('aria-label', sessionButton.title);
+    }
+
+    async function refreshSessions() {
+      try {
+        sessions = typeof api.agentSessions === 'function' ? await api.agentSessions() : null;
+      } catch {
+        sessions = null;
+      }
+      renderSessions();
+      reposition();
+    }
+
+    function refreshAgentBar() {
+      return Promise.all([refreshFolders(), refreshSessions()]);
+    }
+
+    async function changeSession(which) {
+      closeSessionMenu();
+      if (busy || (sessions && sessions.busy)) {
+        add('err', tr('chat.folder_busy'));
+        return;
+      }
+      let res;
+      try {
+        res = await api.agentSessionUse(which);
+      } catch {
+        add('err', tr('chat.folder_error'));
+        return;
+      }
+      if (!res) return;
+      if (res.state) sessions = res.state;
+      renderSessions();
+      reposition();
+      if (res.ok) {
+        add('bot', which === 'new' ? tr('chat.session_new_done') : tr('chat.session_changed', { id: sessions && sessions.current ? sessions.current.short : '' }));
+      } else {
+        add('err', tr(SESSION_REFUSALS.has(res.code) ? 'agent.' + res.code : 'chat.folder_error'));
+      }
+    }
+
+    function openSessionMenu() {
+      if (!sessions) return;
+      closeFolderMenu();
+      sessionMenu.textContent = '';
+      sessions.items.forEach((s, i) => {
+        const here = Boolean(sessions.current && s.id === sessions.current.id);
+        addMenuItem(sessionMenu, (i + 1) + '. ' + s.short + ' \u00b7 ' + s.age, s.id, () => changeSession(s.id), here);
+      });
+      addMenuItem(sessionMenu, tr('chat.session_new'), '', () => changeSession('new'), false);
+      sessionMenu.classList.remove('hidden');
+      sessionButton.setAttribute('aria-expanded', 'true');
     }
 
     async function changeFolder(action) {
@@ -544,16 +650,9 @@
 
     function openFolderMenu() {
       if (!folders) return;
+      closeSessionMenu();
       folderMenu.textContent = '';
-      const item = (label, title, onClick, active) => {
-        const entry = document.createElement('button');
-        entry.type = 'button';
-        entry.setAttribute('role', 'menuitem');
-        entry.textContent = (active ? '\u2713 ' : '') + label;
-        if (title) entry.title = title;
-        entry.addEventListener('click', onClick);
-        folderMenu.appendChild(entry);
-      };
+      const item = (label, title, onClick, active) => addMenuItem(folderMenu, label, title, onClick, active);
       folders.recent.forEach((r, i) => item(r.name, r.path, () => changeFolder(i), !folders.isHome && r.path === folders.current.path));
       item(tr('chat.folder_pick'), '', () => changeFolder('pick'), false);
       item(tr('chat.folder_home'), '', () => changeFolder('home'), folders.isHome);
@@ -570,7 +669,7 @@
       api.focusWindow();
       if (typeof api.setHover === 'function') api.setHover(true);
       if (typeof options.onOpen === 'function') options.onOpen();
-      await Promise.all([refreshStatus(), refreshCommands(), refreshFolders()]);
+      await Promise.all([refreshStatus(), refreshCommands(), refreshAgentBar()]);
       input.focus();
       touch();
     }
@@ -580,7 +679,7 @@
       pendingAttachments = [];
       renderPendingAttachments();
       log.textContent = '';
-      if (isOpen && mode === 'chat') add('bot', getGreeting());
+      if (isOpen && mode !== 'terminal') add('bot', getGreeting());
     }
 
     function close() {
@@ -659,6 +758,7 @@
       } finally {
         if (typeof unbindAgent === 'function') unbindAgent();
         if (typeof unbindStep === 'function') unbindStep();
+        if (isAgent) refreshSessions();
         busy = false;
         controls();
         reposition();
@@ -778,7 +878,36 @@
       input.value = '';
       hideSuggestions();
       if (mode === 'terminal') {
+        if (/^\/claude-mode(?:\s|$)/i.test(text)) {
+          add('user', text);
+          add('err', tr('chat.claude_mode_terminal'));
+          return;
+        }
         return /^\/(?:change-mode|claude)(?:\s|$)/i.test(text) ? runCommand(text) : runTerminal(text);
+      }
+      // /claude-mode turns Aemeath into a Claude agent; typing it again (or "off") turns her back.
+      const modeCommand = text.match(/^\/claude-mode(?:\s+(\S+))?\s*$/i);
+      if (modeCommand && !confirming) {
+        const arg = (modeCommand[1] || '').toLowerCase();
+        const off = arg === 'off' || arg === 'keluar';
+        const on = arg === 'on' || arg === 'aktif';
+        if (mode === 'claude' && !on) {
+          add('user', text);
+          setMode('chat');
+          add('bot', tr('chat.claude_mode_off'));
+          return;
+        }
+        if (mode === 'claude' || off) {
+          add('user', text);
+          add('bot', tr(mode === 'claude' ? 'chat.claude_mode_already' : 'chat.claude_mode_not_on'));
+          return;
+        }
+        return runCommand('/claude-mode');
+      }
+      // In Claude mode everything that is not a /command goes to Claude.
+      if (mode === 'claude' && !confirming && !text.startsWith('/')) {
+        add('user', text);
+        return runCommand('/claude ' + text, true);
       }
       if (hasAttachments) {
         const payload = {
@@ -847,10 +976,12 @@
     resetButton.addEventListener('click', resetConversation);
     closeButton.addEventListener('click', close);
     folderButton.addEventListener('click', () => (folderMenu.classList.contains('hidden') ? openFolderMenu() : closeFolderMenu()));
+    sessionButton.addEventListener('click', () => (sessionMenu.classList.contains('hidden') ? openSessionMenu() : closeSessionMenu()));
     document.addEventListener('click', (e) => {
       if (!folderBar.contains(e.target)) closeFolderMenu();
+      if (!sessionBar.contains(e.target)) closeSessionMenu();
     });
-    if (typeof api.onSettingsUpdated === 'function') api.onSettingsUpdated(() => refreshFolders());
+    if (typeof api.onSettingsUpdated === 'function') api.onSettingsUpdated(() => refreshAgentBar());
     settingsButton.addEventListener('click', () => api.openSettings());
     // Coming back from Settings: pick up a newly saved or removed key.
     window.addEventListener('focus', () => {

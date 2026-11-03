@@ -195,12 +195,17 @@ function setupChatPanelEnvironment() {
     'chat-folder-btn',
     'chat-folder-name',
     'chat-folder-menu',
+    'chat-agentbar',
+    'chat-session',
+    'chat-session-btn',
+    'chat-session-name',
+    'chat-session-menu',
   ];
 
   ids.forEach((id) => {
     const tag = id.includes('input') ? 'input' : id.includes('button') || id.includes('attach') || id.includes('send') || id.includes('size') || id.includes('reset') || id.includes('close') || id.includes('settings') ? 'button' : 'div';
     const el = new FakeElement(tag, id);
-    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode' || id === 'chat-folder' || id === 'chat-folder-menu') {
+    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode' || id === 'chat-folder' || id === 'chat-folder-menu' || id === 'chat-agentbar' || id === 'chat-session' || id === 'chat-session-menu') {
       el.className = 'hidden';
     }
     elements.set(id, el);
@@ -464,7 +469,14 @@ function foldersState(over) {
   );
 }
 
-async function openWithFolders(state, apiExtra) {
+async function typeInto(env, text) {
+  env.elements.get('chat-input').value = text;
+  env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((resolve) => origSetTimeout(resolve, 25));
+}
+
+// The folder chip lives in Claude mode, so these tests switch it on first unless told to stay in chat.
+async function openWithFolders(state, apiExtra, options) {
   const env = setupChatPanelEnvironment();
   window.AemeathI18n = require('../src/i18n');
   const calls = { use: [], pick: 0 };
@@ -484,12 +496,26 @@ async function openWithFolders(state, apiExtra) {
           current = Object.assign({}, current, { current: { name: 'baru', path: 'C:/kerja/baru' } });
           return current;
         },
+        runCommand: async (text) =>
+          text === '/claude-mode'
+            ? { isCommand: true, ok: true, text: 'Mode Claude aktif', mode: 'claude' }
+            : { isCommand: true, ok: true, text: 'ok' },
       },
       apiExtra || {}
     )
   );
   await panel.open();
-  return { env, panel, calls, bar: env.elements.get('chat-folder'), menu: env.elements.get('chat-folder-menu'), button: env.elements.get('chat-folder-btn'), name: env.elements.get('chat-folder-name'), log: env.elements.get('chat-log') };
+  if (!(options && options.stayInChat)) await typeInto(env, '/claude-mode');
+  return {
+    env,
+    panel,
+    calls,
+    bar: env.elements.get('chat-folder'),
+    menu: env.elements.get('chat-folder-menu'),
+    button: env.elements.get('chat-folder-btn'),
+    name: env.elements.get('chat-folder-name'),
+    log: env.elements.get('chat-log'),
+  };
 }
 
 test('the folder bar is hidden while the module is off and shows the folder name when on', async () => {
@@ -500,6 +526,16 @@ test('the folder bar is hidden while the module is off and shows the folder name
   assert.equal(on.bar.classList.contains('hidden'), false);
   assert.equal(on.name.textContent, 'proyek-a');
   assert.match(on.button.title, /C:\/kerja\/proyek-a/);
+  delete window.AemeathI18n;
+});
+
+test('the folder bar shows only in Claude mode, even when the module is on', async () => {
+  const t = await openWithFolders(foldersState(), {}, { stayInChat: true });
+  assert.equal(t.bar.classList.contains('hidden'), true, 'not shown in plain chat');
+  await typeInto(t.env, '/claude-mode');
+  assert.equal(t.bar.classList.contains('hidden'), false, 'shown once Claude mode is on');
+  await typeInto(t.env, '/claude-mode');
+  assert.equal(t.bar.classList.contains('hidden'), true, 'gone again after leaving');
   delete window.AemeathI18n;
 });
 
@@ -560,8 +596,8 @@ test('nothing changes while a request runs, and the user is told why', async () 
   delete window.AemeathI18n;
 });
 
-test('the bar follows a settings update that turns the module on', async () => {
-  let enabled = false;
+test('turning the module off hides the folder bar and ends Claude mode', async () => {
+  let enabled = true;
   let notify = null;
   const t = await openWithFolders(foldersState(), {
     agentFolders: async () => foldersState({ enabled }),
@@ -569,11 +605,12 @@ test('the bar follows a settings update that turns the module on', async () => {
       notify = fn;
     },
   });
-  assert.equal(t.bar.classList.contains('hidden'), true);
-  enabled = true;
-  notify({});
-  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(t.bar.classList.contains('hidden'), false);
+  enabled = false;
+  notify({});
+  await new Promise((resolve) => origSetTimeout(resolve, 25));
+  assert.equal(t.bar.classList.contains('hidden'), true);
+  assert.equal(t.env.elements.get('chat-mode').classList.contains('hidden'), true);
   delete window.AemeathI18n;
 });
 
@@ -625,3 +662,266 @@ test('the /claude bubble shows status lines from the CLI in Aemeath\'s voice unt
   assert.equal(stepCallback, null, 'the listener is released when the request ends');
   delete window.AemeathI18n;
 });
+
+// --- Claude mode and the session chip ---
+
+const DOT = String.fromCharCode(0xb7);
+const S1 = 'aaaaaaaa-0000-4000-8000-000000000001';
+const S2 = 'bbbbbbbb-0000-4000-8000-000000000002';
+
+function sessionsState(over) {
+  return Object.assign(
+    {
+      enabled: true,
+      busy: false,
+      current: null,
+      items: [
+        { id: S1, short: 'aaaaaaaa', age: '5 menit lalu' },
+        { id: S2, short: 'bbbbbbbb', age: '3 jam lalu' },
+      ],
+    },
+    over || {}
+  );
+}
+
+async function agentPanel(extra) {
+  const env = setupChatPanelEnvironment();
+  window.AemeathI18n = require('../src/i18n');
+  const sent = [];
+  const t = {
+    env,
+    sent,
+    sessionCalls: [],
+    folderEnabled: true,
+    sessions: sessionsState(),
+    refreshes: 0,
+  };
+  const panel = env.createPanel(
+    Object.assign(
+      {
+        agentFolders: async () => foldersState({ enabled: t.folderEnabled }),
+        agentSessions: async () => {
+          t.refreshes++;
+          return t.sessions;
+        },
+        agentSessionUse: async (which) => {
+          t.sessionCalls.push(which);
+          if (t.refuse) return { ok: false, code: t.refuse, state: t.sessions };
+          t.sessions = which === 'new' ? sessionsState({ current: null }) : sessionsState({ current: { id: which, short: which.slice(0, 8) } });
+          return { ok: true, state: t.sessions };
+        },
+        runCommand: async (text) => {
+          sent.push(text);
+          if (text === '/claude-mode') return { isCommand: true, ok: true, text: 'Mode Claude aktif', mode: 'claude' };
+          if (text === '/change-mode') return { isCommand: true, ok: true, text: 'Mode terminal aktif', mode: 'terminal', cwd: 'C:/x' };
+          return { isCommand: true, ok: true, text: 'dijawab: ' + text };
+        },
+        terminalRun: async () => {
+          t.terminalCalls = (t.terminalCalls || 0) + 1;
+          return { ok: true, output: '', mode: 'terminal', cwd: 'C:/x' };
+        },
+      },
+      extra || {}
+    )
+  );
+  await panel.open();
+  t.panel = panel;
+  t.log = env.elements.get('chat-log');
+  t.input = env.elements.get('chat-input');
+  t.badge = env.elements.get('chat-mode');
+  t.chat = env.elements.get('chat');
+  t.bar = env.elements.get('chat-agentbar');
+  t.sessionBar = env.elements.get('chat-session');
+  t.sessionName = env.elements.get('chat-session-name');
+  t.sessionMenu = env.elements.get('chat-session-menu');
+  t.sessionButton = env.elements.get('chat-session-btn');
+  t.say = (text) => typeInto(env, text);
+  // The folder and session chips live in Claude mode.
+  t.enter = async () => {
+    await t.say('/claude-mode');
+    t.sent.length = 0;
+  };
+  t.texts = () => t.log.children.map((c) => c.textContent).join('|');
+  return t;
+}
+
+test('/claude-mode switches the box into Claude mode', async () => {
+  const t = await agentPanel();
+  assert.equal(t.badge.classList.contains('hidden'), true);
+  await t.say('/claude-mode');
+  assert.deepEqual(t.sent, ['/claude-mode']);
+  assert.equal(t.badge.classList.contains('hidden'), false);
+  assert.equal(t.badge.textContent, 'Claude');
+  assert.equal(t.chat.classList.contains('claude'), true);
+  assert.match(t.input.placeholder, /Tulis tugas untuk Claude/);
+  delete window.AemeathI18n;
+});
+
+test('in Claude mode plain text goes to Claude without typing /claude, and /commands stay commands', async () => {
+  const t = await agentPanel();
+  await t.enter();
+  await t.say('jelaskan struktur folder ini');
+  await t.say('ya');
+  await t.say('/jadwal');
+  assert.deepEqual(t.sent, ['/claude jelaskan struktur folder ini', '/claude ya', '/jadwal']);
+  const typed = t.log.children.filter((c) => c.classList.contains('user')).map((c) => c.textContent);
+  assert.deepEqual(typed, ['/claude-mode', 'jelaskan struktur folder ini', 'ya', '/jadwal'], 'the bubbles show what was typed, not the prefix');
+  delete window.AemeathI18n;
+});
+
+test('typing /claude-mode again leaves the mode without calling anything', async () => {
+  const t = await agentPanel();
+  await t.enter();
+  await t.say('/claude-mode');
+  assert.deepEqual(t.sent, []);
+  assert.equal(t.badge.classList.contains('hidden'), true);
+  assert.equal(t.chat.classList.contains('claude'), false);
+  assert.match(t.texts(), /Keluar dari mode Claude/);
+  assert.match(t.input.placeholder, /Tulis pesan/);
+  delete window.AemeathI18n;
+});
+
+test('"off" when the mode is not on, and "on" when it already is, only explain', async () => {
+  const t = await agentPanel();
+  await t.say('/claude-mode off');
+  assert.deepEqual(t.sent, []);
+  assert.match(t.texts(), /Mode Claude sedang tidak aktif/);
+  await t.enter();
+  await t.say('/claude-mode on');
+  assert.deepEqual(t.sent, []);
+  assert.match(t.texts(), /Mode Claude sudah aktif/);
+  assert.equal(t.badge.classList.contains('hidden'), false);
+  delete window.AemeathI18n;
+});
+
+test('terminal mode refuses Claude mode and keeps the text away from PowerShell', async () => {
+  const t = await agentPanel();
+  await t.say('/change-mode');
+  assert.equal(t.chat.classList.contains('terminal'), true);
+  await t.say('/claude-mode');
+  assert.equal(t.terminalCalls || 0, 0);
+  assert.match(t.texts(), /Keluar dari mode terminal dulu/);
+  assert.equal(t.chat.classList.contains('claude'), false);
+  assert.equal(t.bar.classList.contains('hidden'), true, 'the folder and session chips are hidden in terminal mode');
+  delete window.AemeathI18n;
+});
+
+test('turning the module off ends Claude mode', async () => {
+  let notify = null;
+  const t = await agentPanel({ onSettingsUpdated: (fn) => (notify = fn) });
+  await t.enter();
+  t.folderEnabled = false;
+  notify({});
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.equal(t.badge.classList.contains('hidden'), true);
+  assert.match(t.texts(), /mode Claude berakhir/);
+  delete window.AemeathI18n;
+});
+
+test('a command waiting for a yes still gets the yes in Claude mode', async () => {
+  const sent = [];
+  const t = await agentPanel({
+    runCommand: async (text) => {
+      sent.push(text);
+      if (text === '/claude-mode') return { isCommand: true, ok: true, text: 'Mode Claude aktif', mode: 'claude' };
+      if (text === '/matikan') return { isCommand: true, ok: true, text: 'Yakin?', awaitConfirm: true };
+      return { isCommand: true, ok: true, text: 'dijawab: ' + text };
+    },
+  });
+  await t.say('/claude-mode');
+  sent.length = 0;
+  await t.say('/matikan');
+  await t.say('ya');
+  assert.deepEqual(sent, ['/matikan', 'ya'], 'the yes goes to the command, not to Claude');
+  delete window.AemeathI18n;
+});
+
+test('the folder and session chips appear only in Claude mode', async () => {
+  const t = await agentPanel();
+  assert.equal(t.bar.classList.contains('hidden'), true, 'plain chat shows no chips even though the module is on');
+  assert.equal(t.sessionBar.classList.contains('hidden'), true);
+  await t.enter();
+  assert.equal(t.bar.classList.contains('hidden'), false);
+  assert.equal(t.sessionBar.classList.contains('hidden'), false);
+  await t.say('/claude-mode');
+  assert.equal(t.bar.classList.contains('hidden'), true);
+  assert.equal(t.sessionBar.classList.contains('hidden'), true);
+  delete window.AemeathI18n;
+});
+
+test('the session chip shows a new session or the current one', async () => {
+  const fresh = await agentPanel();
+  await fresh.enter();
+  assert.equal(fresh.sessionBar.classList.contains('hidden'), false);
+  assert.equal(fresh.bar.classList.contains('hidden'), false);
+  assert.equal(fresh.sessionName.textContent, 'Sesi baru');
+  const current = await agentPanel({ agentSessions: async () => sessionsState({ current: { id: S1, short: 'aaaaaaaa' } }) });
+  await current.enter();
+  assert.equal(current.sessionName.textContent, 'Sesi aaaaaaaa');
+  const off = await agentPanel({ agentSessions: async () => sessionsState({ enabled: false }), agentFolders: async () => foldersState({ enabled: false }) });
+  await off.enter();
+  assert.equal(off.sessionBar.classList.contains('hidden'), true);
+  assert.equal(off.bar.classList.contains('hidden'), true);
+  delete window.AemeathI18n;
+});
+
+test('the session menu lists the folder sessions and a way to start a new one', async () => {
+  const t = await agentPanel({ agentSessions: async () => sessionsState({ current: { id: S2, short: 'bbbbbbbb' } }) });
+  await t.enter();
+  t.sessionButton.click();
+  assert.equal(t.sessionMenu.classList.contains('hidden'), false);
+  assert.deepEqual(
+    t.sessionMenu.children.map((c) => c.textContent),
+    ['1. aaaaaaaa ' + DOT + ' 5 menit lalu', CHECK + ' 2. bbbbbbbb ' + DOT + ' 3 jam lalu', 'Mulai sesi baru']
+  );
+  assert.equal(t.sessionMenu.children[0].title, S1);
+  delete window.AemeathI18n;
+});
+
+test('choosing a session sends its id, and "new" starts fresh', async () => {
+  const t = await agentPanel();
+  await t.enter();
+  t.sessionButton.click();
+  t.sessionMenu.children[0].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.sessionCalls, [S1]);
+  assert.equal(t.sessionName.textContent, 'Sesi aaaaaaaa');
+  assert.match(t.texts(), /Claude melanjutkan sesi aaaaaaaa/);
+  assert.equal(t.sessionMenu.classList.contains('hidden'), true);
+
+  t.sessionButton.click();
+  t.sessionMenu.children[t.sessionMenu.children.length - 1].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.sessionCalls, [S1, 'new']);
+  assert.equal(t.sessionName.textContent, 'Sesi baru');
+  assert.match(t.texts(), /Sesi Claude baru dimulai/);
+  delete window.AemeathI18n;
+});
+
+test('a refused session and a busy request are explained, not hidden', async () => {
+  const refused = await agentPanel();
+  await refused.enter();
+  refused.refuse = 'session_active';
+  refused.sessionButton.click();
+  refused.sessionMenu.children[0].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.match(refused.texts(), /baru saja dipakai dan mungkin masih terbuka/);
+
+  const busy = await agentPanel({ agentSessions: async () => sessionsState({ busy: true }) });
+  await busy.enter();
+  busy.sessionButton.click();
+  busy.sessionMenu.children[0].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(busy.sessionCalls, []);
+  assert.match(busy.texts(), /Tunggu permintaan \/claude/);
+  delete window.AemeathI18n;
+});
+
+test('the session list is refreshed after a Claude request finishes', async () => {
+  const t = await agentPanel();
+  const before = t.refreshes;
+  await t.say('/claude halo');
+  assert.ok(t.refreshes > before, 'sessions were read again');
+  delete window.AemeathI18n;
+});
+

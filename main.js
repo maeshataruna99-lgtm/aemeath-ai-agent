@@ -37,7 +37,7 @@ const { createI18n } = require('./src/i18n');
 const { createTaskStore } = require('./src/agent/task-store');
 const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
-const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText } = require('./src/agent/agent-bridge');
+const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, ageText } = require('./src/agent/agent-bridge');
 const { listSessions } = require('./src/agent/session-list');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
@@ -528,6 +528,16 @@ function main() {
           return { ok: false, text: tr(messageKey(res.code)) };
       },
     },
+    'claude-mode': {
+      description: 'Ubah Aemeath jadi agen Claude: semua yang kamu ketik diteruskan ke Claude (mati bawaan, nyalakan di Pengaturan)',
+      run: () => {
+        const tr = createI18n({ locale: settings.locale || 'id-ID' }).t;
+        if (!agentBridge || settings.agentBridgeEnabled !== true) return { ok: false, text: tr('agent.disabled') };
+        const dir = settings.agentBridgeDir;
+        const name = dir ? path.basename(dir) || dir : tr('chat.folder_home');
+        return { ok: true, text: tr('agent.mode_on', { name: name }), mode: 'claude' };
+      },
+    },
     feature: {
       description: 'Buka Aemeath Guidebook (buku panduan fitur)',
       run: async () => {
@@ -570,7 +580,14 @@ function main() {
         ? createClaudeAdapter({ spawn: selfieClaudeSpawn, cwd: getAgentDir, resolve: () => 'selfie-claude', isDir: () => true })
         : createClaudeAdapter({ spawn: spawn, cwd: getAgentDir }),
       getDir: getAgentDir,
-      listSessions: (dir) => listSessions(dir),
+      // The verification run lists two made-up sessions, so the session menu has something to show.
+      listSessions: (dir) =>
+        isSelfie
+          ? [
+              { id: 'aaaaaaaa-0000-4000-8000-000000000001', ageMs: 5 * 60000 },
+              { id: 'bbbbbbbb-0000-4000-8000-000000000002', ageMs: 3 * 3600000 },
+            ]
+          : listSessions(dir),
       isEnabled: () => settings.agentBridgeEnabled === true,
     });
     themeStore = createThemeStore({ dir: dataDir });
@@ -1033,6 +1050,32 @@ function main() {
       Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '', agentRecentDirs: [] }));
       settingsWin?.webContents?.send('settings:updated', settings);
       return true;
+    });
+    // The session menu in the chat box: the sessions of the working folder, continue one, or start fresh.
+    // The window sends back an id taken from this list (or "new"); the bridge refuses any other.
+    const agentSessions = () => {
+      const current = agentBridge ? agentBridge.currentSession() : null;
+      return {
+        enabled: settings.agentBridgeEnabled === true,
+        busy: agentBridge ? agentBridge.busy() : false,
+        current: current ? { id: current, short: current.slice(0, 8) } : null,
+        items: (agentBridge ? agentBridge.listRecent() : []).map((s) => ({
+          id: s.id,
+          short: s.id.slice(0, 8),
+          age: ageText(createI18n({ locale: settings.locale || 'id-ID' }).t, s.ageMs),
+        })),
+      };
+    };
+    ipcMain.handle('agent:sessions', (event) => (fromWindow(event, win) ? agentSessions() : null));
+    ipcMain.handle('agent:session-use', (event, which) => {
+      if (!fromWindow(event, win) || !agentBridge) return null;
+      if (agentBridge.busy()) return { ok: false, code: 'busy', state: agentSessions() };
+      if (which === 'new') {
+        agentBridge.newSession();
+        return { ok: true, state: agentSessions() };
+      }
+      const res = typeof which === 'string' ? agentBridge.useSession(which) : { ok: false, code: 'session_not_found' };
+      return Object.assign({}, res, { state: agentSessions() });
     });
     // The Settings window only reads these task rows and can stop the one that is running.
     ipcMain.handle('agent:tasks', (event) =>
@@ -2010,7 +2053,9 @@ function main() {
     await sleep(400);
     const inChat = (js) => win.webContents.executeJavaScript(js);
     const folderBar = () => inChat(`JSON.stringify({ hidden: document.getElementById('chat-folder').classList.contains('hidden'), name: document.getElementById('chat-folder-name').textContent })`);
-    console.log('[aemeath] folder bar when on: ' + (await folderBar()));
+    console.log('[aemeath] folder bar in plain chat (module on): ' + (await folderBar()));
+    await submit('/claude-mode', 800);
+    console.log('[aemeath] folder bar in Claude mode: ' + (await folderBar()));
     await inChat(`document.getElementById('chat-folder-btn').click()`);
     await sleep(300);
     console.log('[aemeath] folder menu: ' + (await inChat(`JSON.stringify([...document.querySelectorAll('#chat-folder-menu button')].map((b) => b.textContent))`)));
@@ -2023,6 +2068,28 @@ function main() {
     await inChat(`(() => { const items = document.querySelectorAll('#chat-folder-menu button'); items[items.length - 1].click(); })()`);
     await sleep(800);
     console.log('[aemeath] folder after home: ' + (await folderBar()) + ' | dir cleared ' + (settings.agentBridgeDir === ''));
+    // Claude mode: /claude-mode turns the box into a Claude agent, plain text goes to Claude, and the
+    // session chip (made-up sessions in this run) sits next to the folder chip.
+    const modeState = () =>
+      inChat(`JSON.stringify({ badge: document.getElementById('chat-mode').textContent, badgeHidden: document.getElementById('chat-mode').classList.contains('hidden'), claude: document.getElementById('chat').classList.contains('claude'), placeholder: document.getElementById('chat-input').placeholder, session: document.getElementById('chat-session-name').textContent })`);
+    console.log('[aemeath] claude mode on: ' + (await modeState()));
+    await submit('apa isi README?', 1700);
+    console.log('[aemeath] claude mode plain text: ' + (await claudeTail(2)) + ' | session ' + (await modeState()));
+    await inChat(`document.getElementById('chat-session-btn').click()`);
+    await sleep(300);
+    console.log('[aemeath] session menu: ' + (await inChat(`JSON.stringify([...document.querySelectorAll('#chat-session-menu button')].map((b) => b.textContent))`)));
+    fs.writeFileSync(path.join(dir, 'chat-claude-mode.png'), (await win.webContents.capturePage()).toPNG());
+    await inChat(`document.querySelector('#chat-session-menu button').click()`);
+    await sleep(800);
+    console.log('[aemeath] session chosen: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
+    await inChat(`document.getElementById('chat-session-btn').click()`);
+    await sleep(300);
+    await inChat(`(() => { const items = document.querySelectorAll('#chat-session-menu button'); items[items.length - 1].click(); })()`);
+    await sleep(800);
+    console.log('[aemeath] session new: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
+    await submit('/claude-mode', 800);
+    console.log('[aemeath] claude mode off: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
+    console.log('[aemeath] chips after leaving: ' + (await folderBar()) + ' | session chip hidden: ' + (await inChat(`document.getElementById('chat-session').classList.contains('hidden')`)));
     await submit('/claude panjang', 700);
     const busyInput = await win.webContents.executeJavaScript(`document.getElementById('chat-input').disabled`);
     await submit('/claude stop', 1200);

@@ -651,19 +651,28 @@ body {
 }
 
 /* The folder /claude works in, chosen from the chat box. */
-#chat-folder {
+#chat-agentbar {
   position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 6px;
 }
 
-#chat-folder-btn {
+#chat-agentbar.hidden {
+  display: none;
+}
+
+#chat-folder-btn,
+#chat-session-btn {
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-#chat-folder-menu {
+#chat-folder-menu,
+#chat-session-menu {
   position: absolute;
   z-index: 5;
   left: 0;
@@ -683,11 +692,13 @@ body {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-#chat-folder-menu.hidden {
+#chat-folder-menu.hidden,
+#chat-session-menu.hidden {
   display: none;
 }
 
-#chat-folder-menu button {
+#chat-folder-menu button,
+#chat-session-menu button {
   text-align: left;
   white-space: nowrap;
   overflow: hidden;

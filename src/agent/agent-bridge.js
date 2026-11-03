@@ -237,9 +237,11 @@ function createAgentBridge(options) {
 
   // Continues one of the listed sessions by its number. Resuming happens through
   // this adapter; nothing is written into any terminal.
-  function useSession(number) {
+  // ref is a list number or a session id taken from that same list; any other id is not found.
+  function useSession(ref) {
     if (activeTaskId) return { ok: false, code: 'busy' };
-    const picked = listRecent()[number - 1];
+    const recent = listRecent();
+    const picked = typeof ref === 'string' ? recent.find((s) => s.id === ref) : recent[ref - 1];
     if (!picked) return { ok: false, code: 'session_not_found' };
     // Two writers on one transcript corrupt it, so a session touched in the last minute is refused,
     // unless it is the one this bridge was already using.
@@ -270,4 +272,4 @@ function createAgentBridge(options) {
   return { ask, approve, busy, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
-module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, stepsSummary, stepClass, CAPABILITY, EDIT_TOOLS };
+module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, ageText, stepText, stepsSummary, stepClass, CAPABILITY, EDIT_TOOLS };
