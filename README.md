@@ -133,10 +133,12 @@ dikirim ke chatbot. Program `.exe` bisa diberi argumen.
 - `/todo` — kelola daftar tugas cepat lokal (`/todo`, `/todo tambah <tugas>`, `/todo selesai <nomor>|semua`, `/todo fokus <nomor>`, `/todo hapus <nomor>`, `/todo bersih`).
 - `/quest` atau `/daily` — kelola maksimal 3 prioritas harian (`/quest tambah <tugas>`, `/quest todo <nomor>`, `/quest selesai <nomor>|semua`, `/quest riwayat`, `/quest bersih`). Tugas yang belum selesai dipertahankan otomatis saat pergantian hari.
 - `/note` — simpan dan lihat catatan cepat satu baris (`/note`, `/note <teks>`, `/note hapus <nomor>`, `/note bersih`).
+- `/jadwal` — pengingat berulang lokal (`/jadwal tambah 08:30 harian Minum obat`, `/jadwal tambah 09:00 senin,rabu Rapat`, `/jadwal`, `/jadwal hapus <nomor>`). Aemeath berbicara lewat gelembung pada waktunya. Pengingat yang terlewat saat Aemeath tertutup dilewati, bukan dijalankan terlambat.
 - `/stats` — lihat ringkasan waktu fokus sesi ini (saat mode Medium atau Full menyala), status timer aktif, progres Daily Quest, serta jumlah tugas dan catatan.
 - `/chronicle` — ringkasan harian opsional: apa yang dikerjakan, durasi nyata, dan apa yang tersisa (`/chronicle`, `/chronicle aktif`, `/chronicle nonaktif`). Hanya menyajikan fakta lokal yang terverifikasi tanpa skor atau hukuman.
 - `/memory` — kelola catatan memori companion langsung dari obrolan (`/memory`, `/memory hapus <nomor>`, `/memory aktif`, `/memory nonaktif`).
 - `/review` — periksa dan nilai perubahan git lokal (`git status` dan `git diff`) 100% di komputer ini: jumlah berkas kode/tes yang berubah, baris tambah/hapus, sisa `console.log`, `TODO`/`FIXME`, serta deteksi potensi kebocoran API key atau berkas `.env`.
+- `/claude` — tanya Claude Code dari kotak chat, mati secara bawaan (nyalakan di Pengaturan, tab Umum, dan pilih folder kerjanya). `/claude <pesan>`, `/claude baru`, `/claude stop`, `/claude sesi`, `/claude lanjut <nomor>`. Hanya membaca dan menjawab; mengedit file butuh `/claude ya` yang kamu ketik sendiri, dan menjalankan perintah selalu ditolak. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu sendiri.
 - `/change-mode` — ganti kotak chat antara mode obrolan dan terminal PowerShell.
 - `/change-mode-search` — nyalakan/matikan mode pendamping (topik apa saja, bukan cuma wiki). Butuh API key. Juga menerima `on`, `off`, dan `status`.
 - `/search <kata kunci>` — pemicu pencarian web manual eksplisit dengan sumber tautan terverifikasi (menghentikan jawaban jika tidak ada sumber valid yang ditemukan).
@@ -296,6 +298,7 @@ bentrok dengan Aemeath yang sedang berjalan.
 | `renderer/` | sprite dan gerak (`pet.js`), kotak chat (`chat-panel.js`), jendela Pengaturan |
 | `src/walker.js`, `src/atlas.js` | gerak terbang 2D dan pembaca atlas sprite |
 | `src/session-parser.js`, `src/claude-code-provider.js` | pembaca transkrip sesi AI dan deteksi keputusan |
+| `src/agent/` | jembatan ke Claude Code CLI: adapter, pengurai keluaran, task runner, daftar sesi |
 | `src/media-watcher.js`, `scripts/` | deteksi musik lewat media session Windows |
 | `src/dialogue.js`, `src/lorebook*.js` | celetukan dan pemilih trivia berkredit |
 | `src/chat/` | layanan chat, provider DeepSeek, persona, penyaring, pencarian web, jawaban offline, penyimpanan kunci |

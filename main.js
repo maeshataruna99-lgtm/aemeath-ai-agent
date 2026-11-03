@@ -39,6 +39,7 @@ const { createTaskRunner } = require('./src/agent/task-runner');
 const { createClaudeAdapter } = require('./src/agent/claude-adapter');
 const { createAgentBridge, messageKey, agentReply, sessionsReply } = require('./src/agent/agent-bridge');
 const { listSessions } = require('./src/agent/session-list');
+const { createSchedule } = require('./src/productivity/schedule');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
@@ -90,6 +91,7 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let agentBridge = null;
+  let schedule = null;
   let productivity = null;
   let workSession = null;
   let memoryStore = null;
@@ -147,6 +149,7 @@ function main() {
   };
   // Verification run only: a stand-in for the Claude CLI that answers from the prompt, so no
   // model is called and nothing is edited. Records the arguments each run was started with.
+  const selfieSchedule = []; // reminders the verification run heard
   const selfieClaudeCalls = [];
   function selfieClaudeSpawn(_bin, args) {
     const { EventEmitter } = require('node:events');
@@ -512,6 +515,21 @@ function main() {
       },
     });
     Object.assign(builtins, productivity.asBuiltins());
+    // Recurring text reminders. Spoken through the same path as a finished timer.
+    schedule = createSchedule({
+      dir: dataDir,
+      now: isSelfie ? () => selfieNow : Date.now,
+      getT: () => createI18n({ locale: settings.locale || 'id-ID' }).t,
+      onDue: (text) => {
+        if (isSelfie) selfieSchedule.push(text);
+        win?.webContents?.send('productivity:timer-done', { text: text });
+      },
+    });
+    if (!isSelfie) schedule.start();
+    builtins.jadwal = {
+      description: 'Pengingat berulang (mis. /jadwal tambah 08:30 harian Minum obat)',
+      run: (arg) => schedule.run(arg, createI18n({ locale: settings.locale || 'id-ID' }).t),
+    };
     // Memory lives next to settings.json in the app data folder. The selfie run
     // gets a throwaway folder, so visual checks never touch real memories.
     memoryStore = createMemoryStore({ dir: dataDir });
@@ -1018,6 +1036,7 @@ function main() {
     }
     if (productivity) productivity.stop();
     if (agentBridge) agentBridge.stop();
+    if (schedule) schedule.stop();
     terminal.stop();
     activity.stop();
     if (activityTrayTimer) clearInterval(activityTrayTimer);
@@ -1784,6 +1803,17 @@ function main() {
       agentUi = 'unavailable: ' + error.message;
     }
     console.log('[aemeath] settings agent section: ' + agentUi);
+    // /jadwal: add, one that comes due right now, list, and delete.
+    await submit('/jadwal tambah 08:00 harian Minum obat', 700);
+    console.log('[aemeath] jadwal added: ' + (await claudeTail(1)));
+    const soon = new Date(selfieNow);
+    await submit('/jadwal tambah ' + soon.getHours() + ':' + String(soon.getMinutes()).padStart(2, '0') + ' harian Tes selfie', 700);
+    console.log('[aemeath] jadwal due now: fired ' + schedule.tick() + ' ' + JSON.stringify(selfieSchedule));
+    await submit('/jadwal', 700);
+    console.log('[aemeath] jadwal list: ' + (await claudeTail(1)));
+    await submit('/jadwal hapus 1', 700);
+    await submit('/jadwal hapus 1', 700);
+    console.log('[aemeath] jadwal deleted: ' + (await claudeTail(1)) + ' | left ' + schedule.list().length);
     const launchesBefore = selfieLaunches.length;
     await submit('/change-mode', 1800);
     const modeOn = await win.webContents.executeJavaScript(
