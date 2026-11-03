@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld('aemeath', {
     ipcRenderer.on('chat:chunk', listener);
     return () => ipcRenderer.removeListener('chat:chunk', listener);
   },
+  agentFolders: () => ipcRenderer.invoke('agent:folders'),
+  agentFolderPick: () => ipcRenderer.invoke('agent:folder-pick'),
+  agentFolderUse: (which) => ipcRenderer.invoke('agent:folder-use', which),
   onAgentChunk: (fn) => {
     const listener = (_e, chunk) => fn(chunk);
     ipcRenderer.on('agent:chunk', listener);

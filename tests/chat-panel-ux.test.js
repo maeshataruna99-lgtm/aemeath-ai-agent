@@ -191,18 +191,23 @@ function setupChatPanelEnvironment() {
     'chat-attachments-disclosure',
     'chat-file-input',
     'chat-attach',
+    'chat-folder',
+    'chat-folder-btn',
+    'chat-folder-name',
+    'chat-folder-menu',
   ];
 
   ids.forEach((id) => {
     const tag = id.includes('input') ? 'input' : id.includes('button') || id.includes('attach') || id.includes('send') || id.includes('size') || id.includes('reset') || id.includes('close') || id.includes('settings') ? 'button' : 'div';
     const el = new FakeElement(tag, id);
-    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode') {
+    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode' || id === 'chat-folder' || id === 'chat-folder-menu') {
       el.className = 'hidden';
     }
     elements.set(id, el);
   });
 
   const fakeDocument = {
+    addEventListener: () => {},
     getElementById: (id) => elements.get(id) || null,
     createElement: (tag) => new FakeElement(tag),
   };
@@ -437,4 +442,137 @@ test('resetConversation clears pending attachments', async () => {
   resetButton.click();
   assert.equal(attachContainer.children.length, 0);
   assert.ok(attachContainer.classList.contains('hidden'));
+});
+
+// --- Folder bar: the folder /claude works in, chosen from the chat box ---
+
+const CHECK = String.fromCharCode(0x2713);
+
+function foldersState(over) {
+  return Object.assign(
+    {
+      enabled: true,
+      busy: false,
+      isHome: false,
+      current: { name: 'proyek-a', path: 'C:/kerja/proyek-a' },
+      recent: [
+        { name: 'proyek-a', path: 'C:/kerja/proyek-a' },
+        { name: 'proyek-b', path: 'C:/kerja/proyek-b' },
+      ],
+    },
+    over || {}
+  );
+}
+
+async function openWithFolders(state, apiExtra) {
+  const env = setupChatPanelEnvironment();
+  window.AemeathI18n = require('../src/i18n');
+  const calls = { use: [], pick: 0 };
+  let current = state;
+  const panel = env.createPanel(
+    Object.assign(
+      {
+        agentFolders: async () => current,
+        agentFolderUse: async (which) => {
+          calls.use.push(which);
+          if (which === 'home') current = Object.assign({}, current, { isHome: true, current: { name: 'home', path: 'C:/Users/me' } });
+          else current = Object.assign({}, current, { isHome: false, current: current.recent[which] });
+          return current;
+        },
+        agentFolderPick: async () => {
+          calls.pick++;
+          current = Object.assign({}, current, { current: { name: 'baru', path: 'C:/kerja/baru' } });
+          return current;
+        },
+      },
+      apiExtra || {}
+    )
+  );
+  await panel.open();
+  return { env, panel, calls, bar: env.elements.get('chat-folder'), menu: env.elements.get('chat-folder-menu'), button: env.elements.get('chat-folder-btn'), name: env.elements.get('chat-folder-name'), log: env.elements.get('chat-log') };
+}
+
+test('the folder bar is hidden while the module is off and shows the folder name when on', async () => {
+  const off = await openWithFolders(foldersState({ enabled: false }));
+  assert.equal(off.bar.classList.contains('hidden'), true);
+
+  const on = await openWithFolders(foldersState());
+  assert.equal(on.bar.classList.contains('hidden'), false);
+  assert.equal(on.name.textContent, 'proyek-a');
+  assert.match(on.button.title, /C:\/kerja\/proyek-a/);
+  delete window.AemeathI18n;
+});
+
+test('the home folder is shown by name, not by path', async () => {
+  const t = await openWithFolders(foldersState({ isHome: true, current: { name: 'me', path: 'C:/Users/me' } }));
+  assert.equal(t.name.textContent, 'Folder home');
+  delete window.AemeathI18n;
+});
+
+test('the menu lists recent folders, the picker and home, and marks the current one', async () => {
+  const t = await openWithFolders(foldersState());
+  t.button.click();
+  assert.equal(t.menu.classList.contains('hidden'), false);
+  const labels = t.menu.children.map((c) => c.textContent);
+  assert.deepEqual(labels, [CHECK + ' proyek-a', 'proyek-b', 'Pilih folder lain...', 'Folder home']);
+  assert.equal(t.menu.children[1].title, 'C:/kerja/proyek-b');
+  assert.equal(t.button.getAttribute('aria-expanded'), 'true');
+  t.button.click();
+  assert.equal(t.menu.classList.contains('hidden'), true);
+  delete window.AemeathI18n;
+});
+
+test('choosing a recent folder sends only its position and says Claude starts over', async () => {
+  const t = await openWithFolders(foldersState());
+  t.button.click();
+  t.menu.children[1].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(t.calls.use, [1]);
+  assert.equal(t.name.textContent, 'proyek-b');
+  assert.equal(t.menu.classList.contains('hidden'), true);
+  assert.match(t.log.children.map((c) => c.textContent).join('|'), /Claude sekarang bekerja di proyek-b/);
+  delete window.AemeathI18n;
+});
+
+test('the picker and the home entry call their own actions', async () => {
+  const t = await openWithFolders(foldersState());
+  t.button.click();
+  t.menu.children[2].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(t.calls.pick, 1);
+  assert.equal(t.name.textContent, 'baru');
+  t.button.click();
+  t.menu.children[t.menu.children.length - 1].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(t.calls.use, ['home']);
+  assert.equal(t.name.textContent, 'Folder home');
+  delete window.AemeathI18n;
+});
+
+test('nothing changes while a request runs, and the user is told why', async () => {
+  const t = await openWithFolders(foldersState({ busy: true }));
+  t.button.click();
+  t.menu.children[1].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(t.calls.use, []);
+  assert.equal(t.calls.pick, 0);
+  assert.match(t.log.children.map((c) => c.textContent).join('|'), /Tunggu permintaan \/claude/);
+  delete window.AemeathI18n;
+});
+
+test('the bar follows a settings update that turns the module on', async () => {
+  let enabled = false;
+  let notify = null;
+  const t = await openWithFolders(foldersState(), {
+    agentFolders: async () => foldersState({ enabled }),
+    onSettingsUpdated: (fn) => {
+      notify = fn;
+    },
+  });
+  assert.equal(t.bar.classList.contains('hidden'), true);
+  enabled = true;
+  notify({});
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(t.bar.classList.contains('hidden'), false);
+  delete window.AemeathI18n;
 });

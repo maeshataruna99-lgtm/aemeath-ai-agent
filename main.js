@@ -955,23 +955,69 @@ function main() {
       });
       return picked.canceled ? null : picked.filePaths[0];
     });
-    // Claude's working folder is only ever chosen through the OS dialog, never typed or sent in.
-    ipcMain.handle('agent:pick-dir', async (event) => {
-      if (!fromWindow(event, settingsWin)) return null;
-      // The verification run cannot click an OS dialog, so it answers with the temp folder.
+    // Claude's working folder is only ever chosen through the OS dialog or from the folders chosen
+    // before. A window never sends a path: the settings window asks for the dialog, the chat box
+    // sends a position in the recent list, and this process keeps the paths.
+    const RECENT_DIRS = 5;
+    const dirInfo = (dir) => ({ name: path.basename(dir) || dir, path: dir });
+    const agentFolders = () => ({
+      enabled: settings.agentBridgeEnabled === true,
+      busy: agentBridge ? agentBridge.busy() : false,
+      current: dirInfo(settings.agentBridgeDir || app.getPath('home')),
+      isHome: !settings.agentBridgeDir,
+      recent: (settings.agentRecentDirs || []).map(dirInfo),
+    });
+    function chooseAgentDir(dir) {
+      if (dir) {
+        let isDir = false;
+        try {
+          isDir = path.isAbsolute(dir) && fs.statSync(dir).isDirectory();
+        } catch {
+          isDir = false;
+        }
+        if (!isDir) return false;
+      }
+      const recent = dir
+        ? [dir].concat((settings.agentRecentDirs || []).filter((d) => d !== dir)).slice(0, RECENT_DIRS)
+        : settings.agentRecentDirs || [];
+      Object.assign(settings, settingsStore.save({ agentBridgeDir: dir, agentRecentDirs: recent }));
+      win?.webContents?.send('settings:updated', settings);
+      settingsWin?.webContents?.send('settings:updated', settings);
+      return true;
+    }
+    // The verification run cannot click an OS dialog, so it answers with the temp folder.
+    const pickAgentDir = async (parent) => {
       const picked = isSelfie
         ? { canceled: false, filePaths: [app.getPath('temp')] }
-        : await dialog.showOpenDialog(settingsWin, { properties: ['openDirectory'] });
-      if (picked.canceled || !picked.filePaths[0]) return null;
-      Object.assign(settings, settingsStore.save({ agentBridgeDir: picked.filePaths[0] }));
-      settingsWin?.webContents?.send('settings:updated', settings);
-      return settings.agentBridgeDir;
+        : await dialog.showOpenDialog(parent, { properties: ['openDirectory'] });
+      return picked.canceled || !picked.filePaths[0] ? null : picked.filePaths[0];
+    };
+    ipcMain.handle('agent:pick-dir', async (event) => {
+      if (!fromWindow(event, settingsWin)) return null;
+      const dir = await pickAgentDir(settingsWin);
+      return dir && chooseAgentDir(dir) ? settings.agentBridgeDir : null;
+    });
+    // The chat box's folder menu. Nothing changes while a request is running.
+    ipcMain.handle('agent:folders', (event) => (fromWindow(event, win) ? agentFolders() : null));
+    ipcMain.handle('agent:folder-pick', async (event) => {
+      if (!fromWindow(event, win)) return null;
+      if (agentBridge && agentBridge.busy()) return agentFolders();
+      const dir = await pickAgentDir(win);
+      if (dir) chooseAgentDir(dir);
+      return agentFolders();
+    });
+    ipcMain.handle('agent:folder-use', (event, which) => {
+      if (!fromWindow(event, win)) return null;
+      if (agentBridge && agentBridge.busy()) return agentFolders();
+      if (which === 'home') chooseAgentDir('');
+      else if (Number.isInteger(which) && (settings.agentRecentDirs || [])[which]) chooseAgentDir(settings.agentRecentDirs[which]);
+      return agentFolders();
     });
     // Removes the module's own data and turns it off. A separate, confirmed action: disabling alone keeps it.
     ipcMain.handle('agent:purge', async (event) => {
       if (!fromWindow(event, settingsWin) || !agentBridge) return false;
       await agentBridge.purge();
-      Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '' }));
+      Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '', agentRecentDirs: [] }));
       settingsWin?.webContents?.send('settings:updated', settings);
       return true;
     });
@@ -984,9 +1030,7 @@ function main() {
     );
     ipcMain.handle('agent:clear-dir', (event) => {
       if (!fromWindow(event, settingsWin)) return false;
-      Object.assign(settings, settingsStore.save({ agentBridgeDir: '' }));
-      settingsWin?.webContents?.send('settings:updated', settings);
-      return true;
+      return chooseAgentDir('');
     });
 
     // Companion memory. The settings window owns the list; the overlay may only
@@ -1944,6 +1988,25 @@ function main() {
     console.log('[aemeath] claude second ya: ' + (await claudeTail(1)));
     await submit('/claude sesi', 900);
     console.log('[aemeath] claude sessions: ' + (await claudeTail(1)));
+    // The folder menu in the chat box: shown once the module is on, pick another folder (the
+    // verification run answers the dialog with the temp folder), then back to the home folder.
+    win.webContents.send('settings:updated', settings);
+    await sleep(400);
+    const inChat = (js) => win.webContents.executeJavaScript(js);
+    const folderBar = () => inChat(`JSON.stringify({ hidden: document.getElementById('chat-folder').classList.contains('hidden'), name: document.getElementById('chat-folder-name').textContent })`);
+    console.log('[aemeath] folder bar when on: ' + (await folderBar()));
+    await inChat(`document.getElementById('chat-folder-btn').click()`);
+    await sleep(300);
+    console.log('[aemeath] folder menu: ' + (await inChat(`JSON.stringify([...document.querySelectorAll('#chat-folder-menu button')].map((b) => b.textContent))`)));
+    fs.writeFileSync(path.join(dir, 'chat-folder-menu.png'), (await win.webContents.capturePage()).toPNG());
+    await inChat(`(() => { const items = document.querySelectorAll('#chat-folder-menu button'); items[items.length - 2].click(); })()`);
+    await sleep(800);
+    console.log('[aemeath] folder after pick: ' + (await folderBar()) + ' | saved temp ' + (settings.agentBridgeDir === app.getPath('temp')) + ' | recents ' + settings.agentRecentDirs.length + ' | last: ' + (await claudeTail(1)));
+    await inChat(`document.getElementById('chat-folder-btn').click()`);
+    await sleep(300);
+    await inChat(`(() => { const items = document.querySelectorAll('#chat-folder-menu button'); items[items.length - 1].click(); })()`);
+    await sleep(800);
+    console.log('[aemeath] folder after home: ' + (await folderBar()) + ' | dir cleared ' + (settings.agentBridgeDir === ''));
     await submit('/claude panjang', 700);
     const busyInput = await win.webContents.executeJavaScript(`document.getElementById('chat-input').disabled`);
     await submit('/claude stop', 1200);

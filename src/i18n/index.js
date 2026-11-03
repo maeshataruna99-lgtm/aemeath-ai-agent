@@ -379,6 +379,12 @@
             }
         },
         "chat": {
+            "folder_button_title": "Folder kerja Claude",
+            "folder_home": "Folder home",
+            "folder_pick": "Pilih folder lain...",
+            "folder_busy": "Tunggu permintaan /claude selesai dulu.",
+            "folder_changed": "Claude sekarang bekerja di {name}. Percakapan Claude dimulai dari awal.",
+            "folder_error": "Folder itu tidak bisa dipakai.",
             "placeholder": "Tulis pesan untuk Aemeath...",
             "send": "Kirim",
             "retry": "Coba lagi",
@@ -809,6 +815,12 @@
             }
         },
         "chat": {
+            "folder_button_title": "Claude working folder",
+            "folder_home": "Home folder",
+            "folder_pick": "Choose another folder...",
+            "folder_busy": "Wait for the /claude request to finish first.",
+            "folder_changed": "Claude now works in {name}. The Claude conversation starts over.",
+            "folder_error": "That folder can't be used.",
             "placeholder": "Type a message for Aemeath...",
             "send": "Send",
             "retry": "Retry",

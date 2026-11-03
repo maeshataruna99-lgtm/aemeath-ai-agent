@@ -199,6 +199,11 @@ function createAgentBridge(options) {
     return { ok: true, id: picked.id };
   }
 
+  // True while a request runs; the working folder is not changed under it.
+  function busy() {
+    return activeTaskId !== null;
+  }
+
   function stop() {
     return activeTaskId ? runner.cancel(activeTaskId) : false;
   }
@@ -212,7 +217,7 @@ function createAgentBridge(options) {
     return getDir() === sessionDir ? sessionId : null;
   }
 
-  return { ask, approve, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
+  return { ask, approve, busy, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
 module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, CAPABILITY, EDIT_TOOLS };

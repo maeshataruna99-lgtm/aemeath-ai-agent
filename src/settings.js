@@ -27,6 +27,8 @@ const DEFAULTS = {
   agentBridgeEnabled: false,
   // Folder Claude works in. Empty means the home folder. Only set through the folder picker.
   agentBridgeDir: '',
+  // Folders chosen before, newest first, for the folder menu in the chat box.
+  agentRecentDirs: [],
   // Read-only GitHub reader (/github). Off until the owner turns it on and names one repository.
   githubEnabled: false,
   githubRepo: '',
@@ -154,6 +156,9 @@ function keepStrings(data) {
     data.agentBridgeDir = '';
   }
   if (data.githubRepo !== '' && !isValidRepo(data.githubRepo)) data.githubRepo = '';
+  const recent = Array.isArray(data.agentRecentDirs) ? data.agentRecentDirs : [];
+  const usable = recent.filter((d) => typeof d === 'string' && d.length <= 500 && !/[\u0000-\u001f]/.test(d) && path.isAbsolute(d));
+  data.agentRecentDirs = [...new Set(usable)].slice(0, 5);
   if (!CHAT_SHORTCUTS.includes(data.chatShortcut)) data.chatShortcut = DEFAULTS.chatShortcut;
 }
 

@@ -364,6 +364,12 @@
     }
   },
   "chat": {
+    "folder_button_title": "Claude working folder",
+    "folder_home": "Home folder",
+    "folder_pick": "Choose another folder...",
+    "folder_busy": "Wait for the /claude request to finish first.",
+    "folder_changed": "Claude now works in {name}. The Claude conversation starts over.",
+    "folder_error": "That folder can't be used.",
     "placeholder": "Type a message for Aemeath...",
     "send": "Send",
     "retry": "Retry",

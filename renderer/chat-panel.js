@@ -43,6 +43,10 @@
     const attachmentsDisclosure = document.getElementById('chat-attachments-disclosure');
     const fileInput = document.getElementById('chat-file-input');
     const attachButton = document.getElementById('chat-attach');
+    const folderBar = document.getElementById('chat-folder');
+    const folderButton = document.getElementById('chat-folder-btn');
+    const folderName = document.getElementById('chat-folder-name');
+    const folderMenu = document.getElementById('chat-folder-menu');
 
     let isOpen = false;
     let busy = false;
@@ -405,6 +409,7 @@
         renderPendingAttachments();
       }
       updateLocalizedUI();
+      renderFolders();
       notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
       hideSuggestions();
       controls();
@@ -481,6 +486,81 @@
         : 'Hai, Rover! Mau ngobrol apa? Tanya soal Wuthering Waves juga boleh~';
     }
 
+    // The folder /claude works in, chosen right here. The panel sends only an action or a list
+    // position; the main process keeps the paths and runs the OS dialog.
+    let folders = null;
+    const tr = (key, params) =>
+      window.AemeathI18n && typeof window.AemeathI18n.createI18n === 'function'
+        ? window.AemeathI18n.createI18n({ locale: currentLocale }).t(key, params)
+        : key;
+
+    function closeFolderMenu() {
+      folderMenu.classList.add('hidden');
+      folderMenu.textContent = '';
+      folderButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderFolders() {
+      const show = Boolean(folders && folders.enabled) && mode === 'chat';
+      folderBar.classList.toggle('hidden', !show);
+      if (!show) {
+        closeFolderMenu();
+        return;
+      }
+      folderName.textContent = folders.isHome ? tr('chat.folder_home') : folders.current.name;
+      folderButton.title = tr('chat.folder_button_title') + ': ' + folders.current.path;
+      folderButton.setAttribute('aria-label', folderButton.title);
+    }
+
+    async function refreshFolders() {
+      try {
+        folders = typeof api.agentFolders === 'function' ? await api.agentFolders() : null;
+      } catch {
+        folders = null;
+      }
+      renderFolders();
+      reposition();
+    }
+
+    async function changeFolder(action) {
+      closeFolderMenu();
+      if (busy || (folders && folders.busy)) {
+        add('err', tr('chat.folder_busy'));
+        return;
+      }
+      const before = folders && folders.current.path + '|' + folders.isHome;
+      try {
+        folders = action === 'pick' ? await api.agentFolderPick() : await api.agentFolderUse(action);
+      } catch {
+        add('err', tr('chat.folder_error'));
+        return;
+      }
+      renderFolders();
+      reposition();
+      if (folders && before !== folders.current.path + '|' + folders.isHome) {
+        add('bot', tr('chat.folder_changed', { name: folders.isHome ? tr('chat.folder_home') : folders.current.name }));
+      }
+    }
+
+    function openFolderMenu() {
+      if (!folders) return;
+      folderMenu.textContent = '';
+      const item = (label, title, onClick, active) => {
+        const entry = document.createElement('button');
+        entry.type = 'button';
+        entry.setAttribute('role', 'menuitem');
+        entry.textContent = (active ? '\u2713 ' : '') + label;
+        if (title) entry.title = title;
+        entry.addEventListener('click', onClick);
+        folderMenu.appendChild(entry);
+      };
+      folders.recent.forEach((r, i) => item(r.name, r.path, () => changeFolder(i), !folders.isHome && r.path === folders.current.path));
+      item(tr('chat.folder_pick'), '', () => changeFolder('pick'), false);
+      item(tr('chat.folder_home'), '', () => changeFolder('home'), folders.isHome);
+      folderMenu.classList.remove('hidden');
+      folderButton.setAttribute('aria-expanded', 'true');
+    }
+
     async function open() {
       clearTimeout(forgetTimer);
       isOpen = true;
@@ -490,7 +570,7 @@
       api.focusWindow();
       if (typeof api.setHover === 'function') api.setHover(true);
       if (typeof options.onOpen === 'function') options.onOpen();
-      await Promise.all([refreshStatus(), refreshCommands()]);
+      await Promise.all([refreshStatus(), refreshCommands(), refreshFolders()]);
       input.focus();
       touch();
     }
@@ -757,6 +837,11 @@
     sizeButton.addEventListener('click', () => setLarge(!large));
     resetButton.addEventListener('click', resetConversation);
     closeButton.addEventListener('click', close);
+    folderButton.addEventListener('click', () => (folderMenu.classList.contains('hidden') ? openFolderMenu() : closeFolderMenu()));
+    document.addEventListener('click', (e) => {
+      if (!folderBar.contains(e.target)) closeFolderMenu();
+    });
+    if (typeof api.onSettingsUpdated === 'function') api.onSettingsUpdated(() => refreshFolders());
     settingsButton.addEventListener('click', () => api.openSettings());
     // Coming back from Settings: pick up a newly saved or removed key.
     window.addEventListener('focus', () => {
@@ -784,6 +869,7 @@
         if (loc === 'id-ID' || loc === 'en-US') {
           currentLocale = loc;
           updateLocalizedUI();
+          renderFolders();
           if (log.children.length === 1 && log.children[0].classList.contains('bot')) {
             const botMsg = log.children[0];
             const botText = botMsg.querySelector('.msg-text') || botMsg;
