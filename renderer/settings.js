@@ -192,6 +192,7 @@
     startupToggle.checked = settings.startAtLogin !== false;
     refreshStartup();
     stillToggle.checked = settings.stayStill === true;
+    agentToggle.checked = settings.agentBridgeEnabled === true;
     transparentToggle.checked = settings.transparentMode === true;
     opacityInput.value = Math.round((typeof settings.opacity === 'number' ? settings.opacity : 0.6) * 100);
     renderTransparency();
@@ -390,6 +391,10 @@
     setTimeout(refreshStartup, 500);
   });
 
+  const agentToggle = document.getElementById('agent-toggle');
+  agentToggle.addEventListener('change', () => {
+    window.aemeathSettings.set({ agentBridgeEnabled: agentToggle.checked });
+  });
   const stillToggle = document.getElementById('still-toggle');
   stillToggle.addEventListener('change', () => {
     window.aemeathSettings.set({ stayStill: stillToggle.checked });

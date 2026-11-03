@@ -33,6 +33,11 @@ const { createLocalResponder } = require('./src/chat/local-responder');
 const { createCommandStore } = require('./src/commands/command-store');
 const { createCommandRunner } = require('./src/commands/command-runner');
 const { createCommandHandler } = require('./src/commands/command-handler');
+const { createI18n } = require('./src/i18n');
+const { createTaskStore } = require('./src/agent/task-store');
+const { createTaskRunner } = require('./src/agent/task-runner');
+const { createClaudeAdapter } = require('./src/agent/claude-adapter');
+const { createAgentBridge, messageKey } = require('./src/agent/agent-bridge');
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
@@ -83,6 +88,7 @@ function main() {
   const guideSearchIndex = createSearchIndex(getGuideEntries());
   let keyStore = null;
   let commandStore = null;
+  let agentBridge = null;
   let productivity = null;
   let workSession = null;
   let memoryStore = null;
@@ -342,6 +348,28 @@ function main() {
         return res;
       },
     },
+    claude: {
+      description: 'Tanya Claude Code dari sini (mati bawaan, nyalakan di Pengaturan)',
+      run: async (arg) => {
+        const tr = createI18n({ locale: settings.locale || 'id-ID' }).t;
+        const text = String(arg == null ? '' : arg).trim();
+        const word = text.toLowerCase();
+        if (word === 'stop') {
+          return { ok: true, text: tr(agentBridge && agentBridge.stop() ? 'agent.stopped' : 'agent.nothing_running') };
+        }
+        if (word === 'baru' || word === 'new') {
+          if (agentBridge) agentBridge.newSession();
+          return { ok: true, text: tr('agent.new_session') };
+        }
+        if (word === 'sesi' || word === 'session') {
+          const id = agentBridge && agentBridge.currentSession();
+          return { ok: Boolean(id), text: id ? tr('agent.session_id', { id: id }) : tr('agent.no_session') };
+        }
+        if (!agentBridge) return { ok: false, text: tr('agent.error') };
+        const res = await agentBridge.ask(text);
+        return res.ok ? { ok: true, text: res.text } : { ok: false, text: tr(messageKey(res.code)) };
+      },
+    },
     feature: {
       description: 'Buka Aemeath Guidebook (buku panduan fitur)',
       run: async () => {
@@ -375,6 +403,13 @@ function main() {
       ? fs.mkdtempSync(path.join(app.getPath('temp'), 'aemeath-selfie-'))
       : app.getPath('userData');
     commandStore = createCommandStore({ dir: dataDir });
+    const taskStore = createTaskStore({ dir: dataDir });
+    agentBridge = createAgentBridge({
+      store: taskStore,
+      runner: createTaskRunner({ store: taskStore }),
+      adapter: createClaudeAdapter({ spawn: spawn, cwd: app.getPath('home') }),
+      isEnabled: () => settings.agentBridgeEnabled === true,
+    });
     themeStore = createThemeStore({ dir: dataDir });
     lorebookOverlayFile = path.join(dataDir, OVERLAY_FILE);
     lorebookUpdater = createLorebookUpdater({ dir: dataDir });
@@ -499,6 +534,7 @@ function main() {
         'chatStreaming',
         'terminalEnabled',
         'startAtLogin',
+        'agentBridgeEnabled',
         'stayStill',
         'transparentMode',
         'fullConsent',

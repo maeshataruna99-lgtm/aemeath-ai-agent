@@ -22,6 +22,8 @@ const DEFAULTS = {
   chatCompanionMode: false,
   terminalEnabled: true,
   startAtLogin: true,
+  // Agent bridge: the /claude command. Off until the owner turns it on.
+  agentBridgeEnabled: false,
   stayStill: false,
   transparentMode: false,
   opacity: 0.6,
@@ -123,6 +125,7 @@ function keepFlags(data) {
     'chatCompanionMode',
     'terminalEnabled',
     'startAtLogin',
+    'agentBridgeEnabled',
     'stayStill',
     'transparentMode',
     'fullConsent',

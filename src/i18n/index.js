@@ -28,6 +28,26 @@
             "success": "Berhasil",
             "warning": "Peringatan"
         },
+        "agent": {
+            "usage": "Tulis pesanmu setelah /claude ya, Rover. Contoh: /claude jelaskan fungsi parser sesi. Perintah lain: /claude baru, /claude sesi, /claude stop.",
+            "disabled": "Jembatan agen sedang mati, Rover. Nyalakan dulu di Pengaturan, tab Umum.",
+            "busy": "Masih ada permintaan /claude yang berjalan. Tunggu sebentar atau ketik /claude stop.",
+            "not_installed": "Aku tidak menemukan Claude Code di komputer ini, Rover. Pasang dulu atau cek PATH-nya.",
+            "auth": "Claude Code belum login atau sesinya habis. Login lagi lewat terminalmu sendiri, lalu coba lagi.",
+            "max_turns": "Claude berhenti karena batas langkah tercapai. Coba pecah permintaannya.",
+            "timeout": "Claude terlalu lama menjawab, jadi kuhentikan.",
+            "api": "Claude Code melaporkan galat dari layanannya. Coba lagi sebentar lagi.",
+            "error": "Permintaan ke Claude Code gagal.",
+            "no_result": "Claude Code berhenti tanpa jawaban.",
+            "spawn_failed": "Claude Code gagal dijalankan.",
+            "cancelled": "Permintaan /claude dibatalkan.",
+            "invalid_session": "Id sesi yang tersimpan tidak valid. Ketik /claude baru untuk memulai ulang.",
+            "new_session": "Siap, percakapan Claude berikutnya mulai dari awal.",
+            "no_session": "Belum ada sesi Claude yang berjalan dari Aemeath.",
+            "session_id": "Sesi Claude saat ini: {id}. Untuk melanjutkannya di terminalmu, ketik sendiri: claude --resume {id}",
+            "stopped": "Permintaan /claude dihentikan.",
+            "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan."
+        },
         "settings": {
             "title": "Pengaturan Aemeath",
             "os_badge": "Lingkungan sistem: {os}",
@@ -76,6 +96,11 @@
                 "title": "Startup",
                 "toggle": "Jalankan Aemeath otomatis saat Windows menyala",
                 "hint": "Aktif secara bawaan, jadi Aemeath langsung muncul setiap kali kamu menyalakan komputer. Matikan di sini kalau tidak mau; entri startup-nya langsung dihapus."
+            },
+            "agent": {
+                "title": "Jembatan agen AI",
+                "toggle": "Aktifkan perintah /claude (Claude Code)",
+                "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu."
             },
             "movement": {
                 "title": "Gerak & tampilan",
@@ -326,6 +351,26 @@
             "success": "Success",
             "warning": "Warning"
         },
+        "agent": {
+            "usage": "Type your message after /claude, Rover. Example: /claude explain the session parser. Other forms: /claude new, /claude session, /claude stop.",
+            "disabled": "The agent bridge is off, Rover. Turn it on first in Settings, General tab.",
+            "busy": "A /claude request is still running. Wait a moment or type /claude stop.",
+            "not_installed": "I can't find Claude Code on this computer, Rover. Install it or check your PATH.",
+            "auth": "Claude Code isn't logged in or its session expired. Log in again from your own terminal, then retry.",
+            "max_turns": "Claude stopped because it hit the step limit. Try splitting the request.",
+            "timeout": "Claude took too long to answer, so I stopped it.",
+            "api": "Claude Code reported an error from its service. Try again in a moment.",
+            "error": "The request to Claude Code failed.",
+            "no_result": "Claude Code stopped without an answer.",
+            "spawn_failed": "Claude Code could not be started.",
+            "cancelled": "The /claude request was cancelled.",
+            "invalid_session": "The stored session id is not valid. Type /claude new to start over.",
+            "new_session": "Done, the next Claude conversation starts from scratch.",
+            "no_session": "No Claude session has been started from Aemeath yet.",
+            "session_id": "Current Claude session: {id}. To continue it in your terminal, type this yourself: claude --resume {id}",
+            "stopped": "The /claude request was stopped.",
+            "nothing_running": "No /claude request is running."
+        },
         "settings": {
             "title": "Aemeath Settings",
             "os_badge": "System environment: {os}",
@@ -374,6 +419,11 @@
                 "title": "Startup",
                 "toggle": "Launch Aemeath automatically on startup",
                 "hint": "Enabled by default, so Aemeath appears every time you turn on your computer. Disable here to remove the startup entry."
+            },
+            "agent": {
+                "title": "AI agent bridge",
+                "toggle": "Enable the /claude command (Claude Code)",
+                "hint": "Off by default. Aemeath runs Claude Code on this computer for messages you type yourself, for reading and answering only: file edits and commands are denied automatically. Your message goes to Claude's service through your own Claude Code login. Aemeath does not include your activity data."
             },
             "movement": {
                 "title": "Movement & display",

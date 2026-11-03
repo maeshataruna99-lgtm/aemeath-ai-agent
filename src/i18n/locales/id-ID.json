@@ -13,6 +13,26 @@
     "success": "Berhasil",
     "warning": "Peringatan"
   },
+  "agent": {
+    "usage": "Tulis pesanmu setelah /claude ya, Rover. Contoh: /claude jelaskan fungsi parser sesi. Perintah lain: /claude baru, /claude sesi, /claude stop.",
+    "disabled": "Jembatan agen sedang mati, Rover. Nyalakan dulu di Pengaturan, tab Umum.",
+    "busy": "Masih ada permintaan /claude yang berjalan. Tunggu sebentar atau ketik /claude stop.",
+    "not_installed": "Aku tidak menemukan Claude Code di komputer ini, Rover. Pasang dulu atau cek PATH-nya.",
+    "auth": "Claude Code belum login atau sesinya habis. Login lagi lewat terminalmu sendiri, lalu coba lagi.",
+    "max_turns": "Claude berhenti karena batas langkah tercapai. Coba pecah permintaannya.",
+    "timeout": "Claude terlalu lama menjawab, jadi kuhentikan.",
+    "api": "Claude Code melaporkan galat dari layanannya. Coba lagi sebentar lagi.",
+    "error": "Permintaan ke Claude Code gagal.",
+    "no_result": "Claude Code berhenti tanpa jawaban.",
+    "spawn_failed": "Claude Code gagal dijalankan.",
+    "cancelled": "Permintaan /claude dibatalkan.",
+    "invalid_session": "Id sesi yang tersimpan tidak valid. Ketik /claude baru untuk memulai ulang.",
+    "new_session": "Siap, percakapan Claude berikutnya mulai dari awal.",
+    "no_session": "Belum ada sesi Claude yang berjalan dari Aemeath.",
+    "session_id": "Sesi Claude saat ini: {id}. Untuk melanjutkannya di terminalmu, ketik sendiri: claude --resume {id}",
+    "stopped": "Permintaan /claude dihentikan.",
+    "nothing_running": "Tidak ada permintaan /claude yang sedang berjalan."
+  },
   "settings": {
     "title": "Pengaturan Aemeath",
     "os_badge": "Lingkungan sistem: {os}",
@@ -229,6 +249,11 @@
       "hint": "Aemeath selalu mengobrolkan fakta acak Wuthering Waves dari lorebook lokal yang tersedia. Kamu bisa memperbarui data dari Wuthering Waves Wiki kapan saja (kosongkan kolom untuk memperbarui halaman utama seperti Solaris-3, Lore, dan Resonator, atau isi judul/URL halaman tertentu).",
       "placeholder": "Contoh: Solaris-3, Lore, Rinascita (opsional)",
       "update_btn": "Perbarui Wiki"
+    },
+    "agent": {
+      "title": "Jembatan agen AI",
+      "toggle": "Aktifkan perintah /claude (Claude Code)",
+      "hint": "Mati secara bawaan. Aemeath menjalankan Claude Code di komputermu atas pesan yang kamu ketik sendiri, hanya untuk membaca dan menjawab: mengedit file dan menjalankan perintah ditolak otomatis. Pesanmu dikirim ke layanan Claude lewat login Claude Code milikmu. Aemeath tidak menyertakan data aktivitasmu."
     }
   },
   "chat": {
