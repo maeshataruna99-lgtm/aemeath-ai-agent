@@ -18,7 +18,7 @@ const MAX_PROMPT = 8000;
 const MAX_PERSONA = 4000;
 // The tools an approved turn may use. Not acceptEdits: that mode also lets some shell
 // commands (a redirect like echo > file) through, which a typed "ya" must not cover.
-const EDIT_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
+const { EDIT_TOOLS, optionArgs } = require('./agent-options');
 
 function coded(code) {
   const err = new Error(code);
@@ -43,13 +43,14 @@ function resolveClaude(env, platform, exists) {
   return null;
 }
 
-function buildArgs(sessionId, approveEdits, persona) {
+function buildArgs(sessionId, approveEdits, persona, options) {
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--setting-sources', 'project', '--permission-prompts', 'none'];
   if (sessionId) args.push('--resume', sessionId);
   // Aemeath's voice, as one extra system prompt argument (never part of the user's message).
   if (persona) args.push('--append-system-prompt', persona);
-  // Only the owner's typed "ya" gets here: file edits go through for this one turn, commands stay denied.
-  if (approveEdits) args.push('--allowedTools', EDIT_TOOLS.join(','));
+  // Model, effort and permission kind from the owner's choices, all checked against fixed lists. An
+  // approved turn (a typed "ya") lets file edits through for that turn only. Commands stay denied.
+  args.push(...optionArgs(options, approveEdits === true));
   return args;
 }
 
@@ -69,7 +70,7 @@ function createClaudeAdapter(options) {
   const env = options.env || process.env;
   const resolve = options.resolve || (() => resolveClaude(env));
 
-  // run({ prompt, sessionId?, signal?, onText?(delta), onStep?(step), approveEdits?, persona? }) -> Promise<{ sessionId, text, denials }>
+  // run({ prompt, sessionId?, signal?, onText?(delta), onStep?(step), approveEdits?, persona?, options? }) -> Promise<{ sessionId, text, denials }>
   // Rejects with an error whose `code` is one of: not_installed, invalid_session,
   // empty_prompt, bad_dir, spawn_failed, auth, max_turns, api, error, no_result.
   function run(input) {
@@ -84,7 +85,7 @@ function createClaudeAdapter(options) {
     return new Promise((resolvePromise, reject) => {
       let child;
       try {
-        child = spawn(bin, buildArgs(input.sessionId, input.approveEdits === true, typeof input.persona === 'string' ? input.persona.slice(0, MAX_PERSONA) : null), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+        child = spawn(bin, buildArgs(input.sessionId, input.approveEdits === true, typeof input.persona === 'string' ? input.persona.slice(0, MAX_PERSONA) : null, input.options), { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
       } catch {
         reject(coded('spawn_failed'));
         return;
@@ -92,6 +93,7 @@ function createClaudeAdapter(options) {
       const feed = createStreamParser();
       let buffer = '';
       let sessionId = input.sessionId || null;
+      let model = '';
       let outcome = null; // { done } or { failed }
       let settled = false;
 
@@ -105,9 +107,10 @@ function createClaudeAdapter(options) {
         const event = feed(line);
         if (!event) return;
         if (event.sessionId) sessionId = event.sessionId;
+        if (event.kind === 'session' && event.model) model = event.model;
         if (event.kind === 'delta' && input.onText) input.onText(event.text);
         if (input.onStep) {
-          if (event.kind === 'session') input.onStep({ kind: 'start' });
+          if (event.kind === 'session') input.onStep({ kind: 'start', model: event.model });
           else if (event.kind === 'thinking') input.onStep({ kind: 'thinking' });
           else if (event.kind === 'tool') for (const use of event.uses) input.onStep({ kind: 'tool', name: use.name, target: use.target });
         }
@@ -130,7 +133,7 @@ function createClaudeAdapter(options) {
       child.on('close', () => {
         if (buffer.trim()) handle(buffer);
         finish(() => {
-          if (outcome && outcome.done !== undefined) resolvePromise({ sessionId, text: outcome.done, denials: outcome.denials });
+          if (outcome && outcome.done !== undefined) resolvePromise({ sessionId, text: outcome.done, denials: outcome.denials, model });
           else if (outcome && outcome.failed) reject(coded(outcome.failed));
           else reject(coded('no_result'));
         });

@@ -12,6 +12,8 @@
 
 const { EDIT_TOOLS: ADAPTER_EDIT_TOOLS } = require('./claude-adapter');
 
+const { cleanOptions } = require('./agent-options');
+
 const CAPABILITY = 'agent.claude.run';
 const TIMEOUT_MS = 180000;
 const APPROVAL_MS = 5 * 60 * 1000;
@@ -133,6 +135,8 @@ function createAgentBridge(options) {
   const { store, runner, adapter, isEnabled } = options;
   const getDir = options.getDir || (() => null);
   const getPersona = options.getPersona || (() => null);
+  const getOptions = options.getOptions || (() => ({}));
+  let modelUsed = ''; // the full model name the CLI reported on its last start
   const now = options.now || Date.now;
   let sessionDir = null;
   let sessionId = null;
@@ -157,9 +161,11 @@ function createAgentBridge(options) {
     let answer = null;
     // Counts the tools used, and passes each step on without repeating a "thinking" step.
     const steps = {};
+    const chosen = cleanOptions(getOptions());
     const passStep = input.onStep;
     let lastKind = null;
     const onStep = (step) => {
+      if (step.kind === 'start' && step.model) modelUsed = step.model;
       if (step.kind === 'tool') {
         const c = stepClass(step.name);
         steps[c] = (steps[c] || 0) + 1;
@@ -172,7 +178,7 @@ function createAgentBridge(options) {
       const running = runner.run(
         task.id,
         async ({ signal }) => {
-          answer = await adapter.run(Object.assign({ prompt, signal, persona: getPersona() }, input, { onStep }));
+          answer = await adapter.run(Object.assign({ prompt, signal, persona: getPersona(), options: chosen }, input, { onStep }));
           return answer;
         },
         { timeoutMs: TIMEOUT_MS, validate: (r) => Boolean(r && typeof r.text === 'string' && r.text.trim()) }
@@ -185,7 +191,8 @@ function createAgentBridge(options) {
       sessionId = answer.sessionId || sessionId;
       const denials = answer.denials || [];
       // Only a turn denied nothing but edits can be approved with "ya".
-      const approvable = denials.length > 0 && denials.every((d) => EDIT_TOOLS.has(d.tool));
+      // Only in the "ask" kind: plan mode changes nothing, and "edit" already allowed the edits.
+      const approvable = chosen.permission === 'ask' && denials.length > 0 && denials.every((d) => EDIT_TOOLS.has(d.tool));
       pending = approvable ? { sessionId, dir: sessionDir, until: now() + APPROVAL_MS } : null;
       return { ok: true, text: answer.text, sessionId, denials, approvable, steps };
     } finally {
@@ -255,6 +262,10 @@ function createAgentBridge(options) {
     return { ok: true, id: picked.id };
   }
 
+  function modelInUse() {
+    return modelUsed;
+  }
+
   // True while a request runs; the working folder is not changed under it.
   function busy() {
     return activeTaskId !== null;
@@ -273,7 +284,7 @@ function createAgentBridge(options) {
     return getDir() === sessionDir ? sessionId : null;
   }
 
-  return { ask, approve, busy, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
+  return { ask, approve, busy, modelInUse, stop, newSession, currentSession, listRecent, useSession, shutdown, purge };
 }
 
 module.exports = { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, ageText, stepText, stepsSummary, stepClass, CAPABILITY, EDIT_TOOLS };

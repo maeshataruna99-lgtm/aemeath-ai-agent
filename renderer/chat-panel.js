@@ -52,6 +52,13 @@
     const sessionButton = document.getElementById('chat-session-btn');
     const sessionName = document.getElementById('chat-session-name');
     const sessionMenu = document.getElementById('chat-session-menu');
+    const optionChips = ['model', 'effort', 'perm'].map((key) => ({
+      key,
+      bar: document.getElementById('chat-opt-' + key),
+      button: document.getElementById('chat-opt-' + key + '-btn'),
+      name: document.getElementById('chat-opt-' + key + '-name'),
+      menu: document.getElementById('chat-opt-' + key + '-menu'),
+    }));
 
     let isOpen = false;
     let busy = false;
@@ -420,6 +427,7 @@
       updateLocalizedUI();
       renderFolders();
       renderSessions();
+      renderOptions();
       notice.classList.toggle('hidden', mode === 'terminal' || !noticeNeeded);
       hideSuggestions();
       controls();
@@ -540,7 +548,8 @@
 
     // The folder and session chips share one row, shown while either is.
     function syncAgentBar() {
-      agentBar.classList.toggle('hidden', folderBar.classList.contains('hidden') && sessionBar.classList.contains('hidden'));
+      const allHidden = [folderBar, sessionBar].concat(optionChips.map((c) => c.bar)).every((b) => b.classList.contains('hidden'));
+      agentBar.classList.toggle('hidden', allHidden);
     }
 
     function shorten(text, max) {
@@ -593,7 +602,7 @@
     }
 
     function refreshAgentBar() {
-      return Promise.all([refreshFolders(), refreshSessions()]);
+      return Promise.all([refreshFolders(), refreshSessions(), refreshOptions()]);
     }
 
     async function changeSession(which) {
@@ -623,6 +632,7 @@
     function openSessionMenu() {
       if (!sessions) return;
       closeFolderMenu();
+      closeOptionMenus();
       sessionMenu.textContent = '';
       sessions.items.forEach((s, i) => {
         const here = Boolean(sessions.current && s.id === sessions.current.id);
@@ -656,6 +666,7 @@
     function openFolderMenu() {
       if (!folders) return;
       closeSessionMenu();
+      closeOptionMenus();
       folderMenu.textContent = '';
       const item = (label, title, onClick, active) => addMenuItem(folderMenu, label, title, onClick, active);
       folders.recent.forEach((r, i) => item(r.name, r.path, () => changeFolder(i), !folders.isHome && r.path === folders.current.path));
@@ -663,6 +674,106 @@
       item(tr('chat.folder_home'), '', () => changeFolder('home'), folders.isHome);
       folderMenu.classList.remove('hidden');
       folderButton.setAttribute('aria-expanded', 'true');
+    }
+
+    // Model, effort and kind of permission for /claude, chosen from three more chips. The panel sends
+    // only the kind and a value from the lists the main process gave it; the main process checks them again.
+    let opts = null;
+    const MODEL_NAMES = { fable: 'Fable', opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku' };
+    const modelName = (m) => MODEL_NAMES[m] || m;
+    const shortModel = (id) => String(id).replace(/^claude-/, '').replace(/-\d{8}$/, '');
+
+    function closeOptionMenus() {
+      for (const c of optionChips) {
+        c.menu.classList.add('hidden');
+        c.menu.textContent = '';
+        c.button.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function optionLabels() {
+      const perm = opts.permission.choice;
+      return {
+        model: {
+          text: opts.model.choice ? modelName(opts.model.choice) : opts.model.inUse ? shortModel(opts.model.inUse) : tr('chat.model_default'),
+          title: tr('chat.model_title') + (opts.model.inUse ? ': ' + opts.model.inUse : ''),
+        },
+        effort: {
+          text: opts.effort.choice ? tr('chat.effort_short', { level: tr('chat.effort_' + opts.effort.choice) }) : tr('chat.effort_default'),
+          title: tr('chat.effort_title'),
+        },
+        perm: {
+          text: tr('chat.perm_short', { kind: tr('chat.perm_' + perm) }),
+          title: tr('chat.perm_title') + ': ' + tr('chat.perm_' + perm + '_desc'),
+        },
+      };
+    }
+
+    function renderOptions() {
+      const show = Boolean(opts && opts.enabled) && mode === 'claude';
+      for (const c of optionChips) c.bar.classList.toggle('hidden', !show);
+      syncAgentBar();
+      if (!show) {
+        closeOptionMenus();
+        return;
+      }
+      const labels = optionLabels();
+      for (const c of optionChips) {
+        c.name.textContent = labels[c.key].text;
+        c.button.title = labels[c.key].title;
+        c.button.setAttribute('aria-label', labels[c.key].title);
+      }
+    }
+
+    async function refreshOptions() {
+      try {
+        opts = typeof api.agentOptions === 'function' ? await api.agentOptions() : null;
+      } catch {
+        opts = null;
+      }
+      renderOptions();
+      reposition();
+    }
+
+    async function setOption(key, value) {
+      closeOptionMenus();
+      let res;
+      try {
+        res = await api.agentOptionSet(key === 'perm' ? 'permission' : key, value);
+      } catch {
+        add('err', tr('chat.folder_error'));
+        return;
+      }
+      if (!res) return;
+      opts = res;
+      renderOptions();
+      reposition();
+      const shown =
+        key === 'model' ? (value ? modelName(value) : tr('chat.model_default'))
+        : key === 'effort' ? (value ? tr('chat.effort_' + value) : tr('chat.effort_default'))
+        : tr('chat.perm_' + value);
+      add('bot', tr('chat.option_changed', { what: tr('chat.' + key + '_title'), value: shown }));
+      if (key === 'perm' && value === 'edit') add('bot', tr('chat.perm_edit_warning'));
+    }
+
+    function openOptionMenu(chip) {
+      if (!opts) return;
+      const wasOpen = !chip.menu.classList.contains('hidden');
+      closeFolderMenu();
+      closeSessionMenu();
+      closeOptionMenus();
+      if (wasOpen) return;
+      const lists = opts.choices;
+      const current = chip.key === 'model' ? opts.model.choice : chip.key === 'effort' ? opts.effort.choice : opts.permission.choice;
+      const entries =
+        chip.key === 'model' ? [['', tr('chat.model_default')]].concat(lists.models.map((m) => [m, modelName(m)]))
+        : chip.key === 'effort' ? [['', tr('chat.effort_default')]].concat(lists.efforts.map((e) => [e, tr('chat.effort_' + e)]))
+        : lists.permissions.map((p) => [p, tr('chat.perm_' + p)]);
+      for (const [value, label] of entries) {
+        addMenuItem(chip.menu, label, chip.key === 'perm' ? tr('chat.perm_' + value + '_desc') : '', () => setOption(chip.key, value), value === current);
+      }
+      chip.menu.classList.remove('hidden');
+      chip.button.setAttribute('aria-expanded', 'true');
     }
 
     async function open() {
@@ -763,7 +874,10 @@
       } finally {
         if (typeof unbindAgent === 'function') unbindAgent();
         if (typeof unbindStep === 'function') unbindStep();
-        if (isAgent) refreshSessions();
+        if (isAgent) {
+          refreshSessions();
+          refreshOptions();
+        }
         busy = false;
         controls();
         reposition();
@@ -981,10 +1095,12 @@
     resetButton.addEventListener('click', resetConversation);
     closeButton.addEventListener('click', close);
     folderButton.addEventListener('click', () => (folderMenu.classList.contains('hidden') ? openFolderMenu() : closeFolderMenu()));
+    for (const chip of optionChips) chip.button.addEventListener('click', () => openOptionMenu(chip));
     sessionButton.addEventListener('click', () => (sessionMenu.classList.contains('hidden') ? openSessionMenu() : closeSessionMenu()));
     document.addEventListener('click', (e) => {
       if (!folderBar.contains(e.target)) closeFolderMenu();
       if (!sessionBar.contains(e.target)) closeSessionMenu();
+      if (!optionChips.some((c) => c.bar.contains(e.target))) closeOptionMenus();
     });
     if (typeof api.onSettingsUpdated === 'function') api.onSettingsUpdated(() => refreshAgentBar());
     settingsButton.addEventListener('click', () => api.openSettings());
@@ -1015,6 +1131,8 @@
           currentLocale = loc;
           updateLocalizedUI();
           renderFolders();
+          renderSessions();
+          renderOptions();
           if (log.children.length === 1 && log.children[0].classList.contains('bot')) {
             const botMsg = log.children[0];
             const botText = botMsg.querySelector('.msg-text') || botMsg;

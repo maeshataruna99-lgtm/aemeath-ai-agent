@@ -88,7 +88,7 @@ test('the adapter reports each step as it happens, in order', async () => {
   const steps = [];
   await adapter.run({ prompt: 'x', onStep: (s) => steps.push(s) });
   assert.deepEqual(steps, [
-    { kind: 'start' },
+    { kind: 'start', model: '' },
     { kind: 'thinking' },
     { kind: 'tool', name: 'Read', target: 'a.js' },
     { kind: 'tool', name: 'Grep', target: 'x' },

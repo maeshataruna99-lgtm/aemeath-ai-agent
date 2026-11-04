@@ -68,5 +68,10 @@
 **Constraints:** Names come only from the `custom-title` and `ai-title` lines of the owner's own transcripts, and a line is parsed only if it starts with one of those markers, so message text is never parsed or kept. Only the end of a file (and a little of its start) is read. A name the owner set wins over a generated one. Names are cleaned, capped at 40 characters, and secret-looking text is hidden. They are shown in the chat box and in `/claude sesi`, never stored, logged, or sent to any model.
 **Changes:** This replaces the earlier stance that a transcript is never opened for the session list.
 
+## D-017: Model, effort and permission kind for /claude
+**Decision (owner, 2026-11-04):** In Claude mode the model, the effort and the kind of permission are shown and can be chosen from chips.  
+**Constraints:** Every choice is picked from a fixed list and checked in the main process again; a window never sends free text to the CLI. Model aliases are `fable`, `opus`, `sonnet`, `haiku`; efforts are `low` to `max`. Three permission kinds are offered: ask first (the default; an edit waits for a typed "ya"), plan only (the CLI plan mode), and auto edit (edit tools allowed in the working folder, with a warning). Shell commands stay denied in all three. The CLI modes `acceptEdits`, `auto`, `dontAsk`, `manual` and `bypassPermissions` are not offered, because acceptEdits lets some shell redirects through and the others allow commands to run unattended. The model and effort are saved; the permission kind is kept in memory only, so every start begins at ask first, and turning the module off or purging its data resets it.  
+**Shown:** the model chip shows the full model name the CLI reports at start, not only the alias that was asked for.
+
 ## Change control
 Any change to these decisions must be recorded here with the date, rationale, affected acceptance criteria, and approval from the project owner.

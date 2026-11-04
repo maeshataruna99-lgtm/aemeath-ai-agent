@@ -5,6 +5,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { isValidRepo } = require('./integrations/github-reader');
+const { MODELS, EFFORTS } = require('./agent/agent-options');
 
 const DEFAULTS = {
   scale: 1,
@@ -29,6 +30,10 @@ const DEFAULTS = {
   agentBridgeDir: '',
   // Folders chosen before, newest first, for the folder menu in the chat box.
   agentRecentDirs: [],
+  // The model and effort chosen for /claude ('' means the CLI's own default). The kind of permission is
+  // deliberately not saved: it starts at "ask first" every time Aemeath starts.
+  agentModel: '',
+  agentEffort: '',
   // Read-only GitHub reader (/github). Off until the owner turns it on and names one repository.
   githubEnabled: false,
   githubRepo: '',
@@ -156,6 +161,8 @@ function keepStrings(data) {
     data.agentBridgeDir = '';
   }
   if (data.githubRepo !== '' && !isValidRepo(data.githubRepo)) data.githubRepo = '';
+  if (!['', ...MODELS].includes(data.agentModel)) data.agentModel = '';
+  if (!['', ...EFFORTS].includes(data.agentEffort)) data.agentEffort = '';
   const recent = Array.isArray(data.agentRecentDirs) ? data.agentRecentDirs : [];
   const usable = recent.filter((d) => typeof d === 'string' && d.length <= 500 && !/[\u0000-\u001f]/.test(d) && path.isAbsolute(d));
   data.agentRecentDirs = [...new Set(usable)].slice(0, 5);

@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('aemeath', {
     ipcRenderer.on('chat:chunk', listener);
     return () => ipcRenderer.removeListener('chat:chunk', listener);
   },
+  agentOptions: () => ipcRenderer.invoke('agent:options'),
+  agentOptionSet: (kind, value) => ipcRenderer.invoke('agent:option-set', kind, value),
   agentSessions: () => ipcRenderer.invoke('agent:sessions'),
   agentSessionUse: (which) => ipcRenderer.invoke('agent:session-use', which),
   agentFolders: () => ipcRenderer.invoke('agent:folders'),

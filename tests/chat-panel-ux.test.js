@@ -200,12 +200,24 @@ function setupChatPanelEnvironment() {
     'chat-session-btn',
     'chat-session-name',
     'chat-session-menu',
+    'chat-opt-model',
+    'chat-opt-model-btn',
+    'chat-opt-model-name',
+    'chat-opt-model-menu',
+    'chat-opt-effort',
+    'chat-opt-effort-btn',
+    'chat-opt-effort-name',
+    'chat-opt-effort-menu',
+    'chat-opt-perm',
+    'chat-opt-perm-btn',
+    'chat-opt-perm-name',
+    'chat-opt-perm-menu',
   ];
 
   ids.forEach((id) => {
     const tag = id.includes('input') ? 'input' : id.includes('button') || id.includes('attach') || id.includes('send') || id.includes('size') || id.includes('reset') || id.includes('close') || id.includes('settings') ? 'button' : 'div';
     const el = new FakeElement(tag, id);
-    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode' || id === 'chat-folder' || id === 'chat-folder-menu' || id === 'chat-agentbar' || id === 'chat-session' || id === 'chat-session-menu') {
+    if (id === 'chat-attachments' || id === 'chat-attachments-disclosure' || id === 'chat-suggest' || id === 'chat-notice' || id === 'chat' || id === 'chat-mode' || id === 'chat-folder' || id === 'chat-folder-menu' || id === 'chat-agentbar' || id === 'chat-session' || id === 'chat-session-menu' || /^chat-opt-(model|effort|perm)(-menu)?$/.test(id)) {
       el.className = 'hidden';
     }
     elements.set(id, el);
@@ -987,5 +999,182 @@ test('choosing a named session says which one Claude continues, by name', async 
   t.sessionMenu.children[0].click();
   await new Promise((r) => origSetTimeout(r, 25));
   assert.match(t.texts(), /Claude melanjutkan sesi Perbaiki bug login/);
+  delete window.AemeathI18n;
+});
+
+// --- Model, effort and permission chips ---
+
+function optionsState(over) {
+  return Object.assign(
+    {
+      enabled: true,
+      busy: false,
+      model: { choice: '', inUse: '' },
+      effort: { choice: '' },
+      permission: { choice: 'ask' },
+      choices: {
+        models: ['fable', 'opus', 'sonnet', 'haiku'],
+        efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+        permissions: ['ask', 'plan', 'edit'],
+      },
+    },
+    over || {}
+  );
+}
+
+async function optionPanel(state, extra) {
+  const t = await agentPanel(
+    Object.assign(
+      {
+        agentOptions: async () => t.opts,
+        agentOptionSet: async (kind, value) => {
+          t.optionCalls.push([kind, value]);
+          const next = JSON.parse(JSON.stringify(t.opts));
+          if (kind === 'model') next.model.choice = value;
+          if (kind === 'effort') next.effort.choice = value;
+          if (kind === 'permission') next.permission.choice = value;
+          t.opts = next;
+          return next;
+        },
+      },
+      extra || {}
+    )
+  );
+  t.optionCalls = [];
+  t.opts = state || optionsState();
+  await t.enter();
+  await t.panel.open();
+  const chip = (key) => ({
+    bar: t.env.elements.get('chat-opt-' + key),
+    button: t.env.elements.get('chat-opt-' + key + '-btn'),
+    name: t.env.elements.get('chat-opt-' + key + '-name'),
+    menu: t.env.elements.get('chat-opt-' + key + '-menu'),
+  });
+  t.model = chip('model');
+  t.effort = chip('effort');
+  t.perm = chip('perm');
+  return t;
+}
+
+test('the model, effort and permission chips appear only in Claude mode', async () => {
+  const t = await agentPanel({ agentOptions: async () => optionsState() });
+  for (const key of ['model', 'effort', 'perm']) {
+    assert.equal(t.env.elements.get('chat-opt-' + key).classList.contains('hidden'), true, key + ' hidden in plain chat');
+  }
+  await t.enter();
+  for (const key of ['model', 'effort', 'perm']) {
+    assert.equal(t.env.elements.get('chat-opt-' + key).classList.contains('hidden'), false, key + ' shown in Claude mode');
+  }
+  await t.say('/claude-mode');
+  for (const key of ['model', 'effort', 'perm']) {
+    assert.equal(t.env.elements.get('chat-opt-' + key).classList.contains('hidden'), true, key + ' gone after leaving');
+  }
+  delete window.AemeathI18n;
+});
+
+test('the chips show the defaults: default model and effort, and ask first', async () => {
+  const t = await optionPanel();
+  assert.equal(t.model.name.textContent, 'Model bawaan');
+  assert.equal(t.effort.name.textContent, 'Upaya bawaan');
+  assert.equal(t.perm.name.textContent, 'Izin: Tanya dulu');
+  assert.match(t.perm.button.title, /Edit berkas menunggu "ya"/);
+  delete window.AemeathI18n;
+});
+
+test('the model chip shows the model the CLI really runs, or the one chosen', async () => {
+  const running = await optionPanel(optionsState({ model: { choice: '', inUse: 'claude-sonnet-5-5' } }));
+  assert.equal(running.model.name.textContent, 'sonnet-5-5');
+  assert.match(running.model.button.title, /claude-sonnet-5-5/);
+  const dated = await optionPanel(optionsState({ model: { choice: '', inUse: 'claude-haiku-4-5-20251001' } }));
+  assert.equal(dated.model.name.textContent, 'haiku-4-5');
+  const chosen = await optionPanel(optionsState({ model: { choice: 'opus', inUse: 'claude-opus-5-5' } }));
+  assert.equal(chosen.model.name.textContent, 'Opus');
+  delete window.AemeathI18n;
+});
+
+test('the effort and permission chips show what was chosen', async () => {
+  const t = await optionPanel(optionsState({ effort: { choice: 'medium' }, permission: { choice: 'edit' } }));
+  assert.equal(t.effort.name.textContent, 'Upaya: Sedang');
+  assert.equal(t.perm.name.textContent, 'Izin: Edit otomatis');
+  assert.match(t.perm.button.title, /tanpa bertanya/);
+  delete window.AemeathI18n;
+});
+
+test('each menu lists its choices and marks the current one', async () => {
+  const t = await optionPanel(optionsState({ model: { choice: 'sonnet', inUse: '' }, permission: { choice: 'plan' } }));
+  t.model.button.click();
+  assert.deepEqual(t.model.menu.children.map((c) => c.textContent), ['Model bawaan', 'Fable', 'Opus', CHECK + ' Sonnet', 'Haiku']);
+  t.effort.button.click();
+  assert.deepEqual(t.effort.menu.children.map((c) => c.textContent), [CHECK + ' Upaya bawaan', 'Rendah', 'Sedang', 'Tinggi', 'Sangat tinggi', 'Maksimal']);
+  assert.equal(t.model.menu.classList.contains('hidden'), true, 'opening one menu closes the other');
+  t.perm.button.click();
+  assert.deepEqual(t.perm.menu.children.map((c) => c.textContent), ['Tanya dulu', CHECK + ' Rencana saja', 'Edit otomatis']);
+  assert.match(t.perm.menu.children[2].title, /Perintah shell tetap ditolak/);
+  delete window.AemeathI18n;
+});
+
+test('choosing sends only the kind and the value, and Aemeath says what changed', async () => {
+  const t = await optionPanel();
+  t.model.button.click();
+  t.model.menu.children[2].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.optionCalls, [['model', 'opus']]);
+  assert.equal(t.model.name.textContent, 'Opus');
+  assert.match(t.texts(), /Model sekarang: Opus\./);
+
+  t.effort.button.click();
+  t.effort.menu.children[3].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.optionCalls[1], ['effort', 'high']);
+  assert.match(t.texts(), /Upaya sekarang: Tinggi\./);
+
+  t.effort.button.click();
+  t.effort.menu.children[0].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.optionCalls[2], ['effort', '']);
+  assert.match(t.texts(), /Upaya sekarang: Upaya bawaan\./);
+  delete window.AemeathI18n;
+});
+
+test('choosing auto edit warns, and the other kinds do not', async () => {
+  const t = await optionPanel();
+  t.perm.button.click();
+  t.perm.menu.children[1].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.optionCalls, [['permission', 'plan']]);
+  assert.match(t.texts(), /Izin sekarang: Rencana saja\./);
+  assert.doesNotMatch(t.texts(), /Hati-hati/);
+
+  t.perm.button.click();
+  t.perm.menu.children[2].click();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.deepEqual(t.optionCalls[1], ['permission', 'edit']);
+  assert.equal(t.perm.name.textContent, 'Izin: Edit otomatis');
+  assert.match(t.texts(), /Hati-hati, Rover: Claude sekarang boleh mengedit berkas/);
+  delete window.AemeathI18n;
+});
+
+test('opening a folder or session menu closes the option menus, and a click elsewhere closes them', async () => {
+  const t = await optionPanel();
+  t.model.button.click();
+  assert.equal(t.model.menu.classList.contains('hidden'), false);
+  t.env.elements.get('chat-folder-btn').click();
+  assert.equal(t.model.menu.classList.contains('hidden'), true);
+  t.perm.button.click();
+  t.sessionButton.click();
+  assert.equal(t.perm.menu.classList.contains('hidden'), true);
+  delete window.AemeathI18n;
+});
+
+test('the chips are hidden when the module is off, and the options are read again after a request', async () => {
+  const off = await optionPanel(optionsState({ enabled: false }));
+  assert.equal(off.model.bar.classList.contains('hidden'), true);
+  assert.equal(off.perm.bar.classList.contains('hidden'), true);
+
+  let reads = 0;
+  const t = await optionPanel(null, { agentOptions: async () => (reads++, optionsState()) });
+  const before = reads;
+  await t.say('/claude halo');
+  assert.ok(reads > before, 'options were read again');
   delete window.AemeathI18n;
 });

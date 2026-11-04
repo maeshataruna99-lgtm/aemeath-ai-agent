@@ -664,7 +664,10 @@ body {
 }
 
 #chat-folder-btn,
-#chat-session-btn {
+#chat-session-btn,
+#chat-opt-model-btn,
+#chat-opt-effort-btn,
+#chat-opt-perm-btn {
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -672,7 +675,10 @@ body {
 }
 
 #chat-folder-menu,
-#chat-session-menu {
+#chat-session-menu,
+#chat-opt-model-menu,
+#chat-opt-effort-menu,
+#chat-opt-perm-menu {
   position: absolute;
   z-index: 5;
   left: 0;
@@ -693,12 +699,18 @@ body {
 }
 
 #chat-folder-menu.hidden,
-#chat-session-menu.hidden {
+#chat-session-menu.hidden,
+#chat-opt-model-menu.hidden,
+#chat-opt-effort-menu.hidden,
+#chat-opt-perm-menu.hidden {
   display: none;
 }
 
 #chat-folder-menu button,
-#chat-session-menu button {
+#chat-session-menu button,
+#chat-opt-model-menu button,
+#chat-opt-effort-menu button,
+#chat-opt-perm-menu button {
   text-align: left;
   white-space: nowrap;
   overflow: hidden;

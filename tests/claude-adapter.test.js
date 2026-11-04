@@ -53,7 +53,7 @@ function adapterFor(spawn, resolve) {
 test('runs a turn: prompt on stdin, argument list, no shell', async () => {
   const spawn = fakeSpawn(OK_LINES);
   const result = await adapterFor(spawn).run({ prompt: '--help ; rm -rf /' });
-  assert.deepEqual(result, { sessionId: SID, text: 'halo', denials: [] });
+  assert.deepEqual(result, { sessionId: SID, text: 'halo', denials: [], model: '' });
   const { bin, args, options, child } = spawn.calls[0];
   assert.equal(bin, 'C:/bin/claude.exe');
   assert.deepEqual(args, buildArgs(null));

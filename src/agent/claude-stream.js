@@ -61,7 +61,10 @@ function toEvent(obj) {
   if (!obj) return null;
   const sessionId = obj.session_id || null;
 
-  if (obj.type === 'system' && obj.subtype === 'init') return { kind: 'session', sessionId };
+  if (obj.type === 'system' && obj.subtype === 'init') {
+    // The model the CLI really runs (an alias such as "opus" is resolved to its full name here).
+    return { kind: 'session', sessionId, model: typeof obj.model === 'string' ? obj.model.slice(0, 60) : '' };
+  }
 
   // Token-sized text arrives as stream_event lines when --include-partial-messages is on.
   if (obj.type === 'stream_event') {

@@ -40,6 +40,7 @@ const { createClaudeAdapter } = require('./src/agent/claude-adapter');
 const { createAgentBridge, messageKey, agentReply, sessionsReply, taskRows, stepText, ageText } = require('./src/agent/agent-bridge');
 const { listSessions, sessionTitle } = require('./src/agent/session-list');
 const { agentPersona } = require('./src/agent/agent-persona');
+const { MODELS, EFFORTS, PERMISSIONS } = require('./src/agent/agent-options');
 const { createSchedule } = require('./src/productivity/schedule');
 const { createGithubReader, githubReply, failureKey } = require('./src/integrations/github-reader');
 const { createUacGate } = require('./src/terminal/uac-gate');
@@ -134,6 +135,7 @@ function main() {
   let keyStore = null;
   let commandStore = null;
   let agentBridge = null;
+  let agentPermission = 'ask'; // not saved: every start begins at "ask first"
   let taskStore = null;
   let schedule = null;
   let productivity = null;
@@ -245,12 +247,14 @@ function main() {
     let prompt = '';
     child.stdin.on('data', (d) => (prompt += d));
     child.stdin.on('end', () => {
-      selfieClaudeCalls.push(args.filter((a) => a === '--resume' || a === '--append-system-prompt' || a === '--allowedTools' || a === '--permission-prompts' || a === '--permission-mode').join(' '));
+      selfieClaudeCalls.push(args.filter((a) => a === '--resume' || a === '--append-system-prompt' || a === '--model' || a === '--effort' || a === '--allowedTools' || a === '--permission-prompts' || a === '--permission-mode').join(' '));
       if (prompt.includes('panjang')) return; // never answers until it is stopped
       const line = (o) => JSON.stringify(Object.assign({ session_id: '5e1f1e00-0000-4000-8000-000000000001' }, o)) + '\n';
       const delta = (text) => line({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text } } });
       let chunks;
       let gap = 60;
+      const modelAt = args.indexOf('--model');
+      const shownModel = modelAt >= 0 ? 'claude-' + args[modelAt + 1] + '-5-5' : 'claude-sonnet-5-5';
       if (args.includes('--allowedTools')) {
         chunks = [delta('Catatan '), delta('sudah ditulis.'), line({ type: 'result', subtype: 'success', result: 'Catatan sudah ditulis.' })];
       } else if (prompt.includes('buat')) {
@@ -265,7 +269,7 @@ function main() {
       } else {
         const tool = (name, input) => line({ type: 'assistant', message: { model: 'm', content: [{ type: 'tool_use', id: 't', name, input }] } });
         chunks = [
-          line({ type: 'system', subtype: 'init' }),
+          line({ type: 'system', subtype: 'init', model: shownModel }),
           line({ type: 'stream_event', event: { type: 'content_block_start', content_block: { type: 'thinking' } } }),
           tool('Read', { file_path: 'README.md' }),
           tool('Grep', { pattern: 'workflow', path: 'src' }),
@@ -583,6 +587,7 @@ function main() {
       getDir: getAgentDir,
       // Replies that pass through Aemeath sound like her: Claude is asked to answer in her voice.
       getPersona: () => agentPersona(settings.locale),
+      getOptions: () => ({ model: settings.agentModel, effort: settings.agentEffort, permission: agentPermission }),
       // The verification run lists two made-up sessions, so the session menu has something to show.
       listSessions: (dir) =>
         isSelfie
@@ -805,7 +810,10 @@ function main() {
       if (patch && typeof patch.glassOpacity === 'number') next.glassOpacity = patch.glassOpacity;
       Object.assign(settings, settingsStore.save(next));
       // Turning the module off ends whatever it is running.
-      if (next.agentBridgeEnabled === false && agentBridge) void agentBridge.shutdown();
+      if (next.agentBridgeEnabled === false) {
+        agentPermission = 'ask';
+        if (agentBridge) void agentBridge.shutdown();
+      }
       if (settings.transparentMode) applyIgnoreMouse(true);
       win?.webContents?.send('settings:updated', settings);
       settingsWin?.webContents?.send('settings:updated', settings);
@@ -1050,7 +1058,8 @@ function main() {
     ipcMain.handle('agent:purge', async (event) => {
       if (!fromWindow(event, settingsWin) || !agentBridge) return false;
       await agentBridge.purge();
-      Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '', agentRecentDirs: [] }));
+      agentPermission = 'ask';
+      Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '', agentRecentDirs: [], agentModel: '', agentEffort: '' }));
       settingsWin?.webContents?.send('settings:updated', settings);
       return true;
     });
@@ -1084,6 +1093,28 @@ function main() {
       }
       const res = typeof which === 'string' ? agentBridge.useSession(which) : { ok: false, code: 'session_not_found' };
       return Object.assign({}, res, { state: agentSessions() });
+    });
+    // Model, effort and kind of permission, chosen from the chips in Claude mode. A window can only pick
+    // a value from these lists; anything else is ignored. The permission kind is kept in memory only.
+    const agentOptions = () => ({
+      enabled: settings.agentBridgeEnabled === true,
+      busy: agentBridge ? agentBridge.busy() : false,
+      model: { choice: settings.agentModel || '', inUse: agentBridge ? agentBridge.modelInUse() : '' },
+      effort: { choice: settings.agentEffort || '' },
+      permission: { choice: agentPermission },
+      choices: { models: MODELS, efforts: EFFORTS, permissions: PERMISSIONS },
+    });
+    ipcMain.handle('agent:options', (event) => (fromWindow(event, win) ? agentOptions() : null));
+    ipcMain.handle('agent:option-set', (event, kind, value) => {
+      if (!fromWindow(event, win)) return null;
+      if (kind === 'model' && (value === '' || MODELS.includes(value))) {
+        Object.assign(settings, settingsStore.save({ agentModel: value }));
+      } else if (kind === 'effort' && (value === '' || EFFORTS.includes(value))) {
+        Object.assign(settings, settingsStore.save({ agentEffort: value }));
+      } else if (kind === 'permission' && PERMISSIONS.includes(value)) {
+        agentPermission = value;
+      }
+      return agentOptions();
     });
     // The Settings window only reads these task rows and can stop the one that is running.
     ipcMain.handle('agent:tasks', (event) =>
@@ -2095,6 +2126,53 @@ function main() {
     await inChat(`(() => { const items = document.querySelectorAll('#chat-session-menu button'); items[items.length - 1].click(); })()`);
     await sleep(800);
     console.log('[aemeath] session new: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
+    // Model, effort and permission chips: pick from each menu, then check what the next request is
+    // started with. The stand-in CLI reports the model it was asked for, as the real one does.
+    const chipTexts = () =>
+      inChat(`JSON.stringify(['model', 'effort', 'perm'].map((k) => document.getElementById('chat-opt-' + k + '-name').textContent))`);
+    const pickOption = async (key, index) => {
+      await inChat(`document.getElementById('chat-opt-${key}-btn').click()`);
+      await sleep(250);
+      await inChat(`document.querySelectorAll('#chat-opt-${key}-menu button')[${index}].click()`);
+      await sleep(500);
+    };
+    console.log('[aemeath] option chips at start: ' + (await chipTexts()));
+    await inChat(`document.getElementById('chat-opt-model-btn').click()`);
+    await sleep(250);
+    console.log('[aemeath] model menu: ' + (await inChat(`JSON.stringify([...document.querySelectorAll('#chat-opt-model-menu button')].map((b) => b.textContent))`)));
+    await inChat(`document.getElementById('chat-opt-model-btn').click()`);
+    await pickOption('model', 2);
+    await pickOption('effort', 2);
+    await pickOption('perm', 2);
+    console.log('[aemeath] option chips after choosing: ' + (await chipTexts()) + ' | last: ' + (await claudeTail(2)));
+    // A capture can come back before the chat box has been painted again, so retry until it shows.
+    let optionShot = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      optionShot = await win.webContents.capturePage();
+      const { width, height } = optionShot.getSize();
+      const pixels = optionShot.toBitmap();
+      let ink = 0;
+      for (let y = Math.floor(height * 0.52); y < height; y += 4) {
+        for (let x = Math.floor(width * 0.67); x < width; x += 4) {
+          const i = (y * width + x) * 4;
+          if (pixels[i + 3] > 20 && !(pixels[i] > 245 && pixels[i + 1] > 245 && pixels[i + 2] > 245)) ink++;
+        }
+      }
+      if (ink > 2000) break;
+      await sleep(200);
+    }
+    console.log('[aemeath] options screenshot attempts used: ' + (optionShot ? 'ok' : 'none'));
+    fs.writeFileSync(path.join(dir, 'chat-claude-options.png'), optionShot.toPNG());
+    await submit('halo setelah memilih', 1700);
+    console.log('[aemeath] request with chosen options: ' + JSON.stringify(selfieClaudeCalls.slice(-1)) + ' | chips: ' + (await chipTexts()));
+    await pickOption('perm', 1);
+    await submit('halo mode rencana', 1700);
+    console.log('[aemeath] request in plan mode: ' + JSON.stringify(selfieClaudeCalls.slice(-1)));
+    await pickOption('perm', 0);
+    await pickOption('model', 0);
+    await pickOption('effort', 0);
+    await submit('halo kembali ke bawaan', 1700);
+    console.log('[aemeath] request back at defaults: ' + JSON.stringify(selfieClaudeCalls.slice(-1)) + ' | chips: ' + (await chipTexts()));
     await submit('/claude-mode', 800);
     console.log('[aemeath] claude mode off: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
     console.log('[aemeath] chips after leaving: ' + (await folderBar()) + ' | session chip hidden: ' + (await inChat(`document.getElementById('chat-session').classList.contains('hidden')`)));
