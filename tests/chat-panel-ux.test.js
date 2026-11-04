@@ -1178,3 +1178,304 @@ test('the chips are hidden when the module is off, and the options are read agai
   assert.ok(reads > before, 'options were read again');
   delete window.AemeathI18n;
 });
+
+// --- The terminal inside Claude mode: "!" lines go to the shell, never to Claude ---
+
+async function shellPanel(handler, extra) {
+  const calls = { shell: [], stop: 0 };
+  const t = await agentPanel(
+    Object.assign(
+      {
+        agentShell: async (text) => {
+          calls.shell.push(text);
+          return handler
+            ? handler(text, calls)
+            : { ok: true, started: calls.shell.length === 1, output: 'hasil ' + text, cwd: 'C:/kerja' };
+        },
+        agentShellStop: async () => {
+          calls.stop++;
+          return true;
+        },
+      },
+      extra || {}
+    )
+  );
+  t.calls = calls;
+  await t.enter();
+  return t;
+}
+
+const kinds = (t, kind) => t.log.children.filter((c) => c.classList.contains(kind)).map((c) => c.textContent);
+
+test('a line with a leading ! goes to the shell, and Claude never sees it', async () => {
+  const t = await shellPanel();
+  await t.say('!git status');
+  assert.deepEqual(t.calls.shell, ['git status']);
+  assert.deepEqual(t.sent, [], 'nothing was sent as a Claude request or any other command');
+  assert.deepEqual(kinds(t, 'term-in'), ['PS > git status']);
+  assert.deepEqual(kinds(t, 'term-out'), ['hasil git status']);
+  assert.match(t.texts(), /Terminal aktif di C:\/kerja/);
+  assert.match(t.texts(), /Claude tidak melihat perintah maupun hasilnya/);
+  delete window.AemeathI18n;
+});
+
+test('only the first line announces the terminal, and later prompts show the folder', async () => {
+  const t = await shellPanel();
+  await t.say('!dir');
+  await t.say('!Get-Location');
+  assert.equal(t.texts().split('Terminal aktif di').length - 1, 1);
+  assert.deepEqual(kinds(t, 'term-in'), ['PS > dir', 'PS C:/kerja> Get-Location']);
+  assert.deepEqual(t.calls.shell, ['dir', 'Get-Location']);
+  delete window.AemeathI18n;
+});
+
+test('the spaces after ! are dropped, and the rest of the line is sent as typed', async () => {
+  const t = await shellPanel();
+  await t.say('!   Write-Output "a !b"  ');
+  assert.deepEqual(t.calls.shell, ['Write-Output "a !b"']);
+  delete window.AemeathI18n;
+});
+
+test('a bare ! explains how it works and calls nothing', async () => {
+  const t = await shellPanel();
+  await t.say('!');
+  await t.say('!   ');
+  assert.deepEqual(t.calls.shell, []);
+  assert.match(t.texts(), /Tulis perintahnya setelah !/);
+  delete window.AemeathI18n;
+});
+
+test('plain text still goes to Claude, and a ! in the middle is not the terminal', async () => {
+  const t = await shellPanel();
+  await t.say('jelaskan !important di CSS');
+  assert.deepEqual(t.sent, ['/claude jelaskan !important di CSS']);
+  assert.deepEqual(t.calls.shell, []);
+  delete window.AemeathI18n;
+});
+
+test('there is no ! terminal outside Claude mode: the line is an ordinary chat message', async () => {
+  const chatted = [];
+  const t = await agentPanel({
+    agentShell: async () => assert.fail('the shell must not be called outside Claude mode'),
+    chatSend: async (input) => (chatted.push(input), { ok: true, text: 'balasan' }),
+  });
+  await t.say('!dir');
+  assert.deepEqual(chatted, ['!dir'], 'it went to the chat like any other text');
+  assert.deepEqual(t.sent, []);
+  delete window.AemeathI18n;
+});
+
+test('a cancelled dialog and a declined Windows prompt are explained, and the next try asks the main process again', async () => {
+  const answers = [{ ok: false, code: 'cancelled' }, { ok: false, code: 'declined' }, { ok: true, started: true, output: '', cwd: 'C:/kerja' }];
+  const t = await shellPanel((text, calls) => answers[calls.shell.length - 1]);
+  await t.say('!dir');
+  assert.match(t.texts(), /Dibatalkan, tidak ada yang dijalankan/);
+  await t.say('!dir');
+  assert.match(t.texts(), /Izin admin ditolak, jadi terminal tidak dibuka/);
+  await t.say('!dir');
+  assert.equal(t.calls.shell.length, 3);
+  assert.match(t.texts(), /Terminal aktif di C:\/kerja/);
+  assert.equal(kinds(t, 'err').length, 2);
+  delete window.AemeathI18n;
+});
+
+test('while the dialog and the Windows prompt are pending, the box says it is waiting', async () => {
+  let release;
+  const t = await shellPanel(() => new Promise((resolve) => (release = () => resolve({ ok: true, started: true, output: '', cwd: 'C:/kerja' }))));
+  t.input.value = '!dir';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  const pending = t.log.children.filter((c) => c.classList.contains('pending'));
+  assert.equal(pending.length, 1);
+  assert.match(pending[0].textContent, /Menunggu persetujuanmu dan izin Windows \(UAC\)/);
+  release();
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.equal(t.log.children.filter((c) => c.classList.contains('pending')).length, 0, 'the waiting note goes away');
+  delete window.AemeathI18n;
+});
+
+test('no waiting note once the shell is already open', async () => {
+  const t = await shellPanel();
+  await t.say('!dir');
+  let sawPending = false;
+  const original = t.log.appendChild.bind(t.log);
+  t.log.appendChild = (child) => {
+    if (child.classList.contains('pending')) sawPending = true;
+    return original(child);
+  };
+  await t.say('!dir');
+  assert.equal(sawPending, false);
+  delete window.AemeathI18n;
+});
+
+test('!exit shows that the terminal closed, and the next line starts a new one', async () => {
+  const t = await shellPanel((text, calls) =>
+    text === 'exit' ? { ok: true, left: true, output: '', cwd: '' } : { ok: true, started: calls.shell.filter((x) => x !== 'exit').length === 1, output: '', cwd: 'C:/kerja' }
+  );
+  await t.say('!dir');
+  await t.say('!exit');
+  assert.deepEqual(t.calls.shell, ['dir', 'exit']);
+  assert.match(t.texts(), /Terminal ditutup\. Kita tetap di mode Claude/);
+  assert.equal(t.badge.classList.contains('hidden'), false, 'still in Claude mode');
+  await t.say('!dir');
+  assert.deepEqual(kinds(t, 'term-in').slice(-1), ['PS > dir'], 'the folder was forgotten');
+  delete window.AemeathI18n;
+});
+
+test('a timeout and a dead shell are reported', async () => {
+  const t = await shellPanel(() => ({ ok: true, started: false, output: 'sebagian', cwd: 'C:/kerja', timedOut: true, ended: true }));
+  await t.say('!sleep 99');
+  assert.match(t.texts(), /Perintah dihentikan karena terlalu lama/);
+  assert.match(t.texts(), /Terminalnya berhenti/);
+  delete window.AemeathI18n;
+});
+
+test('every refusal from the main process is shown as text in the active language', async () => {
+  const codes = ['disabled', 'terminal_disabled', 'terminal_mode', 'not_active', 'cancelled', 'declined', 'timeout', 'unsupported', 'waiting', 'empty', 'multiline', 'too-long', 'control', 'busy', 'failed', 'brand-new-code'];
+  const t = await shellPanel((text) => ({ ok: false, code: text }));
+  // the log keeps only the newest messages, so read the answer after every line
+  const errors = [];
+  for (const code of codes) {
+    await t.say('!' + code);
+    errors.push(kinds(t, 'err').pop());
+  }
+  assert.equal(errors.length, codes.length);
+  assert.ok(errors.every(Boolean), 'every code produced an error message');
+  assert.equal(new Set(errors).size >= 12, true, 'the messages are told apart, not one generic text');
+  for (const text of errors) {
+    assert.ok(text.length > 5);
+    assert.doesNotMatch(text, /^(chat|agent)\.|\{\w+\}/, 'a raw key or placeholder leaked: ' + text);
+  }
+  assert.equal(errors[errors.length - 1], 'Perintah tidak bisa dijalankan.', 'an unknown code reads as a plain failure');
+  delete window.AemeathI18n;
+});
+
+test('a failing call to the main process does not break the box', async () => {
+  const t = await shellPanel(() => {
+    throw new Error('ipc gone');
+  });
+  await t.say('!dir');
+  assert.match(t.texts(), /Perintah tidak bisa dijalankan/);
+  await t.say('!dir');
+  assert.equal(t.calls.shell.length, 2, 'the box still works');
+  delete window.AemeathI18n;
+});
+
+test('leaving Claude mode closes the shell', async () => {
+  const t = await shellPanel();
+  await t.say('!dir');
+  const before = t.calls.stop;
+  await t.say('/claude-mode');
+  assert.ok(t.calls.stop > before, 'the shell was told to stop');
+  assert.equal(t.chat.classList.contains('claude'), false);
+  delete window.AemeathI18n;
+});
+
+test('closing the chat box closes the shell', async () => {
+  const t = await shellPanel();
+  await t.say('!dir');
+  const before = t.calls.stop;
+  t.panel.close();
+  assert.ok(t.calls.stop > before);
+  delete window.AemeathI18n;
+});
+
+test('the full terminal mode is not available inside Claude mode, and Rover is pointed to !', async () => {
+  const t = await shellPanel();
+  t.sent.length = 0;
+  await t.say('/change-mode');
+  assert.deepEqual(t.sent, [], '/change-mode was not run');
+  assert.match(t.texts(), /awali dengan ! untuk memakai terminal/);
+  assert.equal(t.chat.classList.contains('terminal'), false);
+  assert.equal(t.chat.classList.contains('claude'), true);
+  delete window.AemeathI18n;
+});
+
+test('/change-mode-search is a different command and still works in Claude mode', async () => {
+  const t = await shellPanel();
+  t.sent.length = 0;
+  await t.say('/change-mode-search');
+  assert.deepEqual(t.sent, ['/change-mode-search']);
+  delete window.AemeathI18n;
+});
+
+test('while a command waits for a yes, a line starting with ! is not sent to the terminal', async () => {
+  const sent = [];
+  const t = await shellPanel(null, {
+    runCommand: async (text) => {
+      sent.push(text);
+      if (text === '/claude-mode') return { isCommand: true, ok: true, text: 'Mode Claude aktif', mode: 'claude' };
+      if (text === '/matikan') return { isCommand: true, ok: true, text: 'Yakin?', awaitConfirm: true };
+      return { isCommand: true, ok: true, text: 'dijawab: ' + text };
+    },
+  });
+  await t.say('/matikan');
+  await t.say('!dir');
+  assert.deepEqual(t.calls.shell, []);
+  assert.ok(sent.includes('!dir'), 'the line went to the command that was waiting');
+  delete window.AemeathI18n;
+});
+
+test('the terminal hint is in the placeholder and the mode message, in both languages', async () => {
+  const t = await shellPanel();
+  assert.match(t.input.placeholder, /!perintah/);
+  const id = require('../src/i18n').createI18n({ locale: 'id-ID' }).t;
+  const en = require('../src/i18n').createI18n({ locale: 'en-US' }).t;
+  assert.match(id('agent.mode_on', { name: 'x' }), /!perintah untuk terminal/);
+  assert.match(en('agent.mode_on', { name: 'x' }), /!command for the terminal/);
+  assert.match(en('chat.claude_placeholder'), /!command/);
+  assert.ok(id('chat.claude_placeholder').length <= 42, 'short enough to fit the input');
+  assert.ok(en('chat.claude_placeholder').length <= 42);
+  delete window.AemeathI18n;
+});
+
+// --- "stop" works while Claude is working ---
+
+test('in Claude mode "stop" ends a running request, and it is sent as /claude stop', async () => {
+  let release;
+  const sent = [];
+  const t = await agentPanel({
+    runCommand: async (text) => {
+      sent.push(text);
+      if (text === '/claude-mode') return { isCommand: true, ok: true, text: 'Mode Claude aktif', mode: 'claude' };
+      if (text === '/claude kerjakan ini') return new Promise((resolve) => (release = () => resolve({ isCommand: true, ok: true, text: '' })));
+      return { isCommand: true, ok: true, text: 'Permintaan dihentikan.' };
+    },
+  });
+  await t.say('/claude-mode');
+  t.input.value = 'kerjakan ini';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  t.input.value = 'stop';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.ok(sent.includes('/claude stop'), 'stop reached the bridge while the request was running');
+  assert.match(t.texts(), /Permintaan dihentikan/);
+  release();
+  delete window.AemeathI18n;
+});
+
+test('"stop" is ordinary text outside Claude mode, and /claude stop still works everywhere', async () => {
+  let release;
+  const sent = [];
+  const t = await agentPanel({
+    runCommand: async (text) => {
+      sent.push(text);
+      if (text === '/claude tugas') return new Promise((resolve) => (release = () => resolve({ isCommand: true, ok: true, text: '' })));
+      return { isCommand: true, ok: true, text: 'ok' };
+    },
+  });
+  t.input.value = '/claude tugas';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  t.input.value = 'stop';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.equal(sent.includes('/claude stop'), false, 'plain stop outside Claude mode does nothing');
+  t.input.value = '/claude stop';
+  t.env.elements.get('chat-form').dispatchEvent({ type: 'submit', preventDefault: () => {} });
+  await new Promise((r) => origSetTimeout(r, 25));
+  assert.ok(sent.includes('/claude stop'));
+  release();
+  delete window.AemeathI18n;
+});

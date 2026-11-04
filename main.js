@@ -46,6 +46,7 @@ const { createGithubReader, githubReply, failureKey } = require('./src/integrati
 const { createUacGate } = require('./src/terminal/uac-gate');
 const { createTerminalSession } = require('./src/terminal/terminal-session');
 const { createTerminalController } = require('./src/terminal/terminal-controller');
+const { createShellBridge } = require('./src/agent/shell-bridge');
 const { createActivityMonitor } = require('./src/activity/activity-monitor');
 const { createActivityTracker } = require('./src/activity/activity-tracker');
 const { createActivityWatcher } = require('./src/activity/activity-watcher');
@@ -196,6 +197,8 @@ function main() {
   // Verification run only: a stand-in for the Claude CLI that answers from the prompt, so no
   // model is called and nothing is edited. Records the arguments each run was started with.
   const selfieSchedule = []; // reminders the verification run heard
+  const selfieShellAsks = []; // the lines the shell dialog was shown for
+  let selfieShellAnswer = true; // what the verification run answers in that dialog
   // Verification run only: a stand-in for `gh api` with fixed answers, so GitHub is never called.
   const selfieGhCalls = [];
   function selfieGhSpawn(_bin, args) {
@@ -410,6 +413,32 @@ function main() {
       : createUacGate({ spawn, platform: platformInfo.id, polkit: platformInfo.isLinux }),
     createSession: () => createTerminalSession({ spawn, cwd: os.homedir(), platform: platformInfo.id }),
     isEnabled: () => settings.terminalEnabled !== false,
+  });
+  // The terminal inside Claude mode: a line typed with a leading "!" runs in this same shell. The first
+  // one asks in a dialog that shows the exact line, then passes the same consent gate (UAC). The dialog is
+  // answered by the verification run, which cannot click a native window.
+  const shellBridge = createShellBridge({
+    terminal,
+    isEnabled: () => settings.agentBridgeEnabled === true,
+    confirm: async (line) => {
+      if (isSelfie) {
+        selfieShellAsks.push(line);
+        return selfieShellAnswer;
+      }
+      const tr = createI18n({ locale: settings.locale || 'id-ID' }).t;
+      const dialogOptions = {
+        type: 'question',
+        title: tr('agent.shell_dialog_title'),
+        message: tr('agent.shell_dialog_message'),
+        detail: tr('agent.shell_dialog_detail', { command: line }),
+        buttons: [tr('agent.shell_dialog_ok'), tr('agent.shell_dialog_cancel')],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+      };
+      const answer = win && !win.isDestroyed() ? await dialog.showMessageBox(win, dialogOptions) : await dialog.showMessageBox(dialogOptions);
+      return answer.response === 0;
+    },
   });
   // Interactive mode "medium": while it is on, Aemeath reads which app is in front, sorts it
   // into a category and comments on a few things (a game starting, long social media
@@ -812,6 +841,7 @@ function main() {
       // Turning the module off ends whatever it is running.
       if (next.agentBridgeEnabled === false) {
         agentPermission = 'ask';
+        shellBridge.stop();
         if (agentBridge) void agentBridge.shutdown();
       }
       if (settings.transparentMode) applyIgnoreMouse(true);
@@ -976,6 +1006,20 @@ function main() {
         win?.webContents?.send('chat:state', { thinking: false });
       }
     });
+    // The shell inside Claude mode. Only the chat box may ask, with a line Rover typed after "!".
+    ipcMain.handle('agent:shell', async (event, text) => {
+      if (!fromWindow(event, win)) return { ok: false, code: 'denied' };
+      win?.webContents?.send('chat:state', { thinking: true });
+      try {
+        return await shellBridge.run(String(text == null ? '' : text));
+      } finally {
+        win?.webContents?.send('chat:state', { thinking: false });
+      }
+    });
+    ipcMain.handle('agent:shell-stop', (event) => {
+      if (fromWindow(event, win)) shellBridge.stop();
+      return true;
+    });
     ipcMain.handle('terminal:stop', (event) => {
       if (fromWindow(event, win)) terminal.stop();
       return true;
@@ -1059,6 +1103,7 @@ function main() {
       if (!fromWindow(event, settingsWin) || !agentBridge) return false;
       await agentBridge.purge();
       agentPermission = 'ask';
+      shellBridge.stop();
       Object.assign(settings, settingsStore.save({ agentBridgeEnabled: false, agentBridgeDir: '', agentRecentDirs: [], agentModel: '', agentEffort: '' }));
       settingsWin?.webContents?.send('settings:updated', settings);
       return true;
@@ -2173,6 +2218,29 @@ function main() {
     await pickOption('effort', 0);
     await submit('halo kembali ke bawaan', 1700);
     console.log('[aemeath] request back at defaults: ' + JSON.stringify(selfieClaudeCalls.slice(-1)) + ' | chips: ' + (await chipTexts()));
+    // The terminal inside Claude mode: a line with a leading "!" goes to PowerShell and never to Claude. The
+    // first one asks in a dialog (answered by this run) and then passes the same consent gate.
+    const claudeRunsBefore = selfieClaudeCalls.length;
+    await submit('!', 700);
+    console.log('[aemeath] shell bare bang: ' + (await claudeTail(1)));
+    selfieShellAnswer = false;
+    await submit('!Write-Output nope', 900);
+    console.log('[aemeath] shell dialog cancelled: ' + (await claudeTail(2)) + ' | asked ' + JSON.stringify(selfieShellAsks));
+    selfieShellAnswer = true;
+    await submit('!$hi = "halo dari mode Claude"; $hi', 3500);
+    console.log('[aemeath] shell first line: ' + (await claudeTail(3)) + ' | asked ' + selfieShellAsks.length);
+    await submit('!$hi', 1500);
+    console.log('[aemeath] shell second line: ' + (await claudeTail(2)) + ' | asked ' + selfieShellAsks.length);
+    await submit('/change-mode', 800);
+    console.log('[aemeath] change-mode in Claude mode: ' + (await claudeTail(1)));
+    fs.writeFileSync(path.join(dir, 'chat-claude-shell.png'), (await win.webContents.capturePage()).toPNG());
+    await submit('!exit', 1500);
+    console.log('[aemeath] shell exit: ' + (await claudeTail(1)));
+    selfieShellAnswer = false;
+    await submit('!Write-Output again', 900);
+    console.log('[aemeath] shell asks again after exit: asked ' + selfieShellAsks.length + ' | ' + (await claudeTail(1)));
+    selfieShellAnswer = true;
+    console.log('[aemeath] claude requests started by the shell lines: ' + (selfieClaudeCalls.length - claudeRunsBefore));
     await submit('/claude-mode', 800);
     console.log('[aemeath] claude mode off: ' + (await modeState()) + ' | ' + (await claudeTail(1)));
     console.log('[aemeath] chips after leaving: ' + (await folderBar()) + ' | session chip hidden: ' + (await inChat(`document.getElementById('chat-session').classList.contains('hidden')`)));

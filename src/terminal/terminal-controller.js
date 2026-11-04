@@ -36,18 +36,15 @@ function createTerminalController(options) {
     active = false;
   }
 
-  // Toggles between chat and terminal. Entering asks for consent first.
-  async function changeMode() {
+  // Starts the shell behind the consent gate and touches no chat mode. Resolves to { ok: true, cwd }
+  // or { ok: false, reason }. A shell that is already running is kept, and nothing is asked again.
+  async function begin() {
     if (active) {
-      stop();
-      return { ok: true, mode: 'chat', text: 'Kembali ke mode obrolan, Rover~' };
+      armIdle();
+      return { ok: true, cwd: session.cwd };
     }
-    if (!isEnabled()) {
-      return { ok: false, mode: 'chat', text: 'Mode terminal dimatikan di Pengaturan, jadi aku tetap di mode obrolan.' };
-    }
-    if (entering) {
-      return { ok: false, mode: 'chat', text: 'Aku masih menunggu persetujuan Windows. Lihat jendela izin admin ya.' };
-    }
+    if (!isEnabled()) return { ok: false, reason: 'terminal_disabled' };
+    if (entering) return { ok: false, reason: 'waiting' };
 
     entering = true;
     let consent;
@@ -56,23 +53,37 @@ function createTerminalController(options) {
     } finally {
       entering = false;
     }
-    if (!consent.granted) {
-      const reasons = {
-        declined: 'Izin admin ditolak, jadi aku tetap di mode obrolan.',
-        timeout: 'Persetujuan Windows tidak dijawab tepat waktu, jadi aku tetap di mode obrolan.',
-        unsupported: 'Mode terminal hanya tersedia di Windows.',
-      };
-      return { ok: false, mode: 'chat', text: reasons[consent.reason] || 'Izin admin tidak bisa diminta, jadi aku tetap di mode obrolan.' };
-    }
+    if (!consent.granted) return { ok: false, reason: consent.reason || 'error' };
 
     session = createSession();
     session.start();
     active = true;
     armIdle();
+    return { ok: true, cwd: session.cwd };
+  }
+
+  const ENTER_REFUSALS = {
+    terminal_disabled: 'Mode terminal dimatikan di Pengaturan, jadi aku tetap di mode obrolan.',
+    waiting: 'Aku masih menunggu persetujuan Windows. Lihat jendela izin admin ya.',
+    declined: 'Izin admin ditolak, jadi aku tetap di mode obrolan.',
+    timeout: 'Persetujuan Windows tidak dijawab tepat waktu, jadi aku tetap di mode obrolan.',
+    unsupported: 'Mode terminal hanya tersedia di Windows.',
+  };
+
+  // Toggles between chat and terminal. Entering asks for consent first.
+  async function changeMode() {
+    if (active) {
+      stop();
+      return { ok: true, mode: 'chat', text: 'Kembali ke mode obrolan, Rover~' };
+    }
+    const began = await begin();
+    if (!began.ok) {
+      return { ok: false, mode: 'chat', text: ENTER_REFUSALS[began.reason] || 'Izin admin tidak bisa diminta, jadi aku tetap di mode obrolan.' };
+    }
     return {
       ok: true,
       mode: 'terminal',
-      cwd: session.cwd,
+      cwd: began.cwd,
       text:
         'Mode terminal aktif. Ketik perintah PowerShell dan aku jalankan sebagai kamu (bukan admin). ' +
         'Ketik exit atau /change-mode untuk kembali mengobrol.',
@@ -89,10 +100,10 @@ function createTerminalController(options) {
 
   // Resolves to { ok, mode, output?, cwd?, timedOut?, error? }.
   async function run(text) {
-    if (!active) return { ok: false, mode: 'chat', error: 'Mode terminal belum aktif.' };
+    if (!active) return { ok: false, mode: 'chat', code: 'not_active', error: 'Mode terminal belum aktif.' };
     if (!isEnabled()) {
       stop();
-      return { ok: false, mode: 'chat', error: 'Mode terminal dimatikan di Pengaturan.' };
+      return { ok: false, mode: 'chat', code: 'terminal_disabled', error: 'Mode terminal dimatikan di Pengaturan.' };
     }
     const line = String(text == null ? '' : text).trim();
     if (LEAVE_WORDS.test(line)) {
@@ -108,16 +119,25 @@ function createTerminalController(options) {
       }
       return { ok: true, mode: 'terminal', output: result.output, cwd: result.cwd, timedOut: result.timedOut };
     } catch (error) {
-      return { ok: false, mode: 'terminal', error: MESSAGES[error.message] || 'Perintah tidak bisa dijalankan.' };
+      return {
+        ok: false,
+        mode: 'terminal',
+        code: MESSAGES[error.message] ? error.message : 'failed',
+        error: MESSAGES[error.message] || 'Perintah tidak bisa dijalankan.',
+      };
     }
   }
 
   return {
+    begin: begin,
     changeMode: changeMode,
     run: run,
     stop: stop,
     get active() {
       return active;
+    },
+    get enabled() {
+      return isEnabled();
     },
     get cwd() {
       return session ? session.cwd : null;

@@ -33,6 +33,17 @@ function defaultKillTree(spawn, pid, isPosix) {
   }
 }
 
+// The reason a line cannot be sent to the shell, or '' when it can. It needs no session, so a
+// caller can refuse a bad line before it asks the owner for anything.
+function checkLine(line) {
+  const text = String(line == null ? '' : line).trim();
+  if (!text) return 'empty';
+  if (/[\r\n]/.test(text)) return 'multiline';
+  if (text.length > MAX_INPUT) return 'too-long';
+  if (CONTROL.test(text)) return 'control';
+  return '';
+}
+
 // options: { spawn, cwd, shell?, platform?, timeoutMs?, killTree? }
 function createTerminalSession(options) {
   const spawn = options.spawn;
@@ -116,10 +127,8 @@ function createTerminalSession(options) {
   // Resolves to { output, cwd, timedOut, ended } or rejects with a short reason.
   function run(command) {
     const line = String(command == null ? '' : command).trim();
-    if (!line) return Promise.reject(new Error('empty'));
-    if (/[\r\n]/.test(line)) return Promise.reject(new Error('multiline'));
-    if (line.length > MAX_INPUT) return Promise.reject(new Error('too-long'));
-    if (CONTROL.test(line)) return Promise.reject(new Error('control'));
+    const bad = checkLine(line);
+    if (bad) return Promise.reject(new Error(bad));
     if (waiting) return Promise.reject(new Error('busy'));
     if (!child) launch();
 
@@ -168,4 +177,4 @@ function createTerminalSession(options) {
   };
 }
 
-module.exports = { createTerminalSession, MAX_OUTPUT, MAX_INPUT, DEFAULT_TIMEOUT_MS };
+module.exports = { createTerminalSession, checkLine, MAX_OUTPUT, MAX_INPUT, DEFAULT_TIMEOUT_MS };

@@ -72,6 +72,8 @@
     let large = false;
     let confirming = false; // a command is waiting for Rover to answer "ya"
     let cwd = '';
+    let shellCwd = ''; // where the shell started from Claude mode is
+    let shellOn = false;
     let requestCounter = 0;
     let pendingAttachments = [];
     let currentLocale = (options && options.locale === 'en-US') ? 'en-US' : 'id-ID';
@@ -539,6 +541,7 @@
       }
       // Turning the module off ends Claude mode.
       if (mode === 'claude' && !(folders && folders.enabled)) {
+        stopShell();
         setMode('chat');
         add('bot', tr('chat.claude_mode_ended'));
       }
@@ -806,6 +809,7 @@
         api.terminalStop();
         setMode('chat');
       }
+      stopShell(); // and so does a shell started from Claude mode
       el.classList.add('hidden');
       clearTimeout(idleTimer);
       api.blurWindow();
@@ -878,6 +882,79 @@
           refreshSessions();
           refreshOptions();
         }
+        busy = false;
+        controls();
+        reposition();
+        if (isOpen) input.focus();
+        touch();
+      }
+    }
+
+    // The terminal inside Claude mode. A line Rover typed after "!" goes to the shell and never to
+    // Claude. The first one opens a dialog in the main process and then the Windows prompt (UAC); this
+    // panel only sends the line and shows what comes back.
+    const SHELL_ERRORS = {
+      disabled: 'agent.disabled',
+      terminal_disabled: 'chat.shell_terminal_disabled',
+      terminal_mode: 'chat.shell_terminal_mode',
+      not_active: 'chat.shell_not_active',
+      cancelled: 'chat.shell_cancelled',
+      declined: 'chat.shell_declined',
+      timeout: 'chat.shell_timeout',
+      unsupported: 'chat.shell_unsupported',
+      waiting: 'chat.shell_waiting_busy',
+      empty: 'chat.shell_usage',
+      multiline: 'chat.shell_multiline',
+      'too-long': 'chat.shell_too_long',
+      control: 'chat.shell_control',
+      busy: 'chat.shell_busy',
+    };
+
+    function stopShell() {
+      shellOn = false;
+      shellCwd = '';
+      if (typeof api.agentShellStop === 'function') api.agentShellStop();
+    }
+
+    async function runShell(line) {
+      if (!line) {
+        add('bot', tr('chat.shell_usage'));
+        return;
+      }
+      add('term-in', 'PS ' + shellCwd + '> ' + line);
+      busy = true;
+      controls();
+      touch();
+      const waitingBubble = shellOn ? null : add('bot pending', tr('chat.shell_waiting'));
+      try {
+        const res = await api.agentShell(line);
+        if (waitingBubble) waitingBubble.remove();
+        if (!res || !res.ok) {
+          shellOn = false;
+          add('err', tr((res && SHELL_ERRORS[res.code]) || 'chat.shell_failed'));
+        } else {
+          if (res.cwd) shellCwd = res.cwd;
+          if (res.started) {
+            shellOn = true;
+            add('bot', tr('chat.shell_started', { cwd: res.cwd || '' }));
+          }
+          if (res.output) add('term-out', res.output);
+          if (res.timedOut) add('err', tr('chat.shell_timed_out'));
+          if (res.left) {
+            shellOn = false;
+            shellCwd = '';
+            add('bot', tr('chat.shell_left'));
+          }
+          if (res.ended) {
+            shellOn = false;
+            shellCwd = '';
+            add('bot', tr('chat.shell_ended'));
+          }
+        }
+      } catch {
+        if (waitingBubble) waitingBubble.remove();
+        add('err', tr('chat.shell_failed'));
+      } finally {
         busy = false;
         controls();
         reposition();
@@ -986,10 +1063,10 @@
     async function submit() {
       const text = input.value.trim();
       const hasAttachments = pendingAttachments.length > 0;
-      // The one thing that works while a request runs: stopping the agent.
-      if (busy && /^\/claude\s+stop\s*$/i.test(text)) {
+      // The one thing that works while a request runs: stopping the agent. In Claude mode "stop" is enough.
+      if (busy && (/^\/claude\s+stop\s*$/i.test(text) || (mode === 'claude' && /^(?:stop|berhenti)$/i.test(text)))) {
         input.value = '';
-        const stopped = await api.runCommand(text);
+        const stopped = await api.runCommand('/claude stop');
         if (stopped && stopped.isCommand) add(stopped.ok ? 'bot' : 'err', stopped.text);
         return;
       }
@@ -1012,6 +1089,7 @@
         const on = arg === 'on' || arg === 'aktif';
         if (mode === 'claude' && !on) {
           add('user', text);
+          stopShell();
           setMode('chat');
           add('bot', tr('chat.claude_mode_off'));
           return;
@@ -1022,6 +1100,13 @@
           return;
         }
         return runCommand('/claude-mode');
+      }
+      // In Claude mode a line that starts with "!" is typed for the terminal, not for Claude.
+      if (mode === 'claude' && !confirming && text.startsWith('!')) return runShell(text.slice(1).trim());
+      if (mode === 'claude' && !confirming && /^\/change-mode(?:\s|$)/i.test(text)) {
+        add('user', text);
+        add('bot', tr('chat.shell_use_bang'));
+        return;
       }
       // In Claude mode everything that is not a /command goes to Claude.
       if (mode === 'claude' && !confirming && !text.startsWith('/')) {
